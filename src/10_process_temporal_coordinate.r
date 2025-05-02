@@ -1,3 +1,7 @@
+####################################################################################################
+# ATTENTION: THIS SCRIPT WAS MOVED TO SOILDATA-INTEGRATION ON 2024-05-02
+# https://github.com/Laboratorio-de-Pedometria/SoilData-integration
+####################################################################################################
 # title: SoilData - Soil Organic Carbon Stock
 # subtitle: Process time coordinate
 # author: Alessandro Samuel-Rosa and Taciara Zborowski Horst
