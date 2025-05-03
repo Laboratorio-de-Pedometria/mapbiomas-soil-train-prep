@@ -1,3 +1,7 @@
+####################################################################################################
+# ATTENTION: THIS SCRIPT WAS MOVED TO SOILDATA-INTEGRATION ON 2024-05-03
+# https://github.com/Laboratorio-de-Pedometria/SoilData-integration
+####################################################################################################
 # title: SoilData - Soil Organic Carbon Stock
 # subtitle: Merge curated data
 # author: Alessandro Samuel-Rosa and Taciara Zborowski Horst
