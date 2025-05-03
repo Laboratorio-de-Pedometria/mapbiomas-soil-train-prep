@@ -25,7 +25,7 @@ summary_soildata(soildata)
 # anos de 2012 e 2013
 soildata <- soildata[dataset_id != "ctb0001", ]
 
-# ctb0002
+# ctb0002 (MOVED TO SOILDATA INTEGRATION)
 # Classificação taxonômica do solo em Pinheiral, RJ
 soildata <- soildata[dataset_id != "ctb0002", ]
 
@@ -39,7 +39,7 @@ soildata <- soildata[dataset_id != "ctb0009", ]
 # Conteúdo de ferro do solo no ano de 1998
 soildata <- soildata[dataset_id != "ctb0026", ]
 
-# ctb0029
+# ctb0029 (MOVED TO SOILDATA INTEGRATION)
 # Carbono e matéria orgânica em amostras do solo do Estado do Rio Grande do Sul por diferentes
 # métodos de determinação
 soildata <- soildata[dataset_id != "ctb0029", ]
@@ -48,17 +48,17 @@ soildata <- soildata[dataset_id != "ctb0029", ]
 # Alteração do pH do solo por influência da diluição, tipo de solvente e tempo de contato
 soildata <- soildata[dataset_id != "ctb0042", ]
 
-# ctb0654 (exact duplicate of ctb0608)
+# ctb0654 (exact duplicate of ctb0608) (MOVED TO SOILDATA INTEGRATION)
 # Conjunto de dados do 'V Reunião de Classificação, Correlação e Aplicação de Levantamentos de Solo
 #  - guia de excursão de estudos de solos nos Estados de Pernambuco, Paraíba, Rio Grande do Norte,
 # Ceará e Bahia'
 soildata <- soildata[dataset_id != "ctb0654", ]
 
-# ctb0800 (many duplicates of ctb0702)
+# ctb0800 (many duplicates of ctb0702) (MOVED TO SOILDATA INTEGRATION)
 # Estudos pedológicos e suas relações ambientais
 soildata <- soildata[dataset_id != "ctb0800", ]
 
-# ctb0808 (exact duplicate of ctb0574)
+# ctb0808 (exact duplicate of ctb0574) (MOVED TO SOILDATA INTEGRATION)
 # Conjunto de dados do levantamento semidetalhado 'Levantamento Semidetalhado e Aptidão Agrícola dos
 # Solos do Município do Rio de Janeiro, RJ.'
 soildata <- soildata[dataset_id != "ctb0808", ]
@@ -70,7 +70,7 @@ summary_soildata(soildata)
 
 # Clean layers #####################################################################################
 
-# LAYER ORDER
+# LAYER ORDER (MOVED TO SOILDATA INTEGRATION)
 soildata <- soildata[order(dataset_id, observacao_id, profund_sup, profund_inf)]
 
 # MISSING DEPTH
@@ -86,29 +86,28 @@ summary_soildata(soildata)
 # Events: 16731
 # Georeferenced events: 14234
 
-# ORGANIC TOPSOIL
-# Some topsoil layers are organic layers that do not have a measurement of carbon.
-# Some of these organic layers have negative limits but others have positive limits.
-# We start by identifying layers with carbono == NA and H or O in camada_nome.
+# Correct layer names (if necessary) (MOVED TO SOILDATA INTEGRATION)
 soildata[
   id == "ctb0770-100" & camada_nome == "B21H",
   camada_nome := ifelse(camada_nome == "B21H", "B21h", camada_nome)
 ]
+
+# ORGANIC TOPSOIL (ONLY PARTIALLY MOVED TO SOILDATA INTEGRATION)
+# Some topsoil layers are organic layers that do not have a measurement of carbon.
+# Some of these organic layers have negative limits but others have positive limits.
+# We start by identifying layers with carbono == NA and H or O in camada_nome.
 soildata[, organic_topsoil := any(is.na(carbono) & grepl("H|O", camada_nome)), by = id]
 soildata[organic_topsoil == TRUE, .(id, camada_nome, profund_sup, profund_inf, carbono)]
 summary_soildata(soildata[organic_topsoil == TRUE])
 # Layers: 1071
 # Events: 167
 # Georeferenced events: 110
-
 # Then we filter out all layers with carbono == NA and H or O in camada_nome.
 soildata <- soildata[!(is.na(carbono) & grepl("H|O", camada_nome))]
-
 # Reset the limits of layers of a profile when there is an organic layer
 soildata[organic_topsoil == TRUE, profund_sup := profund_sup - min(profund_sup), by = id]
 soildata[organic_topsoil == TRUE, profund_inf := profund_inf - min(profund_sup), by = id]
 print(soildata[organic_topsoil == TRUE, .(id, camada_nome, profund_sup, profund_inf, carbono)])
-
 # Finally, we filter out all layers with profund_sup < 0.
 # Currently, all layers with profund_sup < 0 are from ctb0054
 soildata[profund_sup < 0, .(id, camada_nome, profund_sup, profund_inf, carbono)]
@@ -119,7 +118,7 @@ summary_soildata(soildata)
 # Events: 16730
 # Georeferenced events: 14234
 
-# LAYER LIMITS
+# LAYER LIMITS (MOVED TO SOILDATA INTEGRATION)
 # Some layers have equal values for profund_sup and profund_inf.
 # This may occur when the soil profile sampling and description ended at the top of the layer,
 # producing a censoring effect. If the layer has a name containing R, D, or C, we add a fixed depth
@@ -127,7 +126,6 @@ summary_soildata(soildata)
 nrow(soildata[profund_sup == profund_inf]) # 220 layers
 soildata[, equal_depth := any(profund_sup == profund_inf), by = id]
 print(soildata[equal_depth == TRUE, .(id, camada_nome, profund_sup, profund_inf)])
-
 # Add a fixed depth to R, D, and C layers with equal depth limits
 plus_depth <- 20
 soildata[
@@ -137,7 +135,6 @@ soildata[
 nrow(soildata[profund_sup == profund_inf]) # 66 layers
 soildata[, equal_depth := any(profund_sup == profund_inf), by = id]
 print(soildata[equal_depth == TRUE, .(id, camada_nome, profund_sup, profund_inf)])
-
 # Some events from dataset_id = ctb0033 have a single layer and the depth limit is equal to zero.
 # We remove these layers.
 soildata[, n_layers := .N, by = id]
@@ -151,7 +148,6 @@ soildata <- soildata[
 nrow(soildata[profund_sup == profund_inf]) # 58 layers
 soildata[, n_layers := NULL]
 print(soildata[equal_depth == TRUE, .(id, camada_nome, profund_sup, profund_inf)])
-
 # Some events with profund_sup == profund_inf and profund_sup == 0 are from ctb0631.
 # Actually, these layers have not a depth limit recorded. So we set them to NA.
 soildata[
@@ -161,7 +157,6 @@ soildata[
 soildata <- soildata[!(dataset_id == "ctb0631" & profund_sup == profund_inf & profund_sup == 0)]
 nrow(soildata[profund_sup == profund_inf]) # 35 layers
 print(soildata[equal_depth == TRUE, .(id, camada_nome, profund_sup, profund_inf)])
-
 # For some datasets, we add a fixed depth to the lowermost layer
 # ctb0691, ctb0787, ctb0675, ctb0603, ctb0645, ctb0033, ctb0678, ctb0691
 soildata[
@@ -191,10 +186,8 @@ soildata[
 nrow(soildata[profund_sup == profund_inf]) # 19 layers
 soildata[, equal_depth := any(profund_sup == profund_inf), by = id]
 print(soildata[equal_depth == TRUE, .(id, camada_nome, profund_sup, profund_inf, carbono)])
-
 # For some datasets, we add a fixed depth to the uppermost layer
 soildata[id == "ctb0775-9" & camada_nome == "B21", profund_sup := 100]
-
 # Drop all of the remaining layers with equal depth limits
 soildata <- soildata[equal_depth == FALSE]
 nrow(soildata[profund_sup == profund_inf]) # 0 layers
@@ -204,13 +197,13 @@ summary_soildata(soildata)
 # Events: 16698
 # Georeferenced events: 14209
 
-# Layer id
+# Layer id (MOVED TO SOILDATA INTEGRATION)
 # Sort each event (id) by layer depth (profund_sup and profund_inf)
 # Update the columns camada_id
 soildata <- soildata[order(id, profund_sup, profund_inf)]
 soildata[, camada_id := 1:.N, by = id]
 
-# Remove repeated layers
+# Remove repeated layers (MOVED TO SOILDATA INTEGRATION)
 # Some layers are repeated in the same event (id). These layers have equal values for camada_nome,
 # profund_sup, and profund_inf. We create a new variable called repeated to identify these layers.
 # Then, we filter out these layers.
@@ -342,14 +335,14 @@ summary_soildata(soildata)
 # Events: 15885
 # Georeferenced events: 13537
 
-# Fine earth
+# Fine earth (MOVED TO SOILDATA INTEGRATION)
 # Correct samples with terrafina == 0 g/kg
 # When terrafina == 0, we set the fine earth content to 1000 g/kg.
 soildata[terrafina == 0, .N] # 10 samples with terrafina == 0
 print(soildata[terrafina == 0, .(id, camada_nome, profund_sup, profund_inf, terrafina, argila)])
 soildata[terrafina == 0, terrafina := 1000]
 
-# Fine earth in R layers
+# Fine earth in R layers (MOVED TO SOILDATA INTEGRATION)
 # R layers are consolidated rock layers. These layers should have terrafina == NA_real.
 soildata[grepl("R", camada_nome) & !is.na(terrafina), .N] # 105 layers with R in camada_nome
 soildata[grepl("R", camada_nome) & !is.na(terrafina), .(id, camada_nome, terrafina)]
@@ -358,7 +351,7 @@ soildata[camada_nome == "2R", terrafina := NA_real_]
 soildata[camada_nome == "IIR", terrafina := NA_real_]
 soildata[grepl("R", camada_nome) & !is.na(terrafina), .(id, camada_nome, terrafina)]
 
-# Soil skeleton
+# Soil skeleton (ONLY PARTIALLY MOVED TO SOILDATA INTEGRATION)
 # In some soil samples, the fine earth and skeleton concentration data are inverted. This is quite
 # common in cases where the skeleton concentration is greater than 800. The solution used here is
 # to swap the values between the two variables. A better solution must be implemented and it
@@ -380,7 +373,7 @@ summary_soildata(soildata)
 # Events: 15885
 # Georeferenced events: 13537
 
-# Clean camada_nome
+# Clean camada_nome (ONLY PARTIALLY MOVED TO SOILDATA INTEGRATION)
 soildata[, camada_nome := as.character(camada_nome)]
 soildata[is.na(camada_nome) | camada_nome == "" & profund_sup == 0, camada_nome := "A"]
 soildata[is.na(camada_nome) | camada_nome == "" & profund_sup != 0, camada_nome := NA_character_]
