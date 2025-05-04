@@ -446,7 +446,7 @@ sort(unique(soildata[, camada_nome]))
 # nrow(unique(soildata[, "id"])) # 13 101 events
 # nrow(soildata) # 21 687 layers
 
-# Particle size distribution
+# Particle size distribution (MOVED TO SOILDATA INTEGRATION)
 # Transform the particle size fractions from g/kg to %. Then check if their sum is 100%
 soildata[, argila := round(argila / 10)]
 soildata[, silte := round(silte / 10)]
@@ -472,7 +472,7 @@ soildata[, psd := round(argila + silte + areia)]
 soildata[psd != 100, psd]
 soildata[, psd := NULL]
 
-# Check if there is any size fraction equal to 0
+# Check if there is any size fraction equal to 0 (MOVED TO SOILDATA INTEGRATION)
 # clay
 soildata[argila == 0, .(id, camada_nome, argila)]
 soildata[dataset_id == "ctb0020" & argila == 0, silte := silte - 1]
@@ -491,7 +491,7 @@ soildata[silte == 0, .(id, camada_nome, silte)]
 soildata[silte == 0, areia := areia - 1]
 soildata[silte == 0, silte := 1]
 
-# Correct bulk density values
+# Correct bulk density values (MOVED TO SOILDATA INTEGRATION)
 soildata[id == "ctb0562-Perfil-13" & camada_id == 2, dsi := ifelse(dsi == 2.6, 0.86, dsi)]
 soildata[id == "ctb0562-Perfil-14" & camada_id == 1, dsi := ifelse(dsi == 2.53, 1.09, dsi)]
 soildata[id == "ctb0562-Perfil-14" & camada_id == 2, dsi := ifelse(dsi == 2.6, 0.9, dsi)]
@@ -535,7 +535,6 @@ set.seed(1984)
 soildata_events[duplo & dataset_id %in% ctb, coord_x := coord_x + runif(.N, -0.00001, 0.00001)]
 duplo <- duplicated(soildata_events[, ..test_columns])
 sum(duplo) # 156 duplicated events
-
 # Remove remaining duplicated events
 duplo <- soildata_events[duplo, V1]
 soildata <- soildata[!id %in% duplo, ] # remove duplicated events
