@@ -1,5 +1,5 @@
 ####################################################################################################
-# ATTENTION: THIS SCRIPT WAS MOVED TO SOILDATA-INTEGRATION ON 2024-05-02
+# ATTENTION: THIS SCRIPT WAS MOVED TO SOILDATA-INTEGRATION ON 2024-05-25
 # https://github.com/Laboratorio-de-Pedometria/SoilData-integration
 ####################################################################################################
 # title: SoilData - Soil Organic Carbon Stock
@@ -147,6 +147,10 @@ nrow(unique(rondonia[EXTRA == TRUE, "observacao_id"])) # 24 events with duplicat
 rondonia[EXTRA == TRUE, observacao_id := paste0(observacao_id, camada_id_febr)]
 rondonia[, id := paste0(dataset_id, "-", observacao_id)]
 
+####################################################################################################
+# ATTENTION!
+# Random perturbation of coordinates was not applied to the consolidated data
+####################################################################################################
 # Add random perturbation to the coordinates of extra samples
 # Use sf::st_jitter() with amount = 200 m, where runif(1, -amount, amount)
 amount <- 200
