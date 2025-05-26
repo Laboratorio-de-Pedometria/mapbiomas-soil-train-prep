@@ -24,10 +24,10 @@ summary_soildata(soildata)
 length(soildata[, unique(dataset_id)])
 # 250 datasets
 
-# DELETE POSSIBLE INCONSISTENCIES
+# DELETE POSSIBLE INCONSISTENCIES (MOVED TO SOILDATA INTEGRATION)
 soildata[dsi > 2.5, dsi := NA_real_]
 
-# Correct inconsistent soil bulk density values
+# Correct inconsistent soil bulk density values (MOVED TO SOILDATA INTEGRATION)
 soildata[id == "ctb0058-RN_20", dsi := ifelse(dsi == 2.11, 1.11, dsi)]
 
 # Identify layers missing soil bulk density data
