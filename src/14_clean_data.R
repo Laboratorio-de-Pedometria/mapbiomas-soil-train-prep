@@ -516,7 +516,7 @@ soildata[is.na(endpoint), endpoint := 0]
 
 # Clean events
 
-# Identify duplicated events
+# Identify duplicated events (MOVED TO SOILDATA INTEGRATION)
 # Duplicated events have equal spatial and temporal coordinates.
 # Make sure to analise events with complete spatial and temporal coordinates.
 soildata_events <- soildata[!is.na(coord_x) & !is.na(coord_y) & !is.na(data_ano), id[1],
@@ -526,7 +526,6 @@ nrow(soildata_events) # 13537 events
 test_columns <- c("coord_x", "coord_y", "data_ano")
 duplo <- duplicated(soildata_events[, ..test_columns])
 sum(duplo) # 199 duplicated events
-
 # Jitter the coordinates of the duplicated events belonging to the following datasets:
 soildata_events[duplo, unique(dataset_id)]
 # ctb0010, ctb0017, ctb0033, ctb0832, ctb0631, ctb0585
@@ -535,7 +534,8 @@ set.seed(1984)
 soildata_events[duplo & dataset_id %in% ctb, coord_x := coord_x + runif(.N, -0.00001, 0.00001)]
 duplo <- duplicated(soildata_events[, ..test_columns])
 sum(duplo) # 156 duplicated events
-# Remove remaining duplicated events
+
+# Remove remaining duplicated events (NOT MOVED TO SOILDATA INTEGRATION)
 duplo <- soildata_events[duplo, V1]
 soildata <- soildata[!id %in% duplo, ] # remove duplicated events
 summary_soildata(soildata)
@@ -543,6 +543,7 @@ summary_soildata(soildata)
 # Events: 15729
 # Georeferenced events: 13381
 
+# (MOVED TO SOILDATA INTEGRATION)
 # Update coordinates (this has already been implemented in the source spreadsheets)
 # MATA ATLÂNTICA
 # ctb0832-226
