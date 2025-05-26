@@ -22,7 +22,7 @@ summary_soildata(soildata)
 # Events: 15729
 # Georeferenced events: 13381
 
-# Correct layer depth and name
+# Correct layer depth and name (MOVED TO SOILDATA INTEGRATION)
 # soildata[
 #   dataset_id == "ctb0829" & observacao_id == "P92" & camada_nome == "A",
 #   profund_inf := 8
