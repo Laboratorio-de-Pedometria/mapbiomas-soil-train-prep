@@ -303,10 +303,6 @@ br_soil2023[
 nrow(unique(br_soil2023[is.na(data_coleta_ano), c("dataset_id", "observacao_id")]))
 # 66 events remain without sampling date
 
-####################################################################################################
-# ATTENTION:
-# Events in ctb0009 and ctb0029 duplicated from ctb0003 remain in the consolitated dataset
-####################################################################################################
 # Filter out rows missing the sampling date in the following datasets:
 # ctb0009 (completely removed ahead), ctb0029
 ctb <- c("ctb0009", "ctb0029")
