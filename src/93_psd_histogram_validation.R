@@ -28,7 +28,7 @@ mapped_data[, cidade_id := toupper(cidade_id)]
 mapped_data <- mapped_data[cidade_id %in% unique(field_data$cidade_id)]
 
 
-city <- "CERRO GRANDE"
+city <- "FREDERICO WESTPHALEN"
 observed_counds <- field_data[cidade_id == city, argila]
 observed_counds <- observed_counds
 n <- sum(observed_counds)
@@ -37,7 +37,7 @@ mapped_area_prop <- as.numeric(mapped_area_prop / sum(mapped_area_prop))
 expected_counts <- n * mapped_area_prop
 counts <- data.table(
   observed = observed_counds,
-  expected = expected_counts
+  mapped = expected_counts
 )
 print(counts)
 
@@ -45,7 +45,7 @@ print(counts)
 fisher_test_result <- fisher.test(counts$observed, counts$expected, simulate.p.value = TRUE)
 
 # Earth Mover's Distance (EMD) / Wasserstein Metric
-install.packages("emdist")
+# install.packages("emdist")
 emdist::emd(
   A = matrix(c(counts$observed, seq(5, 95, 10)), ncol = 2),
   B = matrix(c(counts$expected, seq(5, 95, 10)), ncol = 2)
