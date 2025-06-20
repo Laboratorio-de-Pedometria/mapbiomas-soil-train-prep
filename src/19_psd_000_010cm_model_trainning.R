@@ -40,7 +40,7 @@ original_name <- "-clay-silt-sand-log-ratio.csv"
 # List existing files in the folder_path and get the last one. Then read it.
 existing_files <- list.files(path = original_path, pattern = original_name)
 last_file <- existing_files[length(existing_files)]
-original <- data.table::fread(paste0(folder_path, last_file))
+original <- data.table::fread(paste0(original_path, last_file))
 # If the number of rows is different, check which rows are missing in the matrix. Then create a
 # spatial data and plot using mapview.
 print(paste0("Number of rows in original: ", nrow(original)))

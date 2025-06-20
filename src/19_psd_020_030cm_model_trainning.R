@@ -69,7 +69,7 @@ soildata <- soildata[
 # Check the data again
 dim(soildata)
 # Rows: 19944
-# Columns: 78
+# Columns: 75
 
 # log_clay_sand ####################################################################################
 # Fit ranger model to predict log_clay_sand using all columns as predictors,
