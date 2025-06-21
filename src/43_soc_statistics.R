@@ -19,13 +19,16 @@ if (!require("geobr")) {
 source("src/00_helper_functions.r")
 
 # Read data processed in the previous script
-folder_path <- "~/Insync/MapBiomas Solo/Trainning samples/"
-file_name <- "-organic-carbon-stock-gram-per-square-meter.csv"
-# List existing files in the folder_path and get the last one. Then read it.
-existing_files <- list.files(path = folder_path, pattern = file_name)
-last_file <- existing_files[length(existing_files)]
-soildata <- data.table::fread(paste0(folder_path, last_file))
+soildata <- data.table::fread("data/40_soildata_soc.txt")
 summary_soildata(soildata)
+
+# How many samples from the IFN?
+# IFN_index == 1
+ifn_samples <- soildata[IFN_index == 1, ]
+# Drop the ifn_samples with 'id' that contains '-TREP' or '-XYREP'
+ifn_samples <- ifn_samples[!grepl("-TREP|-XYREP", id), ]
+# Check the number of IFN samples
+nrow(ifn_samples)
 
 # Drop columns: soc_stock_g_m2, year
 soildata <- soildata[, c("soc_stock_g_m2", "year") := NULL]
