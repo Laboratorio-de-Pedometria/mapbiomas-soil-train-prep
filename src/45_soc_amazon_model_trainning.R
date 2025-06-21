@@ -59,7 +59,7 @@ rm(missing_rows, missing_original, missing_original_sf)
 # Drop unwanted rows
 soildata <- soildata[Amazonia == 1, ]
 # Drop unwanted columns
-soildata <- soildata[, c("system:index", ".geo") := NULL]
+soildata <- soildata[, c("system:index", ".geo", "latitude", "longitude") := NULL]
 # Check which columns have constant values (all equal)
 constant_cols <- sapply(soildata, function(x) length(unique(x)) == 1)
 # Remove constant columns
@@ -67,7 +67,7 @@ soildata <- soildata[, !constant_cols, with = FALSE]
 # Check the data again
 dim(soildata)
 # Rows: 9417
-# Columns: 78
+# Columns: 76
 
 # Select model hyperparameters #####################################################################
 
