@@ -156,7 +156,7 @@ t0 <- Sys.time()
 set.seed(2001)
 soc_model <- ranger::ranger(
   formula = soc_stock_g_m2 ~ .,
-  data = soildata[, !c("id", "year")],
+  data = soildata[, !c("id", "year", "PSEUDO_index")],
   # Use the best hyperparameters
   num.trees = hyper_best$num_trees,
   mtry = hyper_best$mtry,
