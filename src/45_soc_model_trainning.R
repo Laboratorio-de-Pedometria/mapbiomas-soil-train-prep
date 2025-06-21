@@ -30,7 +30,7 @@ matrix_path <- "~/Insync/Earth Engine Exports/matriz-col2v2.csv"
 soildata <- data.table::fread(matrix_path)
 # Check the data
 dim(soildata)
-# Rows: 23796
+# Rows: 23817
 # Columns: 106
 
 # Check data #######################################################################################
@@ -57,11 +57,11 @@ rm(missing_rows, missing_original, missing_original_sf)
 
 # Process data #####################################################################################
 # Drop unwanted columns
-soildata <- soildata[, c("system:index", ".geo", "latitude", "longitude") := NULL]
+soildata <- soildata[, c("system:index", ".geo") := NULL]
 # Check the data again
 dim(soildata)
-# Rows: 23796
-# Columns: 72
+# Rows: 23817
+# Columns: 104
 
 # Select model hyperparameters #####################################################################
 
@@ -83,7 +83,7 @@ for (i in 1:nrow(hyperparameters)) {
   set.seed(1984)
   model <- ranger::ranger(
     formula = soc_stock_g_m2 ~ .,
-    data = soildata[, !c("id", "year")],
+    data = soildata[, !c("id", "year", "PSEUDO_index")],
     num.trees = hyperparameters$num_trees[i],
     mtry = hyperparameters$mtry[i],
     min.node.size = hyperparameters$min_node_size[i],
@@ -149,7 +149,7 @@ hyper_best <- hyper_best[min_node_size == max(min_node_size), ]
 print(hyper_best)
 
 # Hard code the best hyperparameters for the model
-hyper_best <- data.frame(num_trees = 400, mtry = 16, min_node_size = 2, max_depth = 30)
+hyper_best <- data.frame(num_trees = 200, mtry = 16, min_node_size = 1, max_depth = 40)
 
 # Fit the best model
 t0 <- Sys.time()
