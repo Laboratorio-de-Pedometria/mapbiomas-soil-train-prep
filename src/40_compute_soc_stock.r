@@ -761,18 +761,18 @@ if (FALSE) {
 # Processed data
 data.table::fwrite(soc_data, "data/40_soildata_soc.txt", sep = "\t")
 
-# # Training samples
-# folder_path <- "~/Insync/MapBiomas Solo/Trainning samples/"
-# file_name <- "-organic-carbon-stock-gram-per-square-meter.csv"
-# # List existing files in the folder_path and get the last one. Then read it.
-# existing_files <- list.files(path = folder_path, pattern = file_name)
-# last_file <- existing_files[length(existing_files)]
-# last_soc_data <- data.table::fread(paste0(folder_path, last_file))
-# # Check if last_soc_data == soc_data. If not, write soc_data to disk.
-# if (!identical(last_soc_data, soc_data)) {
-#   cat("Writing data to disk...\n")
-#   file_path <- paste0(folder_path, format(Sys.time(), "%Y-%m-%d"), file_name)
-#   file_path <- path.expand(file_path)
-#   data.table::fwrite(soc_data, file_path)
-#   cat("Done!\n")
-# }
+# Training samples
+folder_path <- "~/Insync/MapBiomas Solo/Trainning samples/"
+file_name <- "-organic-carbon-stock-gram-per-square-meter.csv"
+# List existing files in the folder_path and get the last one. Then read it.
+existing_files <- list.files(path = folder_path, pattern = file_name)
+last_file <- existing_files[length(existing_files)]
+last_soc_data <- data.table::fread(paste0(folder_path, last_file))
+# Check if last_soc_data == soc_data. If not, write soc_data to disk.
+if (!identical(last_soc_data, soc_data)) {
+  cat("Writing data to disk...\n")
+  file_path <- paste0(folder_path, format(Sys.time(), "%Y-%m-%d"), file_name)
+  file_path <- path.expand(file_path)
+  data.table::fwrite(soc_data, file_path)
+  cat("Done!\n")
+}
