@@ -11,24 +11,19 @@ rm(list = ls())
 source("src/00_helper_functions.r")
 
 # Read data processed in the previous script
-folder_path <- "~/Insync/MapBiomas Solo/Trainning samples/"
-file_name <- "-organic-carbon-stock-gram-per-square-meter.csv"
-# List existing files in the folder_path and get the last one. Then read it.
-existing_files <- list.files(path = folder_path, pattern = file_name)
-last_file <- existing_files[length(existing_files)]
-soildata <- data.table::fread(paste0(folder_path, last_file))
+soildata <- data.table::fread("data/40_soildata_soc.txt")
 summary_soildata(soildata)
-# Layers: 12667
-# Events: 12667
-# Georeferenced events: 12667
+# Layers: 12666
+# Events: 12666
+# Georeferenced events: 12666
 
 # Remove replicates
 # id := paste0(id, "-REP", 1:4)
-soildata <- soildata[!grepl("-REP[1-4]", id)]
+soildata <- soildata[!grepl("-XYREP[1-4]", id)]
 summary_soildata(soildata)
-# Layers: 12575
-# Events: 12575
-# Georeferenced events: 12575
+# Layers: 12574
+# Events: 12574
+# Georeferenced events: 12574
 
 # Check date range (ignore values equal to 1948)
 soildata[year == 1948, year := NA_integer_]

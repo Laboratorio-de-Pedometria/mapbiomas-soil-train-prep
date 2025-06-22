@@ -21,6 +21,9 @@ source("src/00_helper_functions.r")
 # Read data processed in the previous script
 soildata <- data.table::fread("data/40_soildata_soc.txt")
 summary_soildata(soildata)
+# Layers: 12666
+# Events: 12666
+# Georeferenced events: 12666
 
 # How many samples from the IFN?
 # IFN_index == 1
