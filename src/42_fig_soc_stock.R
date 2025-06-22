@@ -33,7 +33,7 @@ summary_soildata(soildata)
 
 # Remove replicates
 # id := paste0(id, "-REP", 1:4)
-soildata <- soildata[!grepl("-REP[1-4]", id)]
+soildata <- soildata[!grepl("-XYREP[1-4]", id)]
 summary_soildata(soildata)
 # Layers: 12575
 # Events: 12575
