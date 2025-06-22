@@ -1,4 +1,4 @@
-# title: Modeling Soil Organic Carbon Stock
+# title: Modeling Soil Organic Carbon Stock - Model 1 (Amazon)
 # author: Alessandro Samuel-Rosa and Taciara Zborowski Horst
 # date: 2025
 rm(list = ls())
@@ -26,23 +26,37 @@ res_tab_path <- "res/tab/"
 random_seed <- 1984
 
 # Read data from disk
-matrix_path <- "~/Insync/Earth Engine Exports/matriz-col2v2.csv"
+matrix_path <- "~/Insync/Earth Engine Exports/matriz-collection2_MODEL1_v2.csv"
 soildata <- data.table::fread(matrix_path)
 # Check the data
 dim(soildata)
-# Rows: 23817
-# Columns: 106
+# Rows: 5319
+# Columns: 104
+
+# Process the data #################################################################################
+sort(colnames(soildata))
+
+# Check which columns are constant
+constant_columns <- sapply(soildata, function(x) length(unique(x)) == 1)
+# Print the names of the constant columns
+constant_colnames <- names(soildata)[constant_columns]
+print(paste0("Constant columns: ", paste(constant_colnames, collapse = ", ")))
+# Remove constant columns
+soildata <- soildata[, !constant_columns, with = FALSE]
+# Check the data again
+dim(soildata)
+# 5319   78
 
 # Check data #######################################################################################
 # Compare to the original training data 
-original_path <- "data/41_soildata_soc.txt"
+original_path <- "data/40_soildata_soc.txt"
 original <- data.table::fread(original_path)
 # If the number of rows is different, check which rows are missing in the matrix. Then create a
 # spatial data and plot using mapview.
 print(paste0("Number of rows in original: ", nrow(original)))
 print(paste0("Number of rows in soildata: ", nrow(soildata)))
 # Check which rows are missing in the matrix
-missing_rows <- setdiff(original$id, soildata$id)
+missing_rows <- setdiff(original$id, soildata$dataset_id)
 # Get the missing rows, create spatial data and plot using mapview
 missing_original <- original[id %in% missing_rows]
 # Create spatial data
@@ -60,8 +74,7 @@ rm(missing_rows, missing_original, missing_original_sf)
 soildata <- soildata[, c("system:index", ".geo") := NULL]
 # Check the data again
 dim(soildata)
-# Rows: 23817
-# Columns: 104
+# 5319   76
 
 # Select model hyperparameters #####################################################################
 
@@ -82,8 +95,8 @@ for (i in 1:nrow(hyperparameters)) {
   print(hyperparameters[i, ])
   set.seed(1984)
   model <- ranger::ranger(
-    formula = soc_stock_g_m2 ~ .,
-    data = soildata[, !c("id", "year", "PSEUDO_index")],
+    formula = estoque ~ .,
+    data = soildata[, !c("dataset_id", "year")],
     num.trees = hyperparameters$num_trees[i],
     mtry = hyperparameters$mtry[i],
     min.node.size = hyperparameters$min_node_size[i],
@@ -91,7 +104,7 @@ for (i in 1:nrow(hyperparameters)) {
     replace = TRUE,
     verbose = TRUE
   )
-  observed <- soildata[, soc_stock_g_m2]
+  observed <- soildata[, estoque]
   predicted <- model$predictions
   error <- observed - predicted
   residual <- mean(observed) - observed
@@ -116,7 +129,7 @@ for (i in 1:nrow(hyperparameters)) {
 Sys.time() - t0
 
 # Export the results to a TXT file
-file_path <- "res/tab/soc_hyperparameter_tunning.txt"
+file_path <- "res/tab/soc_model01_hyperparameter_tunning.txt"
 data.table::fwrite(hyper_results, file_path, sep = "\t")
 if (FALSE) {
   # Read the results from disk
@@ -126,11 +139,13 @@ if (FALSE) {
 # Assess results
 # What is the Spearman correlation between hyperparameters and model performance metrics?
 correlation <- round(cor(hyper_results, method = "spearman"), 2)
-data.table::fwrite(correlation, "res/tab/soc_hyperparameter_correlation.txt", sep = "\t")
+data.table::fwrite(correlation, "res/tab/soc_model01_hyperparameter_correlation.txt", sep = "\t")
 print(correlation[1:4, 5:9])
 
 # Sort the results by RMSE
+# Keep only those with ntree < 800
 hyper_results <- hyper_results[order(rmse)]
+hyper_results <- hyper_results[num_trees < 800]
 
 # Select the best hyperparameters
 # Among smallest `rmse`, select the hyperparameters with the smallest `num_trees`.
@@ -149,14 +164,14 @@ hyper_best <- hyper_best[min_node_size == max(min_node_size), ]
 print(hyper_best)
 
 # Hard code the best hyperparameters for the model
-hyper_best <- data.frame(num_trees = 200, mtry = 16, min_node_size = 1, max_depth = 40)
+hyper_best <- data.frame(num_trees = 400, mtry = 16, min_node_size = 1, max_depth = 40)
 
 # Fit the best model
 t0 <- Sys.time()
 set.seed(2001)
 soc_model <- ranger::ranger(
-  formula = soc_stock_g_m2 ~ .,
-  data = soildata[, !c("id", "year", "PSEUDO_index")],
+  formula = estoque ~ .,
+  data = soildata[, !c("dataset_id", "year")],
   # Use the best hyperparameters
   num.trees = hyper_best$num_trees,
   mtry = hyper_best$mtry,
@@ -170,28 +185,28 @@ Sys.time() - t0
 print(soc_model)
 
 # Compute regression model statistics and write to disk
-soc_model_stats <- error_statistics(soildata[, soc_stock_g_m2], soc_model$predictions)
-data.table::fwrite(soc_model_stats, "res/tab/soc_model_statistics.txt", sep = "\t")
+soc_model_stats <- error_statistics(soildata[, estoque], soc_model$predictions)
+data.table::fwrite(soc_model_stats, "res/tab/soc_model01_model_statistics.txt", sep = "\t")
 print(round(soc_model_stats, 2))
 
 # Write model parameters to disk
 write.table(capture.output(print(soc_model))[6:15],
-  file = "res/tab/soc_model_parameters.txt", sep = "\t", row.names = FALSE
+  file = "res/tab/soc_model01_model_parameters.txt", sep = "\t", row.names = FALSE
 )
 if (FALSE) {
   # Read the model parameters from disk
-  soc_model <- data.table::fread("res/tab/soc_model_parameters.txt", sep = "\t")
+  soc_model <- data.table::fread("res/tab/soc_model01_model_parameters.txt", sep = "\t")
   print(soc_model)
 }
 
 # Check absolute error
 abs_error_tolerance <- soc_model_stats$rmse * 2
 soildata[, predicted := round(soc_model$predictions)]
-soildata[, abs_error := abs(soc_stock_g_m2 - predicted)]
+soildata[, abs_error := abs(estoque - predicted)]
 if (any(soildata[, abs_error] >= abs_error_tolerance)) {
   View(soildata[
     abs_error >= abs_error_tolerance,
-    .(id, year, soc_stock_g_m2, predicted, abs_error, YEAR_index, IFN_index)
+    .(dataset_id, year, estoque, predicted, abs_error, IFN_index)
   ])
 } else {
   print(paste0("All absolute errors are below ", abs_error_tolerance, " g/m^2."))
@@ -204,7 +219,7 @@ num_vars <- length(importance)
 vars_per_plot <- ceiling(num_vars/2)
 num_plots <- ceiling(num_vars / vars_per_plot)
 dev.off()
-png("res/fig/soc_variable_importance.png", width = 480 * 3, height = 480 * 3, res = 72 * 2)
+png("res/fig/soc_model01_variable_importance.png", width = 480 * 3, height = 480 * 3, res = 72 * 2)
 par(mar = c(5, 10, 2, 2), mfrow = c(1, num_plots))
 xlim <- c(0, max(importance))
 for (i in 1:num_plots) {
@@ -234,15 +249,15 @@ dev.off()
 # Figure: Plot fitted versus observed values
 # Set color of points as a function of the absolute error, that is, abs(y - x). The absolute error
 # ranges from 0 to 1.
-color_breaks <- seq(0, ceiling(abs_error_tolerance / 1000), length.out = 7)
+color_breaks <- seq(0, ceiling(abs_error_tolerance / 1000), length.out = 6)
 color_class <- cut(soildata[, abs_error / 1000], breaks = color_breaks, include.lowest = TRUE)
 color_palette <- RColorBrewer::brewer.pal(length(color_breaks) - 1, "Purples")
-xylim <- range(soildata[, soc_stock_g_m2 / 1000])
+xylim <- range(soildata[, estoque / 1000])
 dev.off()
-png("res/fig/soc_observed_versus_oob.png", width = 480 * 3, height = 480 * 3, res = 72 * 3)
+png("res/fig/soc_model01_observed_versus_oob.png", width = 480 * 3, height = 480 * 3, res = 72 * 3)
 par(mar = c(4, 4.5, 2, 2) + 0.1)
 plot(
-  y = soildata[, soc_stock_g_m2 / 1000], x = soc_model$predictions / 1000,
+  y = soildata[, estoque / 1000], x = soc_model$predictions / 1000,
   xlim = xylim, ylim = xylim,
   panel.first = grid(),
   pch = 21, bg = color_palette[as.numeric(color_class)],
