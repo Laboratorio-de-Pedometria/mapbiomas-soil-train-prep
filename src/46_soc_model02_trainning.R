@@ -26,8 +26,7 @@ res_tab_path <- "res/tab/"
 random_seed <- 1984
 
 # Read data from disk
-matrix_path <- "~/Insync/Earth Engine Exports/matriz-collection2_MODEL2_v2.csv"
-soildata <- data.table::fread(matrix_path)
+soildata <- read_insync("matriz-collection2_MODEL2_v2.csv")
 # Check the data
 dim(soildata)
 # 8936  104
