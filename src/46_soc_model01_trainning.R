@@ -10,6 +10,9 @@ if (!require("data.table")) {
 if (!require("ranger")) {
   install.packages("ranger")
 }
+if (!require("caret")) {
+  install.packages("caret")
+}
 if (!require("sf")) {
   install.packages("sf")
 }
@@ -26,17 +29,13 @@ res_tab_path <- "res/tab/"
 random_seed <- 1984
 
 # Read data from disk
-insyc_path <- "~/Insync/alessandrosamuelrosa@gmail.com/Google Drive/Earth Engine Exports/"
-file_name <- "matriz-collection2_MODEL1_v2.csv"
-file_path <- file.path(insyc_path, file_name)
-soildata <- data.table::fread(file_path)
+soildata <- read_insync("matriz-collection2_MODEL1_v2.csv")
 # Check the data
 dim(soildata)
 # 5319  104
 
 # Process the data #################################################################################
 sort(colnames(soildata))
-
 # Check which columns are constant
 constant_columns <- sapply(soildata, function(x) length(unique(x)) == 1)
 # Print the names of the constant columns
@@ -47,6 +46,11 @@ soildata <- soildata[, !constant_columns, with = FALSE]
 # Check the data again
 dim(soildata)
 # 5319   78
+# Drop unwanted columns
+soildata <- soildata[, c("system:index", ".geo") := NULL]
+# Check the data again
+dim(soildata)
+# 5319   76
 
 # Check data #######################################################################################
 # Compare to the original training data 
@@ -69,13 +73,6 @@ print(paste0("Number of missing rows: ", length(missing_rows)))
 # Print the missing rows
 print(missing_rows)
 rm(missing_rows, missing_original, missing_original_sf)
-
-# Process data #####################################################################################
-# Drop unwanted columns
-soildata <- soildata[, c("system:index", ".geo") := NULL]
-# Check the data again
-dim(soildata)
-# 5319   76
 
 # Select model hyperparameters #####################################################################
 
@@ -271,3 +268,84 @@ legend("topleft", title = expression("Absolute error, kg m"^-2),
   pt.bg = color_palette, border = "white", box.lwd = 0, pch = 21
 )
 dev.off()
+
+# Cross-validation #################################################################################
+# Create groups groups of samples based on the 'dataset_id'. The groups will be composed of the
+# original samples and their spatial and temporal replicas. The 'dataset_id' column contains the
+# original sample ID, and the '-REP' suffix indicates that the sample is a spatial replica
+# (temporal replicas have no suffix). The goal is to create groups that include all
+# original samples and their replicas, so that when we create cross-validation folds, we can
+# ensure that all replicas of a sample are excluded from the training set when the original sample
+# is assigned to a validation fold. This prevents data leakage and avoids overly optimistic
+# results. Note that some samples may not have replicas, in which case they will be
+# assigned to a group by themselves.
+
+# Step 1. Find all samples with '-REP' in the 'dataset_id' column, removing the string and
+# everything after it. This will give us the original sample ID.
+# Check sample replicas
+soildata[grepl("-REP", dataset_id), .(dataset_id, year)]
+# Create groups
+soildata[, group_id := sub("-REP.*", "", dataset_id)]
+soildata[, group_id := as.integer(as.factor(group_id))]
+# Check the number of unique groups
+num_groups <- length(unique(soildata$group_id))
+print(num_groups)
+# 4539
+dim(soildata)
+# 5319   77
+
+# Step 2. Create folds for cross-validation using the 'group_id' column. We will use a 10-fold
+# cross-validation strategy, ensuring that all replicas of a sample are excluded from the training
+# set when the original sample is assigned to a validation fold. This is done using the
+# `groupKFold` function from the caret package, which creates folds based on the groups.
+# The `k` parameter specifies the number of folds, which is set to 10 in this case.
+# The `index` parameter is set to the output of `groupKFold`,
+# which contains the indices of the samples in each fold. This ensures that the folds are created
+# based on the groups, and that all replicas of a sample are excluded from the training set.
+# set.seed(random_seed)
+# cv_folds <- caret::groupKFold(soildata$group_id, k = 10)
+# rm(cv_folds)
+
+# Add a column to store the cross-validation predictions
+soildata[, predicted := as.numeric(NA)]
+
+# Step 3. Fit the model using cross-validation
+# We will loop over the folds and fit the model on each fold, using the training set
+# and evaluating the model on the validation set. During predictions on the validation set, for
+# each sample, we will save the predicted values of all trees and compute the median of the
+# predictions. This will be the predicted value for that sample. The model will be fitted using the
+# best hyperparameters obtained from the previous step. The model will be fitted using the
+# `ranger` package, which is a fast implementation of random forests.
+t0 <- Sys.time()
+for (i in 1:num_groups) {
+  print(paste0("Fold: ", i))
+  # Get the training and validation sets row indexes
+  # train_idx <- cv_folds[[i]]
+  # valid_idx <- setdiff(seq_len(nrow(soildata)), train_idx)
+  
+  # Fit the model on the training set
+  set.seed(random_seed)
+  soc_model_cv <- ranger::ranger(
+    formula = estoque ~ .,
+    data = soildata[group_id != i, !c("dataset_id", "year", "group_id", "predicted")],
+    num.trees = hyper_best$num_trees,
+    mtry = hyper_best$mtry,
+    min.node.size = hyper_best$min_node_size,
+    max.depth = hyper_best$max_depth,
+    verbose = TRUE
+  )
+  
+  # Predict on the validation set
+  pred <- predict(
+    soc_model_cv,
+    data = soildata[group_id == i, !c("dataset_id", "year", "group_id", "predicted")],
+    predict.all = TRUE
+  )$predictions
+  soildata[group_id == i, predicted := apply(pred, 1, median)]
+  # Round the predictions to the nearest integer
+  soildata[group_id == i, predicted := round(predicted)]
+}
+Sys.time() - t0
+
+# 
+error_statistics(soildata[, estoque], soildata[, predicted])
