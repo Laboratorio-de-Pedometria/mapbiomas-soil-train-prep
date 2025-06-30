@@ -215,6 +215,21 @@ google_sheet <- function(gs, gid) {
   dt <- data.table::fread(sheet_path, dec = ",", sep = "\t")
   return(dt)
 }
+# Read Insync file #################################################################################
+# This function reads a file from the Insync folder, which is a local sync of Google Drive.
+# The Insync folder is located at
+# "~/Insync/alessandrosamuelrosa@gmail.com/Google Drive/Earth Engine Exports/"
+# The file_name argument is the name of the file to be read.
+# The function uses data.table::fread to read the file and returns a data.table object
+# Note: Make sure to set the correct path to your Insync folder.
+# The Insync folder is a local sync of Google Drive, so the file_name should be
+# the name of the file in your Google Drive that you want to read.
+# Example: read_insync("my_file.csv") 
+read_insync <- function(file_name, ...) {
+  insync_path <- "~/Insync/alessandrosamuelrosa@gmail.com/Google Drive/Earth Engine Exports/"
+  file_path <- file.path(insync_path, file_name)
+  data.table::fread(file_path, ...)
+}
 
 # Compute the clay content at 5, 15, and 25 cm depth
 # psd_data <- psd_data[
