@@ -321,9 +321,6 @@ soildata[, predicted := as.numeric(NA)]
 t0 <- Sys.time()
 for (i in 1:num_groups) {
   print(paste0("Fold: ", i))
-  # Get the training and validation sets row indexes
-  # train_idx <- cv_folds[[i]]
-  # valid_idx <- setdiff(seq_len(nrow(soildata)), train_idx)
   
   # Fit the model on the training set
   set.seed(random_seed)
@@ -334,14 +331,15 @@ for (i in 1:num_groups) {
     mtry = hyper_best$mtry,
     min.node.size = hyper_best$min_node_size,
     max.depth = hyper_best$max_depth,
-    verbose = TRUE
+    verbose = TRUE,
+    num.threads = n_cores
   )
   
   # Predict on the validation set
   pred <- predict(
     soc_model_cv,
     data = soildata[group_id == i, !c("dataset_id", "year", "group_id", "predicted")],
-    predict.all = TRUE
+    predict.all = TRUE, num.threads = n_cores
   )$predictions
   soildata[group_id == i, predicted := apply(pred, 1, median)]
   # Round the predictions to the nearest integer
