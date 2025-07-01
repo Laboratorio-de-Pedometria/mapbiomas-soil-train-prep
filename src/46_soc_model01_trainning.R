@@ -316,6 +316,7 @@ soildata[, predicted := as.numeric(NA)]
 # predictions. This will be the predicted value for that sample. The model will be fitted using the
 # best hyperparameters obtained from the previous step. The model will be fitted using the
 # `ranger` package, which is a fast implementation of random forests.
+# This takes about 7 hours to run on a 4-core machine with 16 GB of RAM.
 t0 <- Sys.time()
 for (i in 1:num_groups) {
   print(paste0("Fold: ", i))
@@ -347,5 +348,7 @@ for (i in 1:num_groups) {
 }
 Sys.time() - t0
 
-# 
-error_statistics(soildata[, estoque], soildata[, predicted])
+# Save preditions to disk
+data.table::fwrite(soildata[, .(dataset_id, year, estoque, predicted)],
+  file = "res/tab/soc_model01_predictions.txt", sep = "\t"
+)
