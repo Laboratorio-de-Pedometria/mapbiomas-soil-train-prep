@@ -1,4 +1,4 @@
-# title: Modeling Soil Organic Carbon Stock - Model 2 (Pampa)
+# title: Modeling Soil Organic Carbon Stock - Model 3 (Pampa)
 # author: Alessandro Samuel-Rosa and Taciara Zborowski Horst
 # date: 2025
 rm(list = ls())
@@ -16,6 +16,9 @@ if (!require("sf")) {
 if (!require("mapview")) {
   install.packages("mapview")
 }
+if (!require("caret")) {
+  install.packages("caret")
+}
 
 # Source helper functions
 source("src/00_helper_functions.r")
@@ -24,17 +27,16 @@ source("src/00_helper_functions.r")
 res_fig_path <- "res/fig/"
 res_tab_path <- "res/tab/"
 random_seed <- 1984
+n_cores <- parallel::detectCores() - 1
 
 # Read data from disk
-matrix_path <- "~/Insync/Earth Engine Exports/matriz-collection2_MODEL3_v2.csv"
-soildata <- data.table::fread(matrix_path)
+soildata <- read_insync("matriz-collection2_MODEL3_v2.csv")
 # Check the data
 dim(soildata)
 # 10341   104
 
 # Process the data #################################################################################
 sort(colnames(soildata))
-
 # Check which columns are constant
 constant_columns <- sapply(soildata, function(x) length(unique(x)) == 1)
 # Print the names of the constant columns
@@ -45,6 +47,11 @@ soildata <- soildata[, !constant_columns, with = FALSE]
 # Check the data again
 dim(soildata)
 # 10341    95
+# Drop unwanted columns
+soildata <- soildata[, c("system:index", ".geo") := NULL]
+# Check the data again
+dim(soildata)
+# 10341    93
 
 # Check data #######################################################################################
 # Compare to the original training data 
@@ -67,13 +74,6 @@ print(paste0("Number of missing rows: ", length(missing_rows)))
 # Print the missing rows
 print(missing_rows)
 rm(missing_rows, missing_original, missing_original_sf)
-
-# Process data #####################################################################################
-# Drop unwanted columns
-soildata <- soildata[, c("system:index", ".geo") := NULL]
-# Check the data again
-dim(soildata)
-# 10341    93
 
 # Select model hyperparameters #####################################################################
 
@@ -269,3 +269,78 @@ legend("topleft", title = expression("Absolute error, kg m"^-2),
   pt.bg = color_palette, border = "white", box.lwd = 0, pch = 21
 )
 dev.off()
+
+# Cross-validation #################################################################################
+# Create groups groups of samples based on the 'dataset_id'. The groups will be composed of the
+# original samples and their spatial and temporal replicas. The 'dataset_id' column contains the
+# original sample ID, and the '-REP' suffix indicates that the sample is a spatial replica
+# (temporal replicas have no suffix). The goal is to create groups that include all
+# original samples and their replicas, so that when we create cross-validation folds, we can
+# ensure that all replicas of a sample are excluded from the training set when the original sample
+# is assigned to a validation fold. This prevents data leakage and avoids overly optimistic
+# results. Note that some samples may not have replicas, in which case they will be
+# assigned to a group by themselves.
+
+# Step 1. Find all samples with '-REP' in the 'dataset_id' column, removing the string and
+# everything after it. This will give us the original sample ID.
+# Check sample replicas
+soildata[grepl("-REP", dataset_id), .(dataset_id, year)]
+# Create groups
+soildata[, group_id := sub("-REP.*", "", dataset_id)]
+soildata[, group_id := as.integer(as.factor(group_id))]
+# Check the number of unique groups
+num_groups <- length(unique(soildata$group_id))
+print(num_groups)
+# 7658
+dim(soildata)
+# 10341    94
+
+# Add a column to store the cross-validation predictions
+soildata[, predicted := as.numeric(NA)]
+
+# Step 2. Fit the model using cross-validation
+# We will loop over the groups and fit the model on each group, using the training set
+# and evaluating the model on the validation set. During predictions on the validation set, for
+# each sample, we will save the predicted values of all trees and compute the median of the
+# predictions. This will be the predicted value for that sample. The model will be fitted using the
+# best hyperparameters obtained from the previous step. The model will be fitted using the
+# `ranger` package, which is a fast implementation of random forests.
+# This takes about 03 hours to run on 3 cores.
+t0 <- Sys.time()
+for (i in 1:num_groups) {
+  print(paste0("Fold: ", i))
+  # Check if the validation group is from Pampa, i.e. Pampa == 1
+  if (unique(soildata[group_id == i, Pampa] != 1)) {
+    print(paste0("Skipping group ", i, " because it is not from Pampa."))
+  } else {
+    print(paste0("Group ", i, " is from Pampa."))
+    # Fit the model on the training set
+    set.seed(random_seed)
+    soc_model_cv <- ranger::ranger(
+      formula = estoque ~ .,
+      data = soildata[group_id != i, !c("dataset_id", "year", "group_id", "predicted")],
+      num.trees = hyper_best$num_trees,
+      mtry = hyper_best$mtry,
+      min.node.size = hyper_best$min_node_size,
+      max.depth = hyper_best$max_depth,
+      verbose = TRUE,
+      num.threads = n_cores
+    )
+    
+    # Predict on the validation set
+    pred <- predict(
+      soc_model_cv,
+      data = soildata[group_id == i, !c("dataset_id", "year", "group_id", "predicted")],
+      predict.all = TRUE, num.threads = n_cores
+    )$predictions
+    soildata[group_id == i, predicted := apply(pred, 1, median)]
+    # Round the predictions to the nearest integer
+    soildata[group_id == i, predicted := round(predicted)]
+  }
+}
+Sys.time() - t0
+
+# Save preditions to disk
+data.table::fwrite(soildata[Pampa == 1, .(dataset_id, year, estoque, predicted)],
+  file = "res/tab/soc_model03_predictions.txt", sep = "\t"
+)
