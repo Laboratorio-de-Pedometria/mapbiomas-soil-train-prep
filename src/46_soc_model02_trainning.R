@@ -348,6 +348,7 @@ for (i in 1:num_groups) {
 Sys.time() - t0
 
 # Save preditions to disk
-data.table::fwrite(soildata[, .(dataset_id, year, estoque, predicted)],
+data.table::fwrite(
+  soildata[, .(dataset_id, year, estoque, predicted, Mata_Atlantica, Pantanal, Cerrado, Caatinga)],
   file = "res/tab/soc_model02_predictions.txt", sep = "\t"
 )

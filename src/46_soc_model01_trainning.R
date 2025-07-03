@@ -349,6 +349,7 @@ for (i in 1:num_groups) {
 Sys.time() - t0
 
 # Save preditions to disk
+soildata[, Amazonia := 1]
 data.table::fwrite(soildata[, .(dataset_id, year, estoque, predicted)],
   file = "res/tab/soc_model01_predictions.txt", sep = "\t"
 )
