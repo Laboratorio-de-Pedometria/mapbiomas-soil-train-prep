@@ -266,17 +266,18 @@ soildata[, pred_log_silt_sand := as.numeric(NA)]
 t0 <- Sys.time()
 for (group in unique(soildata$id)) {
   # Print the current group
-  print(paste("Processing group:", group))
+  print(group)
   # Check if the validation group has any samples with depth 0-10cm
   if (nrow(soildata[id == group & depth <= 10]) == 0) {
-    print(paste("No samples with depth 0-10 cm in group:", group))
+    print("No samples with depth 0-10 cm in group")
   } else {
-    print(paste("Samples with depth 0-10 cm in group:", group))
+    print("Samples with depth 0-10 cm in group")
     # Fit the model on the training set
     set.seed(random_seed)
     model <- ranger::ranger(
       formula = log_clay_sand ~ .,
-      data = soildata[id != group, !c("log_silt_sand", "id")],
+      data = soildata[id != group,
+        !c("id", "log_silt_sand", "pred_log_clay_sand", "pred_log_silt_sand")],
       num.trees = 100,
       mtry = 16,
       min.node.size = 2,
@@ -288,55 +289,56 @@ for (group in unique(soildata$id)) {
     soildata[
       id == group & depth <= 10,
       pred_log_clay_sand :=
-      predict(model, data = soildata[id == group & depth <= 10, !c("log_silt_sand", "id")])$predictions
+      predict(model, data = soildata[id == group & depth <= 10,
+        !c("id", "log_silt_sand", "pred_log_clay_sand", "pred_log_silt_sand")])$predictions
     ]
   }
 }
 print(Sys.time() - t0)
 
 # Save preditions to disk
-data.table::fwrite(
-  soildata[, .(id, depth, log_clay_sand, log_silt_sand, pred_log_clay_sand, pred_log_silt_sand,
-    Pampa, Amazonia, Cerrado, Caatinga, Mata_Atlantica, Pantanal)],
+data.table::fwrite(soildata[, .(id, depth, pred_log_clay_sand)],
   file = paste0(res_tab_path, "log_clay_sand_000_010cm_predictions.txt"), sep = "\t",
   row.names = FALSE
 )
 
-
-
-
-
-
-
-
 # Perform cross-validation: log_silt_sand
+# This task takes about 16 hours to run on a machine with 3 cores and 16GB of RAM.
 t0 <- Sys.time()
 for (group in unique(soildata$id)) {
   # Print the current group
-  print(paste("Processing group:", group))
-  # Fit the model on the training set
-  set.seed(random_seed)
-  model <- ranger::ranger(
-    formula = log_silt_sand ~ .,
-    data = soildata[id != group, !c("log_clay_sand", "id")],
-    num.trees = 100,
-    mtry = 16,
-    min.node.size = 2,
-    max.depth = 30,
-    verbose = FALSE,
-    num.threads = n_cores
-  )
-  # Predict on the validation set
-  soildata[id == group,
-    pred_log_silt_sand :=
-     predict(model, data = soildata[id == group, !c("log_clay_sand", "id")])$predictions
-  ]
+  print(group)
+  # Check if the validation group has any samples with depth 0-10cm
+  if (nrow(soildata[id == group & depth <= 10]) == 0) {
+    print("No samples with depth 0-10 cm in group")
+  } else {
+    print("Samples with depth 0-10 cm in group")
+    # Fit the model on the training set
+    set.seed(random_seed)
+    model <- ranger::ranger(
+      formula = log_silt_sand ~ .,
+      data = soildata[id != group,
+        !c("id", "log_clay_sand", "pred_log_clay_sand", "pred_log_silt_sand")],
+      num.trees = 100,
+      mtry = 16,
+      min.node.size = 2,
+      max.depth = 30,
+      verbose = FALSE,
+      num.threads = n_cores
+    )
+    # Predict on the validation group, for layers with depth 0-10cm
+    soildata[
+      id == group & depth <= 10,
+      pred_log_silt_sand :=
+      predict(model, data = soildata[id == group & depth <= 10,
+        !c("id", "log_clay_sand", "pred_log_clay_sand", "pred_log_silt_sand")])$predictions
+    ]
+  }
 }
 print(Sys.time() - t0)
 
 # Save preditions to disk
-write.csv(
-  soildata[, .(id, log_clay_sand, log_silt_sand, pred_log_clay_sand, pred_log_silt_sand)],
-  file = paste0(res_tab_path, "psd_cv_predictions_000_010cm.csv"),
+data.table::fwrite(soildata[, .(id, depth, pred_log_silt_sand)],
+  file = paste0(res_tab_path, "log_silt_sand_000_010cm_predictions.txt"), sep = "\t",
   row.names = FALSE
-)  
+)
