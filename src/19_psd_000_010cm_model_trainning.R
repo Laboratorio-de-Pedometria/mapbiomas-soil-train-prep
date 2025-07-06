@@ -298,7 +298,7 @@ print(Sys.time() - t0)
 
 # Save preditions to disk
 data.table::fwrite(soildata[, .(id, depth, pred_log_clay_sand)],
-  file = paste0(res_tab_path, "log_clay_sand_000_010cm_predictions.txt"), sep = "\t",
+  file = paste0(res_tab_path, "log_clay_sand_000_010cm_cross_validation.txt"), sep = "\t",
   row.names = FALSE
 )
 
@@ -339,6 +339,6 @@ print(Sys.time() - t0)
 
 # Save preditions to disk
 data.table::fwrite(soildata[, .(id, depth, pred_log_silt_sand)],
-  file = paste0(res_tab_path, "log_silt_sand_000_010cm_predictions.txt"), sep = "\t",
+  file = paste0(res_tab_path, "log_silt_sand_000_010cm_cross_validation.txt"), sep = "\t",
   row.names = FALSE
 )
