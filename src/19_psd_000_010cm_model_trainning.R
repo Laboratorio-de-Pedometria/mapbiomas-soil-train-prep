@@ -267,7 +267,7 @@ t0 <- Sys.time()
 for (group in unique(soildata$id)) {
   # Print the current group
   print(group)
-  # Check if the validation group has any samples with depth 0-10cm
+  # Check if the validation group has any samples with depth 0-10 cm
   if (nrow(soildata[id == group & depth <= 10]) == 0) {
     print("No samples with depth 0-10 cm in group")
   } else {
@@ -285,7 +285,7 @@ for (group in unique(soildata$id)) {
       verbose = FALSE,
       num.threads = n_cores
     )
-    # Predict on the validation group, for layers with depth 0-10cm
+    # Predict on the validation group, for layers with depth 0-10 cm
     soildata[
       id == group & depth <= 10,
       pred_log_clay_sand :=
@@ -308,7 +308,7 @@ t0 <- Sys.time()
 for (group in unique(soildata$id)) {
   # Print the current group
   print(group)
-  # Check if the validation group has any samples with depth 0-10cm
+  # Check if the validation group has any samples with depth 0-10 cm
   if (nrow(soildata[id == group & depth <= 10]) == 0) {
     print("No samples with depth 0-10 cm in group")
   } else {
@@ -326,7 +326,7 @@ for (group in unique(soildata$id)) {
       verbose = FALSE,
       num.threads = n_cores
     )
-    # Predict on the validation group, for layers with depth 0-10cm
+    # Predict on the validation group, for layers with depth 0-10 cm
     soildata[
       id == group & depth <= 10,
       pred_log_silt_sand :=

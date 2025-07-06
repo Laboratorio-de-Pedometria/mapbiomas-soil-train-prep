@@ -16,6 +16,9 @@ if (!require("sf")) {
 if (!require("mapview")) {
   install.packages("mapview")
 }
+if (!require("caret")) {
+  install.packages("caret")
+}
 
 # Source helper functions
 source("src/00_helper_functions.r")
@@ -24,14 +27,27 @@ source("src/00_helper_functions.r")
 res_fig_path <- "res/fig/"
 res_tab_path <- "res/tab/"
 random_seed <- 1984
+n_cores <- parallel::detectCores() - 1
 
 # Read data from disk
-matrix_path <- "~/Insync/Earth Engine Exports/psd_c02beta_020_030cm_v2.csv"
-soildata <- data.table::fread(matrix_path)
+soildata <- read_insync("psd_c02beta_020_030cm_v2.csv")
 # Check the data
 dim(soildata)
 # Rows: 19944
 # Columns: 84
+
+# Process data #####################################################################################
+# Drop unwanted covariates
+colnames(soildata)
+soildata <- soildata[
+  ,
+  c("system:index", "latitude", "longitude", "ndvi", ".geo",
+  "sand_000_010", "silt_000_010", "clay_000_010") := NULL
+]
+# Check the data again
+dim(soildata)
+# Rows: 19944
+# Columns: 76
 
 # Check data #######################################################################################
 # Compare to the original training data 
@@ -58,25 +74,12 @@ print(paste0("Number of missing rows: ", length(missing_rows)))
 # Print the missing rows
 print(missing_rows)
 
-# Process data #####################################################################################
-# Drop unwanted covariates
-colnames(soildata)
-soildata <- soildata[
-  ,
-  c("id", "system:index", "latitude", "longitude", "ndvi", ".geo",
-  "sand_000_010", "silt_000_010", "clay_000_010") := NULL
-]
-# Check the data again
-dim(soildata)
-# Rows: 19944
-# Columns: 75
-
 # log_clay_sand ####################################################################################
 # Fit ranger model to predict log_clay_sand using all columns as predictors,
 # except for log_silt_sand.
 log_clay_sand_model <- ranger::ranger(
   formula = log_clay_sand ~ .,
-  data = soildata[, !c("log_silt_sand")],
+  data = soildata[, !c("log_silt_sand", "id")],
   num.trees = 100,
   mtry = 16,
   min.node.size = 2,
@@ -159,7 +162,7 @@ dev.off()
 # except for log_clay_sand.
 log_silt_sand_model <- ranger::ranger(
   formula = log_silt_sand ~ .,
-  data = soildata[, !c("log_clay_sand")],
+  data = soildata[, !c("log_clay_sand", "id")],
   num.trees = 100,
   mtry = 16,
   min.node.size = 2,
@@ -267,36 +270,39 @@ for (group in unique(soildata$id)) {
   print(group)
   # Check if the validation group has any samples with depth 20-30cm
   if (nrow(soildata[id == group & depth > 20 & depth <= 30]) == 0) {
-    print("No samples in group")
+    print("No samples with depth 20-30 cm in group")
   } else {
-    print("Samples in group")
+    print("Samples with depth 20-30 cm in group")
     # Fit the model on the training set
     set.seed(random_seed)
     model <- ranger::ranger(
       formula = log_clay_sand ~ .,
       data = soildata[id != group,
-        !c("log_silt_sand", "pred_log_clay_sand", "pred_log_silt_sand")],
+        !c("id", "log_silt_sand", "pred_log_clay_sand", "pred_log_silt_sand")],
       num.trees = 100,
       mtry = 16,
       min.node.size = 2,
       max.depth = 30,
-      verbose = FALSE
+      verbose = FALSE,
+      num.threads = n_cores
     )
-    # Predict on the validation group
+    # Predict on the validation group, for layers with depth 20-30 cm
     soildata[
       id == group & depth > 20 & depth <= 30,
       pred_log_clay_sand :=
       predict(model, data = soildata[id == group & depth > 20 & depth <= 30,
-        !c("log_silt_sand", "pred_log_clay_sand", "pred_log_silt_sand")])$predictions
+        !c("id", "log_silt_sand", "pred_log_clay_sand", "pred_log_silt_sand")])$predictions
     ]
   }
 }
 print(Sys.time() - t0)
 
 # Save preditions to disk
-data.table::fwrite(soildata[, .(id, pred_log_clay_sand)],
-  file = paste0(res_tab_path, "log_clay_sand_020_030cm_cross_validation.txt"), sep = "\t",
-  row.names = FALSE
+dir_path <- path.expand("~/ownCloud/MapBiomas/res/tab/")
+file_name <- "log_clay_sand_020_030cm_cross_validation.txt"
+file_path <- paste0(dir_path, file_name)
+data.table::fwrite(
+  soildata[, .(id, depth, pred_log_clay_sand)], file = file_path, sep = "\t", row.names = FALSE
 )
 
 # Perform cross-validation: log_silt_sand
@@ -305,36 +311,39 @@ t0 <- Sys.time()
 for (group in unique(soildata$id)) {
   # Print the current group
   print(group)
-  # Check if the validation group has any samples
+  # Check if the validation group has any samples with depth 20-30 cm
   if (nrow(soildata[id == group & depth > 20 & depth <= 30]) == 0) {
-    print("No samples in group")
+    print("No samples with depth 20-30 cm in group")
   } else {
-    print("Samples in group")
+    print("Samples with depth 20-30 cm in group")
     # Fit the model on the training set
     set.seed(random_seed)
     model <- ranger::ranger(
       formula = log_silt_sand ~ .,
       data = soildata[id != group,
-        !c("log_clay_sand", "pred_log_clay_sand", "pred_log_silt_sand")],
+        !c("id", "log_clay_sand", "pred_log_clay_sand", "pred_log_silt_sand")],
       num.trees = 100,
       mtry = 16,
       min.node.size = 2,
       max.depth = 30,
-      verbose = FALSE
+      verbose = FALSE,
+      num.threads = n_cores
     )
-    # Predict on the validation group
+    # Predict on the validation group, for layers with depth 20-30 cm
     soildata[
       id == group & depth > 20 & depth <= 30,
       pred_log_silt_sand :=
       predict(model, data = soildata[id == group & depth > 20 & depth <= 30,
-        !c("log_clay_sand", "pred_log_clay_sand", "pred_log_silt_sand")])$predictions
+        !c("id", "log_clay_sand", "pred_log_clay_sand", "pred_log_silt_sand")])$predictions
     ]
   }
 }
 print(Sys.time() - t0)
 
 # Save preditions to disk
-data.table::fwrite(soildata[, .(id, pred_log_silt_sand)],
-  file = paste0(res_tab_path, "log_silt_sand_020_030cm_cross_validation.txt"), sep = "\t",
-  row.names = FALSE
+dir_path <- path.expand("~/ownCloud/MapBiomas/res/tab/")
+file_name <- "log_silt_sand_020_030cm_cross_validation.txt"
+file_path <- paste0(dir_path, file_name)
+data.table::fwrite(
+  soildata[, .(id, depth, pred_log_silt_sand)], file = file_path, sep = "\t", row.names = FALSE
 )

@@ -296,9 +296,11 @@ for (group in unique(soildata$id)) {
 print(Sys.time() - t0)
 
 # Save preditions to disk
-data.table::fwrite(soildata[, .(id, depth, pred_log_clay_sand)],
-  file = paste0(res_tab_path, "log_clay_sand_010_020cm_cross_validation.txt"), sep = "\t",
-  row.names = FALSE
+dir_path <- path.expand("~/ownCloud/MapBiomas/res/tab/")
+file_name <- "log_clay_sand_010_020cm_cross_validation.txt"
+file_path <- paste0(dir_path, file_name)
+data.table::fwrite(
+  soildata[, .(id, depth, pred_log_clay_sand)], file = file_path, sep = "\t", row.names = FALSE
 )
 
 # Perform cross-validation: log_silt_sand
@@ -337,7 +339,9 @@ for (group in unique(soildata$id)) {
 print(Sys.time() - t0)
 
 # Save preditions to disk
-data.table::fwrite(soildata[, .(id, depth, pred_log_silt_sand)],
-  file = paste0(res_tab_path, "log_silt_sand_010_020cm_cross_validation.txt"), sep = "\t",
-  row.names = FALSE
+dir_path <- path.expand("~/ownCloud/MapBiomas/res/tab/")
+file_name <- "log_silt_sand_010_020cm_cross_validation.txt"
+file_path <- paste0(dir_path, file_name)
+data.table::fwrite(
+  soildata[, .(id, depth, pred_log_silt_sand)], file = file_path, sep = "\t", row.names = FALSE
 )
