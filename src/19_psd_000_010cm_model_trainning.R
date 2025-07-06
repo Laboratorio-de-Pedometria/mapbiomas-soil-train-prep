@@ -303,7 +303,7 @@ data.table::fwrite(soildata[, .(id, depth, pred_log_clay_sand)],
 )
 
 # Perform cross-validation: log_silt_sand
-# This task takes about 16 hours to run on a machine with 3 cores and 16GB of RAM.
+# This task takes about 16 hours to run on 3 cores and about 5.5 hours on 7 cores.
 t0 <- Sys.time()
 for (group in unique(soildata$id)) {
   # Print the current group
