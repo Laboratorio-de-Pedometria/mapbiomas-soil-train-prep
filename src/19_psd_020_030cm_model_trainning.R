@@ -246,3 +246,95 @@ write.csv(
   file = paste0(res_tab_path, "psd_error_metrics_020_030cm.csv"),
   row.names = FALSE
 )
+
+# Cross-validation #################################################################################
+# Leave-group-out cross-validation. Set groups of samples based on the 'id' column. Each soil
+# profile is a group, consisting of multiple samples at different depths.
+# Check the number of unique groups
+num_groups <- length(unique(soildata$id))
+print(num_groups)
+# 11623
+
+# Add a column to store the cross-validation predictions
+soildata[, pred_log_clay_sand := as.numeric(NA)]
+soildata[, pred_log_silt_sand := as.numeric(NA)]
+
+# Perform cross-validation: log_clay_sand
+# This task takes about 16 hours to run on a machine with 3 cores and 16GB of RAM.
+t0 <- Sys.time()
+for (group in unique(soildata$id)) {
+  # Print the current group
+  print(group)
+  # Check if the validation group has any samples with depth 20-30cm
+  if (nrow(soildata[id == group & depth > 20 & depth <= 30]) == 0) {
+    print("No samples in group")
+  } else {
+    print("Samples in group")
+    # Fit the model on the training set
+    set.seed(random_seed)
+    model <- ranger::ranger(
+      formula = log_clay_sand ~ .,
+      data = soildata[id != group,
+        !c("log_silt_sand", "pred_log_clay_sand", "pred_log_silt_sand")],
+      num.trees = 100,
+      mtry = 16,
+      min.node.size = 2,
+      max.depth = 30,
+      verbose = FALSE
+    )
+    # Predict on the validation group
+    soildata[
+      id == group & depth > 20 & depth <= 30,
+      pred_log_clay_sand :=
+      predict(model, data = soildata[id == group & depth > 20 & depth <= 30,
+        !c("log_silt_sand", "pred_log_clay_sand", "pred_log_silt_sand")])$predictions
+    ]
+  }
+}
+print(Sys.time() - t0)
+
+# Save preditions to disk
+data.table::fwrite(soildata[, .(id, pred_log_clay_sand)],
+  file = paste0(res_tab_path, "log_clay_sand_020_030cm_cross_validation.txt"), sep = "\t",
+  row.names = FALSE
+)
+
+# Perform cross-validation: log_silt_sand
+# This task takes about 16 hours to run on 3 cores and about 5.5 hours on 7 cores.
+t0 <- Sys.time()
+for (group in unique(soildata$id)) {
+  # Print the current group
+  print(group)
+  # Check if the validation group has any samples
+  if (nrow(soildata[id == group & depth > 20 & depth <= 30]) == 0) {
+    print("No samples in group")
+  } else {
+    print("Samples in group")
+    # Fit the model on the training set
+    set.seed(random_seed)
+    model <- ranger::ranger(
+      formula = log_silt_sand ~ .,
+      data = soildata[id != group,
+        !c("log_clay_sand", "pred_log_clay_sand", "pred_log_silt_sand")],
+      num.trees = 100,
+      mtry = 16,
+      min.node.size = 2,
+      max.depth = 30,
+      verbose = FALSE
+    )
+    # Predict on the validation group
+    soildata[
+      id == group & depth > 20 & depth <= 30,
+      pred_log_silt_sand :=
+      predict(model, data = soildata[id == group & depth > 20 & depth <= 30,
+        !c("log_clay_sand", "pred_log_clay_sand", "pred_log_silt_sand")])$predictions
+    ]
+  }
+}
+print(Sys.time() - t0)
+
+# Save preditions to disk
+data.table::fwrite(soildata[, .(id, pred_log_silt_sand)],
+  file = paste0(res_tab_path, "log_silt_sand_020_030cm_cross_validation.txt"), sep = "\t",
+  row.names = FALSE
+)
