@@ -98,5 +98,68 @@ soildata <- soildata[depth <= 30]
 dim(soildata)
 # 15963    79
 
+# Back-transform the original observations
+# log_clay_sand and log_silt_sand are additive log-ratios (ALR) of clay, silt, and sand.
+# We need to back-transform them to get the actual proportions.
+soildata[, denominator := 1 + exp(log_clay_sand) + exp(log_silt_sand)]
+soildata[, clay := round((exp(log_clay_sand) / denominator) * 100)]
+soildata[, silt := round((exp(log_silt_sand) / denominator) * 100)]
+soildata[, sand := round((1 / denominator) * 100)]
+soildata[, denominator := NULL]
+# Check the data
+dim(soildata)
+
 # Merge the two data.tables by 'id' and 'depth'
+psd_model <- merge(soildata[, .(id, depth, clay, silt, sand, .geo)],
+  pred_psd[, .(id, depth, pred_clay, pred_silt, pred_sand)],
+  by = c("id", "depth")
+)
+
+# Process the geographic coordinates. They are stored in the '.geo' column in the following format:
+# {""type"":""Point"",""coordinates"":[-53.794755636409,-29.651278496903196]}
+# We need to extract the coordinates and create two new columns: 'lon' and 'lat'.
+psd_model[, lon := as.numeric(sub(".*\\[([^,]+),.*", "\\1", .geo))]
+psd_model[, lat := as.numeric(sub('.*\\[([^,]+),([0-9\\.-]+)\\].*', '\\2', .geo))]
+# Remove the '.geo' column
+psd_model[, .geo := NULL]
+
+# Calculate average over groups, i.e. soil profiles based on the 'id' column
+psd_model_avg <- psd_model[, .(
+  clay = mean(clay, na.rm = TRUE),
+  silt = mean(silt, na.rm = TRUE),
+  sand = mean(sand, na.rm = TRUE),
+  pred_clay = mean(pred_clay, na.rm = TRUE),
+  pred_silt = mean(pred_silt, na.rm = TRUE),
+  pred_sand = mean(pred_sand, na.rm = TRUE),
+  lon = mean(lon, na.rm = TRUE),
+  lat = mean(lat, na.rm = TRUE)
+), by = id]
+
+# Validation statistics - Overall ##################################################################
+# Compute error statistics for the entire dataset using the custom function
+# error_statistics(observed, predicted)
+# observed = clay, silt, sand
+# predicted = pred_clay, pred_silt, pred_sand
+validation_stats_brazil <- rbind(
+  clay = psd_model[, error_statistics(observed = clay, predicted = pred_clay)],
+  silt = psd_model[, error_statistics(observed = silt, predicted = pred_silt)],
+  sand = psd_model[, error_statistics(observed = sand, predicted = pred_sand)]
+)
+validation_stats_brazil <- round(validation_stats_brazil, 4)
+# Print the validation statistics for Brazil
+print("Validation statistics - Brazil - %")
+print(validation_stats_brazil)
+
+# Validation statistics - Groups ###################################################################
+# Calculate error statistics for average values
+validation_stats_brazil_avg <- rbind(
+  clay = psd_model_avg[, error_statistics(observed = clay, predicted = pred_clay)],
+  silt = psd_model_avg[, error_statistics(observed = silt, predicted = pred_silt)],
+  sand = psd_model_avg[, error_statistics(observed = sand, predicted = pred_sand)]
+)
+validation_stats_brazil_avg <- round(validation_stats_brazil_avg, 4)
+# Print the validation statistics for Brazil average
+print("Validation statistics - Brazil average - %")
+print(validation_stats_brazil_avg)
+
 
