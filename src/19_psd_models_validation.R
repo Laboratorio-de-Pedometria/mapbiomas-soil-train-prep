@@ -17,15 +17,28 @@ if (!require("geobr")) {
   library(geobr)
 }
 
+# Set variables
+res_fig_path <- "res/fig/"
+res_tab_path <- "res/tab/"
+random_seed <- 1984
+
 # Source helper functions
 source("src/00_helper_functions.r")
 
 # Read the geospatial data
-biomes <- geobr::read_biomes(simplified = FALSE)
+biomes <- geobr::read_biomes(simplified = TRUE)
+# Drop "Sistema Costeiro"
+biomes <- biomes[biomes$name_biome != "Sistema Costeiro", ]
 # Transform the biomes data to WGS84 (EPSG:4326)
 biomes <- st_transform(biomes, crs = 4326)
+# Validate geometry
+if (any(!st_is_valid(biomes))) {
+  biomes <- st_make_valid(biomes)
+}
+# View the biomes data
+mapview::mapview(biomes)
 
-# Read the data
+# Read the soil data
 dir_path <- path.expand("~/ownCloud/MapBiomas/res/tab/")
 
 # log_clay_sand
@@ -135,31 +148,69 @@ psd_model[, lon := as.numeric(sub(".*\\[([^,]+),.*", "\\1", .geo))]
 psd_model[, lat := as.numeric(sub('.*\\[([^,]+),([0-9\\.-]+)\\].*', '\\2', .geo))]
 # Remove the '.geo' column
 psd_model[, .geo := NULL]
+nrow(psd_model)
+# 15963
 
 # Intersect with the biomes data
 # Convert psd_model to an sf object
 psd_model_sf <- st_as_sf(psd_model, coords = c("lon", "lat"), crs = 4326)
 # Intersect with the biomes data
 psd_model_biomes <- st_intersection(psd_model_sf, biomes)
+nrow(psd_model_biomes)
+# 15963
+
 # Convert back to data.table
-psd_model <- as.data.table(psd_model_biomes)
+psd_model <- cbind(as.data.table(psd_model_biomes), sf::st_coordinates(psd_model_biomes))
 # Remove the geometry column
 psd_model[, geometry := NULL]
 # Check the number of points in each biome
 psd_model[, .N, by = name_biome]
 
 # Validation statistics
-# Compute error statistics for the entire dataset using the custom function
-# error_statistics(observed, predicted)
-# observed = clay, silt, sand
-# predicted = pred_clay, pred_silt, pred_sand
-brazil <- rbind(
-  clay = psd_model[, error_statistics(observed = clay, predicted = pred_clay)],
-  silt = psd_model[, error_statistics(observed = silt, predicted = pred_silt)],
-  sand = psd_model[, error_statistics(observed = sand, predicted = pred_sand)]
+# Clay
+clay <- rbind(
+  brazil = psd_model[, error_statistics(observed = clay, predicted = pred_clay)],
+  amazon = psd_model[name_biome == "Amazônia", error_statistics(observed = clay, predicted = pred_clay)],
+  atlantic_forest = psd_model[name_biome == "Mata Atlântica", error_statistics(observed = clay, predicted = pred_clay)],
+  caatinga = psd_model[name_biome == "Caatinga", error_statistics(observed = clay, predicted = pred_clay)],
+  cerrado = psd_model[name_biome == "Cerrado", error_statistics(observed = clay, predicted = pred_clay)],
+  pampa = psd_model[name_biome == "Pampa", error_statistics(observed = clay, predicted = pred_clay)],
+  pantanal = psd_model[name_biome == "Pantanal", error_statistics(observed = clay, predicted = pred_clay)]
 )
-brazil <- round(brazil, 2)
-print(brazil)
+clay <- round(clay, 2)
+print(clay)
+# Save to disk
+write.table(clay, file = paste0(res_tab_path, "psd_validation_stats_clay.txt"), sep = "\t")
+
+# Silt
+silt <- rbind(
+  brazil = psd_model[, error_statistics(observed = silt, predicted = pred_silt)],
+  amazon = psd_model[name_biome == "Amazônia", error_statistics(observed = silt, predicted = pred_silt)],
+  atlantic_forest = psd_model[name_biome == "Mata Atlântica", error_statistics(observed = silt, predicted = pred_silt)],
+  caatinga = psd_model[name_biome == "Caatinga", error_statistics(observed = silt, predicted = pred_silt)],
+  cerrado = psd_model[name_biome == "Cerrado", error_statistics(observed = silt, predicted = pred_silt)],
+  pampa = psd_model[name_biome == "Pampa", error_statistics(observed = silt, predicted = pred_silt)],
+  pantanal = psd_model[name_biome == "Pantanal", error_statistics(observed = silt, predicted = pred_silt)]
+)
+silt <- round(silt, 2)
+print(silt)
+# Save to disk
+write.table(silt, file = paste0(res_tab_path, "psd_validation_stats_silt.txt"), sep = "\t")
+
+# Sand
+sand <- rbind(
+  brazil = psd_model[, error_statistics(observed = sand, predicted = pred_sand)],
+  amazon = psd_model[name_biome == "Amazônia", error_statistics(observed = sand, predicted = pred_sand)],
+  atlantic_forest = psd_model[name_biome == "Mata Atlântica", error_statistics(observed = sand, predicted = pred_sand)],
+  caatinga = psd_model[name_biome == "Caatinga", error_statistics(observed = sand, predicted = pred_sand)],
+  cerrado = psd_model[name_biome == "Cerrado", error_statistics(observed = sand, predicted = pred_sand)],
+  pampa = psd_model[name_biome == "Pampa", error_statistics(observed = sand, predicted = pred_sand)],
+  pantanal = psd_model[name_biome == "Pantanal", error_statistics(observed = sand, predicted = pred_sand)]
+)
+sand <- round(sand, 2)
+print(sand)
+# Save to disk
+write.table(sand, file = paste0(res_tab_path, "psd_validation_stats_sand.txt"), sep = "\t")
 
 # library(geobr)
 # maranhao <- geobr::read_state(code_state = "MA")
