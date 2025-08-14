@@ -8,9 +8,22 @@ if (!require("data.table")) {
   install.packages("data.table")
   library(data.table)
 }
+if (!require("sf")) {
+  install.packages("sf")
+  library(sf)
+}
+if (!require("geobr")) {
+  install.packages("geobr")
+  library(geobr)
+}
 
 # Source helper functions
 source("src/00_helper_functions.r")
+
+# Read the geospatial data
+biomes <- geobr::read_biomes(simplified = FALSE)
+# Transform the biomes data to WGS84 (EPSG:4326)
+biomes <- st_transform(biomes, crs = 4326)
 
 # Read the data
 dir_path <- path.expand("~/ownCloud/MapBiomas/res/tab/")
@@ -123,44 +136,30 @@ psd_model[, lat := as.numeric(sub('.*\\[([^,]+),([0-9\\.-]+)\\].*', '\\2', .geo)
 # Remove the '.geo' column
 psd_model[, .geo := NULL]
 
-# Calculate average over groups, i.e. soil profiles based on the 'id' column
-psd_model_avg <- psd_model[, .(
-  clay = mean(clay, na.rm = TRUE),
-  silt = mean(silt, na.rm = TRUE),
-  sand = mean(sand, na.rm = TRUE),
-  pred_clay = mean(pred_clay, na.rm = TRUE),
-  pred_silt = mean(pred_silt, na.rm = TRUE),
-  pred_sand = mean(pred_sand, na.rm = TRUE),
-  lon = mean(lon, na.rm = TRUE),
-  lat = mean(lat, na.rm = TRUE)
-), by = id]
+# Intersect with the biomes data
+# Convert psd_model to an sf object
+psd_model_sf <- st_as_sf(psd_model, coords = c("lon", "lat"), crs = 4326)
+# Intersect with the biomes data
+psd_model_biomes <- st_intersection(psd_model_sf, biomes)
+# Convert back to data.table
+psd_model <- as.data.table(psd_model_biomes)
+# Remove the geometry column
+psd_model[, geometry := NULL]
+# Check the number of points in each biome
+psd_model[, .N, by = name_biome]
 
-# Validation statistics - Overall ##################################################################
+# Validation statistics
 # Compute error statistics for the entire dataset using the custom function
 # error_statistics(observed, predicted)
 # observed = clay, silt, sand
 # predicted = pred_clay, pred_silt, pred_sand
-validation_stats_brazil <- rbind(
+brazil <- rbind(
   clay = psd_model[, error_statistics(observed = clay, predicted = pred_clay)],
   silt = psd_model[, error_statistics(observed = silt, predicted = pred_silt)],
   sand = psd_model[, error_statistics(observed = sand, predicted = pred_sand)]
 )
-validation_stats_brazil <- round(validation_stats_brazil, 4)
-# Print the validation statistics for Brazil
-print("Validation statistics - Brazil - %")
-print(validation_stats_brazil)
-
-# Validation statistics - Groups ###################################################################
-# Calculate error statistics for average values
-validation_stats_brazil_avg <- rbind(
-  clay = psd_model_avg[, error_statistics(observed = clay, predicted = pred_clay)],
-  silt = psd_model_avg[, error_statistics(observed = silt, predicted = pred_silt)],
-  sand = psd_model_avg[, error_statistics(observed = sand, predicted = pred_sand)]
-)
-validation_stats_brazil_avg <- round(validation_stats_brazil_avg, 4)
-# Print the validation statistics for Brazil average
-print("Validation statistics - Brazil average - %")
-print(validation_stats_brazil_avg)
+brazil <- round(brazil, 2)
+print(brazil)
 
 # library(geobr)
 # maranhao <- geobr::read_state(code_state = "MA")
@@ -190,26 +189,3 @@ print(validation_stats_brazil_avg)
 # # Print the validation statistics for Maranhão
 # print("Validation statistics - Maranhão - %")
 # print(validation_stats_ma)
-
-# # Calculate average over groups, i.e. soil profiles based on the 'id' column
-# psd_model_ma_avg <- psd_model_ma[, .(
-#   clay = mean(clay, na.rm = TRUE),
-#   silt = mean(silt, na.rm = TRUE),
-#   sand = mean(sand, na.rm = TRUE),
-#   pred_clay = mean(pred_clay, na.rm = TRUE),
-#   pred_silt = mean(pred_silt, na.rm = TRUE),
-#   pred_sand = mean(pred_sand, na.rm = TRUE),
-#   lon = mean(lon, na.rm = TRUE),
-#   lat = mean(lat, na.rm = TRUE)
-# ), by = id]
-
-# # Calculate error statistics for average values in Maranhão
-# validation_stats_ma_avg <- rbind(
-#   clay = psd_model_ma_avg[, error_statistics(observed = clay, predicted = pred_clay)],
-#   silt = psd_model_ma_avg[, error_statistics(observed = silt, predicted = pred_silt)],
-#   sand = psd_model_ma_avg[, error_statistics(observed = sand, predicted = pred_sand)]
-# )
-# validation_stats_ma_avg <- round(validation_stats_ma_avg, 4)
-# # Print the validation statistics for Maranhão average
-# print("Validation statistics - Maranhão average - %")
-# print(validation_stats_ma_avg)
