@@ -168,16 +168,15 @@ soildata[, topsoil := any(profund_sup == 0), by = id]
 soildata <- soildata[topsoil == TRUE, ]
 soildata[, topsoil := NULL]
 summary_soildata(soildata)
-# Layers: 30212
-# Events: 15885
-# Georeferenced events: 13537
-
+# Layers: 47913
+# Events: 15871
+# Georeferenced events: 13560
+# Datasets: 254
 
 # Endpoint
 soildata[is.na(endpoint), endpoint := 0]
 
 # Clean events
-
 
 # Remove remaining duplicated events (NOT MOVED TO SOILDATA INTEGRATION)
 duplo <- soildata_events[duplo, V1]
