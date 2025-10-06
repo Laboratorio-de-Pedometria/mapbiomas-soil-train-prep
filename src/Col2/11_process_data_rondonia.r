@@ -149,7 +149,7 @@ rondonia[, id := paste0(dataset_id, "-", observacao_id)]
 
 ####################################################################################################
 # ATTENTION!
-# Random perturbation of coordinates was not applied to the consolidated data
+# Random perturbation of 1 m was applied to the consolidated data
 ####################################################################################################
 # Add random perturbation to the coordinates of extra samples
 # Use sf::st_jitter() with amount = 200 m, where runif(1, -amount, amount)
