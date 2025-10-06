@@ -181,15 +181,26 @@ error_statistics <-
     slope <- coef(lm(observed ~ predicted))[2]
     return(data.frame(me, mae, mse, rmse, mec, slope))
   }
-# Describe soil data
+# Describe soil data ###############################################################################
 # Create function to describe a data.frame. Use an argument na.rm = TRUE.
 summary_soildata <- function(x, na.rm = TRUE) {
+  # If 'id' is missing, generate temporary 'id' column by concatenating 'dataset_id' and 'observacao_id'
+  if (!"id" %in% names(x) & all(c("dataset_id", "observacao_id") %in% names(x))) {
+    x[, id := paste0(dataset_id, "_", observacao_id)]
+    temp_id <- TRUE
+  } else {
+    temp_id <- FALSE
+  }
   cat("Column names:")
-  cat("\n", paste(names(x)), collapse = " ")
+  cat("\n", paste(sort(names(x))), collapse = " ")
   cat("\nLayers:", nrow(x))
   cat("\nEvents:", nrow(unique(x[, "id"])))
   cat("\nGeoreferenced events:", nrow(unique(x[!is.na(coord_x) & !is.na(coord_y), "id"])))
+  cat("\nDatasets:", length(unique(x[, dataset_id])))
   cat("\n")
+  if (temp_id) {
+    x[, id := NULL] # Remove temporary 'id' column
+  }
 }
 
 # Browse Google Maps:
