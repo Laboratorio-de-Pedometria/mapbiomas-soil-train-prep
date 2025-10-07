@@ -1,4 +1,4 @@
-# title: SoilData
+# title: MapBiomas Soil
 # subtitle: Clean data
 # author: Alessandro Samuel-Rosa
 # data: 2025 CC-BY
