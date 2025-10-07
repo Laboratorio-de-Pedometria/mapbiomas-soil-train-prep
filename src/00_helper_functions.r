@@ -1,7 +1,7 @@
-# title: SoilData - Soil Organic Carbon Stock
+# title: MapBiomas Soil
 # subtitle: Helper functions
-# author: Alessandro Samuel-Rosa and Taciara Zborowski Horst
-# data: 2024 CC-BY
+# author: Alessandro Samuel-Rosa
+# data: 2025 CC-BY
 
 # R function for the simple imputation of missing values in the columns of a data.frame.
 # The argument 'x' is a data.frame containing multiple columns. Columns of x can be of type continuous (numeric) or categorical (factor or character). Three simple imputation methods are available:
