@@ -13,8 +13,10 @@ if (!require("data.table")) {
 source("src/00_helper_functions.r")
 
 # Curated data #####################################################################################
-# Define curated data path
-curated_path <- "~/projects/SoilData/SoilData-ctb/"
+# Path to data curation repository
+curated_path <- "~/projects/SoilData/SoilData-ctb"
+
+# List all curated data files
 curated_files <- list.files(
   path = path.expand(curated_path),
   pattern = "^ctb[0-9]{4}\\.csv$",
