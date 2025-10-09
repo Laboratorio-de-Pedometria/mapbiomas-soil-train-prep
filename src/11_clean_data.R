@@ -4,22 +4,16 @@
 # data: 2025 CC-BY
 rm(list = ls())
 
-# Install and load required packages
-if (!require("data.table")) {
-  install.packages("data.table")
-}
-
 # Source helper functions
 source("src/00_helper_functions.r")
 
 # Read SoilData data processed in the previous script
-soildata <- data.table::fread("data/10_soildata.txt", sep = "\t")
-
+soildata <- data.table::fread("data/10_soildata.txt", sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 57077
-# Events: 16824
-# Georeferenced events: 14334
-# Datasets: 255
+# Layers: 58060
+# Events: 17438
+# Georeferenced events: 14575
+# Datasets: 257
 
 # Clean datasets ###################################################################################
 # ctb0042
@@ -34,28 +28,54 @@ soildata <- soildata[dataset_id != "ctb0042", ]
 # Contains soil data from roadsides and riversides. The data, however, is not yet available.
 soildata <- soildata[dataset_id != "ctb0009", ]
 
-# ctb0001
+# ctb0001 - MAY BE USEFUL FOR VALIDATION
 # Conteúdo de ferro do solo sob dois sistemas de cultivo na Estação Experimental Terras Baixas nos
 # anos de 2012 e 2013
 # soildata <- soildata[dataset_id != "ctb0001", ]
 
-# ctb0026
+# ctb0026 - MAY BE USEFUL FOR VALIDATION
 # Conteúdo de ferro do solo no ano de 1998
 # soildata <- soildata[dataset_id != "ctb0026", ]
 
-
 summary_soildata(soildata)
-# Layers: 57019
-# Events: 16766
-# Georeferenced events: 14276
-# Datasets: 254
+# Layers: 58002
+# Events: 17380
+# Georeferenced events: 14517
+# Datasets: 256
 
 # Clean layers #####################################################################################
 
 # MISSING DEPTH
 # Check if there are layers missing profund_sup or profund_inf
+# Some datasets have missing depth values for some events. This occurs when 1) events are
+# pseudo-samples, i.e. samples taken on the computer screen, 2) records of exposed R layers observed
+# in the field, i.e. rock outcrops, or 3) auger holes used to check the soil classification in the
+# field, but not sampled for laboratory analysis.
+#  - ctb0044: pseudo-samples and rock outcrops
+#  - ctb0047: auger holes
+#  - ctb0048: auger holes
+ctb_to_ignore <- c(
+  "ctb0044", "ctb0047", "ctb0048",
+  "ctb0050", "ctb0051"
+)
 soildata[, na_depth := is.na(profund_sup) | is.na(profund_inf)]
-soildata[na_depth == TRUE, .(id, camada_nome, profund_sup, profund_inf, carbono)]
+soildata[
+  na_depth == TRUE & !dataset_id %in% ctb_to_ignore,
+  .(id, camada_nome, profund_sup, profund_inf, argila, carbono, taxon_sibcs)
+]
+# For other datasets, filter out events with missing depth values
+# - ctb0050: extra samples obtained from other datasets
+# - ctb0051: extra samples obtained from other datasets
+
+
+
+
+soildata[dataset_id == "ctb0052", dataset_titulo[1]]
+
+soildata[
+  na_depth == TRUE & dataset_id == "ctb0052",
+  .(id, camada_nome, profund_sup, profund_inf, argila, carbono, taxon_sibcs)
+]
 
 # Soil end point (<= 100 cm)
 # The variable 'endpoint' identifies if the soil profile sampling and description went all the way
