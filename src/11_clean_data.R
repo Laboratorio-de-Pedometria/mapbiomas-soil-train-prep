@@ -56,50 +56,72 @@ summary_soildata(soildata)
 #  - ctb0048: auger holes
 ctb_to_ignore <- c(
   "ctb0044", "ctb0047", "ctb0048",
-  "ctb0050", "ctb0051"
+  "ctb0052" # Gateados: process depths
 )
 soildata[, na_depth := is.na(profund_sup) | is.na(profund_inf)]
 soildata[
   na_depth == TRUE & !dataset_id %in% ctb_to_ignore,
   .(id, camada_nome, profund_sup, profund_inf, argila, carbono, taxon_sibcs)
 ]
-# For other datasets, filter out events with missing depth values
+# Other datasets:
 # - ctb0050: extra samples obtained from other datasets
 # - ctb0051: extra samples obtained from other datasets
+# - ctb0053: soil samples not collected or lost
+# Filter out events from these three datasets
+soildata <- soildata[!(na_depth == TRUE & dataset_id %in% c("ctb0050", "ctb0051", "ctb0053")), ]
+soildata[, na_depth := NULL]
+summary_soildata(soildata)
+# Layers: 57626
+# Events: 17004
+# Georeferenced events: 14509
+# Datasets: 256
+
+# Soil end point
+# The variable 'endpoint' identifies if soil sampling and description in the field went all the way
+# till its end. This can be represented using the capital letter "R" in the layer name. Older
+# studies may use other letters, e.g. "D" such as in ctb0674 and ctb0787.
+soildata[, is_endpoint := grepl("^R$|^D$", camada_nome, ignore.case = FALSE)]
+soildata[is_endpoint == TRUE, .N] # 313 layers
+# Check multiple endpoints per event
+soildata[, multiple_endpoints := sum(is_endpoint == TRUE), by = id]
+unique(soildata[multiple_endpoints > 1 & is_endpoint == TRUE, camada_nome])
+
+# Special cases
+# ctb0003
+# The study planned to sample the 0-20 cm layer only. When the soil was shallower than 20 cm, the
+# soil was sampled until the bedrock. Thus, if profund_inf < 20 cm, then endpoint := 1.
+soildata[dataset_id == "ctb0003" & profund_inf < 20, is_endpoint := 1]
+soildata[is_endpoint == TRUE, .N] # 426 layers
 
 
 
 
-soildata[dataset_id == "ctb0052", dataset_titulo[1]]
 
-soildata[
-  na_depth == TRUE & dataset_id == "ctb0052",
-  .(id, camada_nome, profund_sup, profund_inf, argila, carbono, taxon_sibcs)
-]
+# Em construção!
 
-# Soil end point (<= 100 cm)
-# The variable 'endpoint' identifies if the soil profile sampling and description went all the way
-# till its end, i.e. down to the bedrock (R).
-# Identify layers that have the following:
-# 1) camada_nome containing the letter R and
-# 2) profund_sup starting before or at 100 cm and
-# 3) carbono == NA
-# 4) argila == NA
-max_depth <- 100
-soildata[,
-  r_endpoint := grepl("R", camada_nome, ignore.case = TRUE) & profund_sup <= max_depth &
-    is.na(carbono) & is.na(argila)
-]
-soildata[r_endpoint == TRUE, .N] # 324 layers
-soildata[, endpoint := ifelse(any(r_endpoint == TRUE), 1, NA_integer_), by = id]
-soildata[, r_endpoint := NULL]
-# If dataset_id == ctb0003 and profund_inf < 20, then endpoint := 1
-soildata[
-  dataset_id == "ctb0003" & profund_inf < 20,
-  endpoint := 1
-]
-sum(soildata[["endpoint"]], na.rm = TRUE) # 1144 events with endpoint <= 100 cm
-# View(soildata[endpoint == 1, .(id, camada_nome, profund_sup, profund_inf, carbono)])
+
+# For each event (id), identify the maximum value of profund_inf.
+soildata[, max_profund_inf := max(profund_inf, na.rm = TRUE), by = id]
+# Next, for each dataset_id, check if all events have the same value of max_profund_inf or not. If
+# all events have the same value of max_profund_inf, then the endpoint was not reached. On the
+# contrary, if some events have a different value of max_profund_inf, then the endpoint might have
+# been reached (which we will check later on). We run this check using the following set of depth
+# limits: seq(10, 100, by = 10).
+# Datasets to ignore: ctb0003, ctb0674, and ctb0787
+depth_limits <- seq(10, 100, by = 10)
+for (i in seq_along(depth_limits)) {
+  limit <- depth_limits[i]
+  soildata[, max_depth := all(max_profund_inf <= limit), by = dataset_id]
+  # Identify the datasets for which max_depth is FALSE
+  n_datasets <- length(unique(soildata[max_depth == FALSE, dataset_id]))
+  message("Depth limit: ", limit, " cm - Datasets with varying max depth: ", n_datasets)
+}
+
+
+
+soildata[dataset_id == "ctb0012", dataset_titulo]
+
+
 
 # Filter out soil layers starting below a maximum depth of 100 cm
 # We work only with data from the first 100 cm and deeper layers that start at or before 100 cm.
