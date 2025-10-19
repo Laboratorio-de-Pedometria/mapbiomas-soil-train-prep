@@ -241,27 +241,18 @@ summary_soildata(soildata)
 # Georeferenced events: 14396
 # Datasets: 260
 
+# MISSING LAYERS
+# Check for missing layers within each event (id)
+print(id_missing <- check_missing_layer(soildata))
+# There are 9864 complaints.
+if(FALSE) {
+  View(soildata[id %in% id_missing$id, .(id, camada_nome, profund_sup, profund_inf, argila, carbono)])
+}
 
 
 
 
-# Adjacent layers
-# For each event (id), profund_inf of layer i should be equal to profund_sup of layer i + 1.
-# For records with abs(diff) %in% 1:10, set profund_inf = profund_inf + (diff * -1)
-# Filter out records for which abs(diff) > 10
-soildata[, diff := profund_inf - data.table::shift(profund_sup, type = "lead"), by = id]
-nrow(soildata[abs(diff) %in% 1:10, ]) # 2563 layers
-soildata[abs(diff) %in% 1:10, profund_inf := profund_inf + (diff * -1)]
-soildata[, diff10 := any(diff > 10), id]
-nrow(soildata[diff10 == TRUE, ]) # 814 layers
-soildata <- soildata[diff10 == FALSE | is.na(diff10), ]
-summary_soildata(soildata)
-# Layers: 49581
-# Events: 16581
-# Georeferenced events: 14200
-# Datasets: 254
-soildata[, diff := NULL]
-soildata[, diff10 := NULL]
+
 
 # Filter out layers with profund_sup == profund_inf
 soildata <- soildata[profund_sup < profund_inf, ]
