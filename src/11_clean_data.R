@@ -60,6 +60,11 @@ soildata[min_profund_sup < 0, profund_inf := profund_inf + abs(min_profund_sup)]
 soildata[, min_profund_sup := NULL]
 summary(soildata[, .(profund_sup, profund_inf)])
 
+# TOPSOIL
+# Filter out whole events without a topsoil layer.
+soildata[!is.na(profund_sup), has_topsoil := any(profund_sup == 0, na.rm = TRUE)]
+nrow(unique(soildata[has_topsoil != TRUE, "id"])) # 0 events
+
 # MISSING DEPTH
 # Check if there are layers missing profund_sup or profund_inf
 # Some datasets have missing depth values for some events. This occurs when 1) events are
@@ -214,10 +219,13 @@ summary_soildata(soildata)
 # Events: 17126
 # Georeferenced events: 14608
 # Datasets: 260
-# Adjust depths just like we did for negative depths
+# Adjust depths, but now considering that we removed some topsoil layers
 soildata[, min_profund_sup := min(profund_sup, na.rm = TRUE), by = id]
-soildata[min_profund_sup < 0, profund_sup := profund_sup + abs(min_profund_sup)]
-soildata[min_profund_sup < 0, profund_inf := profund_inf + abs(min_profund_sup)]
+soildata[min_profund_sup > 0, .N] # 2995 layers
+soildata[min_profund_sup > 0, profund_sup := profund_sup - abs(min_profund_sup)]
+soildata[min_profund_sup > 0, profund_inf := profund_inf - abs(min_profund_sup)]
+soildata[, min_profund_sup := min(profund_sup, na.rm = TRUE), by = id]
+soildata[min_profund_sup > 0, .N] # 0 layers
 soildata[, min_profund_sup := NULL]
 summary(soildata[, .(profund_sup, profund_inf)])
 
@@ -225,12 +233,12 @@ summary(soildata[, .(profund_sup, profund_inf)])
 # Filter out soil layers starting below the maximum depth. We will work only with data from layers
 # starting from the soil surface down to max_depth.
 max_depth <- 100
-nrow(soildata[profund_sup >= max_depth, ]) # 8183 layers with profund_sup >= max_depth
+nrow(soildata[profund_sup >= max_depth, ]) # 8096 layers with profund_sup >= max_depth
 soildata <- soildata[profund_sup >= 0 & profund_sup <= max_depth, ]
 summary_soildata(soildata)
-# Layers: 51337
-# Events: 17003
-# Georeferenced events: 14380
+# Layers: 51229
+# Events: 17028
+# Georeferenced events: 14396
 # Datasets: 260
 
 
