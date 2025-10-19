@@ -325,3 +325,73 @@ check_missing_layer <- function(layer_data) {
     message("No missing layers were found. You can proceed.")
   }
 }
+# Add missing layers ###############################################################################
+# This function adds missing layers to a data.table containing soil layer data.
+# It checks for each event ID if the top layer is missing (i.e., if the minimum depth of the top
+# layer is greater than 0). If the top layer is missing, a new row is added to the data.table with
+# depth_top set to 0 and depth_bottom set to the minimum depth of the top layer. The function also
+# identifies gaps in the depth intervals of soil layers for each event ID and adds rows for these
+# missing layers. The final result is a data.table with all layers, including the added missing
+# layers, ordered by event ID and depth_top.
+# x: data.table containing soil layer data with columns for event ID, depth top, depth bottom, and layer ID.
+# event.id: column name for event ID (default is "id")
+# depth.top: column name for depth top (default is "profund_sup")
+# depth.bottom: column name for depth bottom (default is "profund_inf")
+# layer.id: column name for layer ID (default is "camada_id")
+# Returns: data.table with all layers, including added missing layers, ordered by event ID and depth_top.
+# Example usage: add_missing_layer(layer_data)
+# Note: The function assumes that the data.table package is loaded and that the data has the
+# necessary columns for event ID, depth top, depth bottom, and layer ID.
+add_missing_layer <- function(
+    x, event.id = "id", depth.top = "profund_sup", depth.bottom = "profund_inf",
+    layer.id = "camada_id") {
+  # Ensure x is a data.table
+  data.table::setDT(x)
+
+  # Rename columns
+  old_names <- c(event.id, depth.top, depth.bottom, layer.id)
+  new_names <- c("event_id", "depth_top", "depth_bottom", "layer_id")
+  data.table::setnames(x, old = old_names, new = new_names)
+
+  # Check for each event_id if it is missing the top layer, i.e. min(depth_top) > 0
+  x[, missing_top := min(depth_top) > 0, by = event_id]
+
+  # If the top layer is missing
+  if (any(x$missing_top)) {
+    message("Missing top layer found. Adding a new row with depth_top = 0.")
+    # Add a row to the data.table. Then, for the new row, set
+    # depth_top = 0 and depth_bottom = min(depth_top)
+    x <- rbind(x, x[missing_top == TRUE, .(
+      event_id = event_id,
+      depth_top = 0,
+      depth_bottom = min(depth_top)
+    )], fill = TRUE)
+  } else {
+    message("No missing top layer found.")
+  }
+  x[, missing_top := NULL]
+
+  # Order x by profile_id and depth_top
+  data.table::setorder(x, event_id, depth_top)
+
+  # Create a new data.table to store the missing layers
+  missing_layers <- x[, .(
+    depth_top = depth_bottom[-.N],
+    depth_bottom = data.table::shift(depth_top, type = "lead")[-.N]
+  ), by = event_id][depth_top != depth_bottom]
+
+  # Combine the original data with the missing layers
+  result <- rbind(x, missing_layers, fill = TRUE)
+
+  # Order the result by event.id and depth_top
+  data.table::setorder(result, event_id, depth_top)
+
+  # Reset layer_id according to the new order
+  result[, layer_id := seq_len(.N), by = event_id]
+
+  # Rename columns
+  data.table::setnames(result, old = new_names, new = old_names)
+
+  # Return the result
+  return(result)
+}
