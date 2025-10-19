@@ -137,20 +137,21 @@ soildata[, max_profund_inf := max(profund_inf, na.rm = TRUE), by = id]
 soildata[max_profund_inf == profund_inf & is_soil == FALSE, .N, by = camada_nome][order(N)]
 View(soildata[max_profund_inf == profund_inf & is_soil == TRUE, .N, by = camada_nome][order(camada_nome)])
 
-
-
-
-
-
-# Filter out soil layers starting below a maximum depth of 100 cm
-# We work only with data from the first 100 cm and deeper layers that start at or before 100 cm.
-nrow(soildata[profund_sup >= max_depth, ]) # 7969 layers with profund_sup >= 100
+# MAXIMUM DEPTH
+# Filter out soil layers starting below the maximum depth. We will work only with data from layers
+# starting from the soil surface down to max_depth.
+max_depth <- 100
+nrow(soildata[profund_sup >= max_depth, ]) # 8183 layers with profund_sup >= max_depth
 soildata <- soildata[profund_sup >= 0 & profund_sup <= max_depth, ]
 summary_soildata(soildata)
-# Layers: 50395
-# Events: 16740
-# Georeferenced events: 14260
-# Datasets: 254
+# Layers: 51337
+# Events: 17003
+# Georeferenced events: 14380
+# Datasets: 260
+
+
+
+
 
 # Adjacent layers
 # For each event (id), profund_inf of layer i should be equal to profund_sup of layer i + 1.
