@@ -241,6 +241,17 @@ summary_soildata(soildata)
 # Georeferenced events: 14396
 # Datasets: 260
 
+
+
+
+
+
+
+
+
+
+
+
 # MISSING LAYERS
 # Check for missing layers within each event (id)
 print(id_missing <- check_missing_layer(soildata))
@@ -248,7 +259,12 @@ print(id_missing <- check_missing_layer(soildata))
 if(FALSE) {
   View(soildata[id %in% id_missing$id, .(id, camada_nome, profund_sup, profund_inf, argila, carbono)])
 }
-
+# If the soil classification (taxon_sibcs) is Latossolo, Neossolo Quartzarênico, or Gleissolo, we
+# will add the missing layers, as these soils are quite homogeneous in the vertical profile.
+unique(soildata[id %in% id_missing$id & grepl("Latossol|Quartz|Gleissol", taxon_sibcs), taxon_sibcs])
+# Add missing layers for these events
+soildata[id %in% id_missing$id & grepl("Latossol|Quartz|Gleissol", taxon_sibcs), ] <-
+  add_missing_layer(soildata[id %in% id_missing$id & grepl("Latossol|Quartz|Gleissol", taxon_sibcs), ])
 
 
 
