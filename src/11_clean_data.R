@@ -170,9 +170,56 @@ if (FALSE) {
     .(id, camada_nome, camada_id, profund_sup, profund_inf, carbono, argila, taxon_sibcs)
   ])
 }
-
-
-
+# We will remove these litter layers from the dataset
+soildata <- soildata[is.na(is_litter), ]
+summary_soildata(soildata)
+# Layers: 58230
+# Events: 17127
+# Georeferenced events: 14608
+# Datasets: 260
+# Check if there are still litter layers
+soildata[, min_profund_sup := min(profund_sup, na.rm = TRUE), by = id]
+soildata[
+  grepl("H|O", camada_nome, ignore.case = FALSE) & 
+  min_profund_sup == profund_sup & is.na(carbono) & is.na(argila),
+  is_litter := TRUE
+]
+soildata[is_litter == TRUE, .N] # 15 layers
+# View examples of litter layers
+if (FALSE) {
+  View(soildata[
+    is_litter == TRUE,
+    .(id, camada_nome, camada_id, profund_sup, profund_inf, carbono, argila, taxon_sibcs)
+  ])
+}
+soildata <- soildata[is.na(is_litter), ]
+soildata[, is_litter := NULL]
+summary_soildata(soildata)
+# Layers: 58215
+# Events: 17126
+# Georeferenced events: 14608
+# Datasets:260
+# Check if there are still litter layers
+soildata[, min_profund_sup := min(profund_sup, na.rm = TRUE), by = id]
+soildata[
+  grepl("H|O", camada_nome, ignore.case = FALSE) & 
+  min_profund_sup == profund_sup & is.na(carbono) & is.na(argila),
+  is_litter := TRUE
+]
+soildata[is_litter == TRUE, .N] # 0 layers
+soildata[, is_litter := NULL]
+soildata[, min_profund_sup := NULL]
+summary_soildata(soildata)
+# Layers: 58215
+# Events: 17126
+# Georeferenced events: 14608
+# Datasets: 260
+# Adjust depths just like we did for negative depths
+soildata[, min_profund_sup := min(profund_sup, na.rm = TRUE), by = id]
+soildata[min_profund_sup < 0, profund_sup := profund_sup + abs(min_profund_sup)]
+soildata[min_profund_sup < 0, profund_inf := profund_inf + abs(min_profund_sup)]
+soildata[, min_profund_sup := NULL]
+summary(soildata[, .(profund_sup, profund_inf)])
 
 # MAXIMUM DEPTH
 # Filter out soil layers starting below the maximum depth. We will work only with data from layers
