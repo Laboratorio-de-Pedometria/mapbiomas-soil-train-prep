@@ -291,3 +291,37 @@ read_insync <- function(file_name, ...) {
 #   psd_data_sf <- sf::st_as_sf(psd_data, coords = c("coord_x", "coord_y"), crs = 4326)
 #   mapview::mapview(psd_data_sf, zcol = "clay0_10")
 # }
+# Check for missing layers #########################################################################
+# This function checks for missing layers in a data.table containing soil layer data. It identifies
+# gaps in the depth intervals of soil layers for each observation ID. Gaps are defined as instances
+# where the upper depth of one layer does not match the lower depth of the next layer. They occur
+# when soil sampling in the field does not cover the entire depth range, leading to missing layers
+# in the dataset. The function returns a data.table containing the missing layers, including the
+# observation ID, layer name, and depth intervals.
+# layer_data: data.table containing soil layer data
+# Returns: data.table with missing layers, including 'id', 'camada_nome',
+#          'profund_sup', and 'profund_inf'
+# Example usage: check_missing_layer(layer_data)
+# Note: The function assumes that the data.table package is loaded and that the data has the necessary
+# columns for observation ID, layer name, and depth intervals. If missing layers are found, a message
+# is printed to the console.
+check_missing_layer <- function(layer_data) {
+  # Start by sorting the data.table by id, profund_sup, and profund_inf
+  layer_data <- layer_data[order(id, profund_sup, profund_inf)]
+  # Check for each id if there is a missing layer
+  missing_layers <- layer_data[
+    data.table::shift(profund_inf) != profund_sup & profund_sup > 0,
+    .(id, camada_nome, profund_sup, profund_inf)
+  ]
+  if (nrow(missing_layers) > 0) {
+    message(
+      "Missing layers were found. ",
+      "Check the source dataset if this is correct or if there has been an error ",
+      "when recording the layer depth limits."
+    )
+    # Return the missing layers
+    return(missing_layers)
+  } else {
+    message("No missing layers were found. You can proceed.")
+  }
+}
