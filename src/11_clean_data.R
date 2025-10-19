@@ -49,6 +49,17 @@ summary_soildata(soildata)
 
 # Clean layers #####################################################################################
 
+# NEGATIVE DEPTH
+# Some topsoil layers have negative values of profund_sup or profund_inf. We need to correct
+# these values, moving the layer to start at 0 cm depth. We do so by getting the minimum value of
+# profund_sup for each event (id) and adding the absolute value of this minimum to both profund_sup
+# and profund_inf.
+soildata[, min_profund_sup := min(profund_sup, na.rm = TRUE), by = id]
+soildata[min_profund_sup < 0, profund_sup := profund_sup + abs(min_profund_sup)]
+soildata[min_profund_sup < 0, profund_inf := profund_inf + abs(min_profund_sup)]
+soildata[, min_profund_sup := NULL]
+summary(soildata[, .(profund_sup, profund_inf)])
+
 # MISSING DEPTH
 # Check if there are layers missing profund_sup or profund_inf
 # Some datasets have missing depth values for some events. This occurs when 1) events are
@@ -135,7 +146,33 @@ unique(soildata[multiple_endpoints > 1 & is_soil == FALSE, camada_nome])
 # For each 'id', identify the layer with the maximum profund_inf and print 'camada_nome' 
 soildata[, max_profund_inf := max(profund_inf, na.rm = TRUE), by = id]
 soildata[max_profund_inf == profund_inf & is_soil == FALSE, .N, by = camada_nome][order(N)]
-View(soildata[max_profund_inf == profund_inf & is_soil == TRUE, .N, by = camada_nome][order(camada_nome)])
+if (FALSE) {
+  View(soildata[max_profund_inf == profund_inf & is_soil == TRUE, .N,
+    by = camada_nome
+  ][order(camada_nome)])
+}
+
+# LITTER LAYERS
+# Some datasets contain litter layers at the soil surface. These layers are identified by the
+# use of H or O in camada_nome and carbono == NA & argila == NA. We start by identifying these
+# layers. So, for each 'id', identify the layer with the minimum profund_sup.
+soildata[, min_profund_sup := min(profund_sup, na.rm = TRUE), by = id]
+soildata[
+  grepl("H|O", camada_nome, ignore.case = FALSE) & 
+  min_profund_sup == profund_sup & is.na(carbono) & is.na(argila),
+  is_litter := TRUE
+]
+soildata[is_litter == TRUE, .N] # 167 layers
+# View examples of litter layers
+if (FALSE) {
+  View(soildata[
+    is_litter == TRUE,
+    .(id, camada_nome, camada_id, profund_sup, profund_inf, carbono, argila, taxon_sibcs)
+  ])
+}
+
+
+
 
 # MAXIMUM DEPTH
 # Filter out soil layers starting below the maximum depth. We will work only with data from layers
