@@ -10,10 +10,10 @@ source("src/00_helper_functions.r")
 # Read SoilData data processed in the previous script
 soildata <- data.table::fread("data/10_soildata.txt", sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 58060
-# Events: 17438
-# Georeferenced events: 14575
-# Datasets: 257
+# Layers: 58718
+# Events: 17561
+# Georeferenced events: 14674
+# Datasets: 261
 
 # Clean datasets ###################################################################################
 # ctb0042
@@ -26,7 +26,11 @@ soildata <- soildata[dataset_id != "ctb0042", ]
 # Variáveis pedogeoquímicas e mineralógicas na identificação de fontes de sedimentos em uma
 # bacia hidrográfica de encosta
 # Contains soil data from roadsides and riversides. The data, however, is not yet available.
-soildata <- soildata[dataset_id != "ctb0009", ]
+target <- c("carbono", "argila", "areia", "silte", "ph", "ctc", "dsi")
+if (all(is.na(soildata[dataset_id == "ctb0009", ..target]))) {
+  message("All soil properties are missing in dataset_id == 'ctb0009'. Removing this dataset.")
+  soildata <- soildata[dataset_id != "ctb0009", ]
+}
 
 # ctb0001 - MAY BE USEFUL FOR VALIDATION
 # Conteúdo de ferro do solo sob dois sistemas de cultivo na Estação Experimental Terras Baixas nos
@@ -38,10 +42,10 @@ soildata <- soildata[dataset_id != "ctb0009", ]
 # soildata <- soildata[dataset_id != "ctb0026", ]
 
 summary_soildata(soildata)
-# Layers: 58002
-# Events: 17380
-# Georeferenced events: 14517
-# Datasets: 256
+# Layers: 58660
+# Events: 17503
+# Georeferenced events: 14616
+# Datasets: 260
 
 # Clean layers #####################################################################################
 
@@ -71,55 +75,70 @@ soildata[
 soildata <- soildata[!(na_depth == TRUE & dataset_id %in% c("ctb0050", "ctb0051", "ctb0053")), ]
 soildata[, na_depth := NULL]
 summary_soildata(soildata)
-# Layers: 57626
-# Events: 17004
-# Georeferenced events: 14509
-# Datasets: 256
+# Layers: 58284
+# Events: 17127
+# Georeferenced events: 14608
+# Datasets: 260
 
-# Soil end point
-# The variable 'endpoint' identifies if soil sampling and description in the field went all the way
-# till its end. This can be represented using the capital letter "R" in the layer name. Older
-# studies may use other letters, e.g. "D" such as in ctb0674 and ctb0787.
-soildata[, is_endpoint := grepl("^R$|^D$", camada_nome, ignore.case = FALSE)]
-soildata[is_endpoint == TRUE, .N] # 313 layers
-# Check multiple endpoints per event
-soildata[, multiple_endpoints := sum(is_endpoint == TRUE), by = id]
-unique(soildata[multiple_endpoints > 1 & is_endpoint == TRUE, camada_nome])
+# SOIL/NON-SOIL LAYERS
+# The variable 'is_soil' identifies if a soil layer is considered a "true" soil layer or not.
+# - A non soil layer generally is represented using the capital letter "R" in the layer name.
+soildata[, is_soil := !grepl("^R$", camada_nome, ignore.case = FALSE)]
+soildata[is_soil == FALSE, .N] # 281 layers
+# - Older studies may use the letter "D" such as in ctb0674 and ctb0787 to represent the bedrock or
+#   saprolithic material. We will consider these layers as non-soil layers when they lack data on
+#   carbon or clay content.
+soildata[camada_nome == "D" & (is.na(argila) | is.na(carbono)), is_soil := FALSE]
+soildata[is_soil == FALSE, .N] # 299 layers
+# - Some researchers use the symbols CR and RCr to represent the bedrock or hard saprolithic
+#   material, such as ctb0005, ctb0006, ctb0025, ctb0030. Note that most of these studies were
+#   carried out in the south of Brazil. We will consider these layers as non-soil layers when they
+#   lack data on carbon or clay content.
+soildata[
+  grepl("^CR|RCr$", camada_nome, ignore.case = FALSE) & (is.na(argila) | is.na(carbono)),
+  is_soil := FALSE
+]
+soildata[is_soil == FALSE, .N] # 335 layers
+# - We may also find designations such as 2C/R, 2C/R, 2C/R, 2RC, 2RC, 2RC, C/CR, and C/R. These
+#   designations indicate that the layer is a transition between a soil horizon and the bedrock. We
+#   will consider these layers as non-soil layers when they lack data on carbon or clay content.
+soildata[
+  grepl("C/CR$|C/R$|RC$|RCr$|2C/RC$|2C/R$|2RC$|2RCr$", camada_nome, ignore.case = FALSE) &
+    (is.na(argila) | is.na(carbono)),
+  is_soil := FALSE
+]
+soildata[is_soil == FALSE, .N] # 343 layers
 
 # Special cases
 # ctb0003
 # The study planned to sample the 0-20 cm layer only. When the soil was shallower than 20 cm, the
-# soil was sampled until the bedrock. Thus, if profund_inf < 20 cm, then endpoint := 1.
-soildata[dataset_id == "ctb0003" & profund_inf < 20, is_endpoint := 1]
-soildata[is_endpoint == TRUE, .N] # 426 layers
+# soil was sampled until the bedrock. Thus, if profund_inf < 20 cm, add a 20 cm thick layer
+# starting from profund_inf and name it "R".
+ctb0003 <- soildata[dataset_id == "ctb0003" & profund_inf < 20, ]
+ctb0003[, profund_sup := profund_inf]
+ctb0003[, profund_inf := profund_sup + (20 - profund_sup)]
+ctb0003[, camada_nome := "R"]
+ctb0003[, is_soil := FALSE]
+soildata <- rbind(soildata, ctb0003)
+# sort data
+soildata <- soildata[order(id, profund_sup, profund_inf)]
+soildata[is_soil == FALSE, .N] # 456 layers
 
+# Check multiple endpoints per event
+# For each 'id', count the number of layers where is_soil == FALSE. If there are multiple layers
+# where is_soil == FALSE, print the 'camada_nome' of these layers. We expect only one non-soil layer
+# per event, representing the bedrock. However, for now, we will ignore these cases and deal with
+# them later on.
+soildata[, multiple_endpoints := sum(is_soil == FALSE), by = id]
+unique(soildata[multiple_endpoints > 1 & is_soil == FALSE, camada_nome])
 
-
-
-
-# Em construção!
-
-
-# For each event (id), identify the maximum value of profund_inf.
+# For each 'id', identify the layer with the maximum profund_inf and print 'camada_nome' 
 soildata[, max_profund_inf := max(profund_inf, na.rm = TRUE), by = id]
-# Next, for each dataset_id, check if all events have the same value of max_profund_inf or not. If
-# all events have the same value of max_profund_inf, then the endpoint was not reached. On the
-# contrary, if some events have a different value of max_profund_inf, then the endpoint might have
-# been reached (which we will check later on). We run this check using the following set of depth
-# limits: seq(10, 100, by = 10).
-# Datasets to ignore: ctb0003, ctb0674, and ctb0787
-depth_limits <- seq(10, 100, by = 10)
-for (i in seq_along(depth_limits)) {
-  limit <- depth_limits[i]
-  soildata[, max_depth := all(max_profund_inf <= limit), by = dataset_id]
-  # Identify the datasets for which max_depth is FALSE
-  n_datasets <- length(unique(soildata[max_depth == FALSE, dataset_id]))
-  message("Depth limit: ", limit, " cm - Datasets with varying max depth: ", n_datasets)
-}
+soildata[max_profund_inf == profund_inf & is_soil == FALSE, .N, by = camada_nome][order(N)]
+View(soildata[max_profund_inf == profund_inf & is_soil == TRUE, .N, by = camada_nome][order(camada_nome)])
 
 
 
-soildata[dataset_id == "ctb0012", dataset_titulo]
 
 
 
