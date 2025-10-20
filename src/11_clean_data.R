@@ -17,14 +17,14 @@ summary_soildata(soildata)
 
 # Clean datasets ###################################################################################
 # ctb0042
-# Alteração do pH do solo por influência da diluição, tipo de solvente e tempo de contato
+# "Alteração do pH do solo por influência da diluição, tipo de solvente e tempo de contato"
 # Contains data from a laboratory experiment, thus not representing real soil conditions required
 # for digital soil mapping.
 soildata <- soildata[dataset_id != "ctb0042", ]
 
 # ctb0009
-# Variáveis pedogeoquímicas e mineralógicas na identificação de fontes de sedimentos em uma
-# bacia hidrográfica de encosta
+# "Variáveis pedogeoquímicas e mineralógicas na identificação de fontes de sedimentos em uma
+# bacia hidrográfica de encosta"
 # Contains soil data from roadsides and riversides. The data, however, is not yet available.
 target <- c("carbono", "argila", "areia", "silte", "ph", "ctc", "dsi")
 if (all(is.na(soildata[dataset_id == "ctb0009", ..target]))) {
@@ -33,12 +33,12 @@ if (all(is.na(soildata[dataset_id == "ctb0009", ..target]))) {
 }
 
 # ctb0001 - MAY BE USEFUL FOR VALIDATION
-# Conteúdo de ferro do solo sob dois sistemas de cultivo na Estação Experimental Terras Baixas nos
-# anos de 2012 e 2013
+# "Conteúdo de ferro do solo sob dois sistemas de cultivo na Estação Experimental Terras Baixas nos
+# anos de 2012 e 2013"
 # soildata <- soildata[dataset_id != "ctb0001", ]
 
 # ctb0026 - MAY BE USEFUL FOR VALIDATION
-# Conteúdo de ferro do solo no ano de 1998
+# "Conteúdo de ferro do solo no ano de 1998"
 # soildata <- soildata[dataset_id != "ctb0026", ]
 
 summary_soildata(soildata)
@@ -50,10 +50,11 @@ summary_soildata(soildata)
 # Clean layers #####################################################################################
 
 # NEGATIVE DEPTH
-# Some topsoil layers have negative values of profund_sup or profund_inf. We need to correct
-# these values, moving the layer to start at 0 cm depth. We do so by getting the minimum value of
-# profund_sup for each event (id) and adding the absolute value of this minimum to both profund_sup
-# and profund_inf.
+# Some topsoil layers have negative values of 'profund_sup' or 'profund_inf'. These are used to
+# represent litter layers or organic layers above the mineral soil. For modelling purposes, however,
+# we need to have all layers starting from 0 cm depth. We do so by moving the layer to start at 0 cm
+# depth. We do so by getting the minimum value of 'profund_sup' for each event 'id' and adding the
+# absolute value of this minimum to both 'profund_sup' and 'profund_inf'.
 soildata[, min_profund_sup := min(profund_sup, na.rm = TRUE), by = id]
 soildata[min_profund_sup < 0, profund_sup := profund_sup + abs(min_profund_sup)]
 soildata[min_profund_sup < 0, profund_inf := profund_inf + abs(min_profund_sup)]
@@ -61,9 +62,35 @@ soildata[, min_profund_sup := NULL]
 summary(soildata[, .(profund_sup, profund_inf)])
 
 # TOPSOIL
-# Filter out whole events without a topsoil layer.
-soildata[!is.na(profund_sup), has_topsoil := any(profund_sup == 0, na.rm = TRUE)]
-nrow(unique(soildata[has_topsoil != TRUE, "id"])) # 0 events
+# For each event ('id'), check if there is a topsoil layer, i.e., a layer with 'profund_sup' == 0.
+# Missing a surface layer is common in reconnaissance soil surveys, where only the diagnostic 
+# subsurface horizons are described and sampled. It can also occur in studies that use data from
+# various sources and have a focus on subsurface horizons.
+# Start by identifying events without a topsoil layer.
+soildata[!is.na(profund_sup), has_topsoil := any(profund_sup == 0, na.rm = TRUE), by = id]
+nrow(unique(soildata[has_topsoil != TRUE, "id"]))
+# 738 events without a topsoil layer
+print(soildata[has_topsoil != TRUE, .N, by = dataset_id][order(N)])
+# This occurs in 48 datasets, but most of the events without a topsoil layer are from ctb0033 (476), 
+# the second being ctb0770 (48). The absence of a top soil layer in ctb0033 happens because, for
+# many soil profiles, soil samples for laboratory analysis were not collected from the entire soil
+# horizon, but from its central part. Perhaps this was done because of the presence of a thin
+# organic layer at the soil surface or coarse fragments that were not sampled. IN THE FUTURE, THIS
+# SHOULD BE DEALT WITH WHEN PROCESSING THE RAW DATA FROM CTB0033.
+soildata[has_topsoil != TRUE & dataset_id == "ctb0033", .N, by = id]
+# For now, we will use a simple approach to deal with this issue: if the missing topsoil layer is
+# less than 10 cm thick, we will add this thickness to existing topmost layer. This is done by
+# setting the minimum value of 'profund_sup' to 0 cm for the first layer of each event 'id'.
+miss_limit <- 10
+soildata[, min_profund_sup := min(profund_sup), by = id]
+soildata[min_profund_sup < miss_limit & camada_id == 1, profund_sup := 0]
+# Recompute
+soildata[!is.na(profund_sup), has_topsoil := any(profund_sup == 0, na.rm = TRUE), by = id]
+nrow(unique(soildata[has_topsoil != TRUE, "id"]))
+# Now, there are 264 events without a topsoil layer. We will keep them for now.
+soildata[, has_topsoil := NULL]
+soildata[, min_profund_sup := NULL]
+summary(soildata[, .(profund_sup, profund_inf)])
 
 # MISSING DEPTH
 # Check if there are layers missing profund_sup or profund_inf
