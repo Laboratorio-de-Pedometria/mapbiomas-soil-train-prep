@@ -32,6 +32,11 @@ if (all(is.na(soildata[dataset_id == "ctb0009", ..target]))) {
   soildata <- soildata[dataset_id != "ctb0009", ]
 }
 
+# ctb0101
+# Dados de "Sistema pedológico Planossolo-Plintossolo no Pantanal de Barão de Melgaço-MT"
+# The data in this dataset already is included in ctb0054.
+soildata <- soildata[dataset_id != "ctb0101", ]
+
 # ctb0001 - MAY BE USEFUL FOR VALIDATION
 # "Conteúdo de ferro do solo sob dois sistemas de cultivo na Estação Experimental Terras Baixas nos
 # anos de 2012 e 2013"
@@ -42,10 +47,10 @@ if (all(is.na(soildata[dataset_id == "ctb0009", ..target]))) {
 # soildata <- soildata[dataset_id != "ctb0026", ]
 
 summary_soildata(soildata)
-# Layers: 58660
-# Events: 17503
-# Georeferenced events: 14616
-# Datasets: 260
+# Layers: 58609
+# Events: 17495
+# Georeferenced events: 14608
+# Datasets: 259
 
 # Clean layers #####################################################################################
 
@@ -135,10 +140,10 @@ soildata[
 soildata <- soildata[!(na_depth == TRUE & dataset_id %in% c("ctb0050", "ctb0051", "ctb0053")), ]
 soildata[, na_depth := NULL]
 summary_soildata(soildata)
-# Layers: 58284
-# Events: 17127
-# Georeferenced events: 14608
-# Datasets: 260
+# Layers: 58233
+# Events: 17119
+# Georeferenced events: 14600
+# Datasets: 259
 
 # LITTER LAYERS
 # Some datasets contain litter layers at the soil surface. These layers are identified by the
@@ -175,10 +180,10 @@ soildata <- soildata[is.na(is_litter), ]
 soildata[, is_litter := NULL]
 soildata[, camada_id := 1:.N, by = id]
 summary_soildata(soildata)
-# Layers: 58118
-# Events: 17127
-# Georeferenced events: 14608
-# Datasets: 260
+# Layers: 58067
+# Events: 17119
+# Georeferenced events: 14600
+# Datasets: 259
 # Check if there are still litter layers
 soildata[
   grepl("H|O", camada_nome, ignore.case = FALSE) & camada_id == 1 & is.na(carbono) & is.na(argila),
@@ -200,10 +205,10 @@ soildata <- soildata[is.na(is_litter), ]
 soildata[, is_litter := NULL]
 soildata[, camada_id := 1:.N, by = id]
 summary_soildata(soildata)
-# Layers: 58102
-# Events: 17126: WE LOST 1 EVENT HERE!
-# Georeferenced events: 14608
-# Datasets: 260
+# Layers: 58051
+# Events: 17118
+# Georeferenced events: 14600
+# Datasets: 259
 # Check if there are still litter layers
 soildata[
   grepl("H|O", camada_nome, ignore.case = FALSE) & camada_id == 1 & is.na(carbono) & is.na(argila),
@@ -214,10 +219,10 @@ soildata[is_litter == TRUE, .N] # 0 layers
 soildata[has_litter == TRUE, .N, by = id] # 165 events had litter layers... this means that we
 # lost some complete events when removing litter layers. We will deal with this later. ATTENTION!
 summary_soildata(soildata)
-# Layers: 58102
-# Events: 17126
-# Georeferenced events: 14608
-# Datasets: 260
+# Layers: 58051
+# Events: 17118
+# Georeferenced events: 14600
+# Datasets: 259
 # Adjust depths of the remaining layers of the events that had litter layers. We do so by
 # getting the minimum value of 'profund_sup' for each event 'id' that had litter layers removed and
 # subtracting this value from both 'profund_sup' and 'profund_inf'.
@@ -235,22 +240,28 @@ soildata[has_litter == TRUE, profund_inf := profund_inf - min_profund_sup]
 soildata[, min_profund_sup := NULL]
 all(soildata[has_litter == TRUE & camada_id == 1, profund_sup] == 0) # should all be 0 now
 
-
-
-
-
-
+# MAXIMUM DEPTH
+# Filter out soil layers starting below the maximum depth. We will work only with data from layers
+# starting from the soil surface down to max_depth.
+max_depth <- 100
+nrow(soildata[profund_sup >= max_depth, ]) # 8160 layers with profund_sup >= max_depth
+soildata <- soildata[profund_sup >= 0 & profund_sup <= max_depth, ]
+summary_soildata(soildata)
+# Layers: 51039
+# Events: 16994
+# Georeferenced events: 14372
+# Datasets: 259
 
 # SOIL/NON-SOIL LAYERS
 # The variable 'is_soil' identifies if a soil layer is considered a "true" soil layer or not.
 # - A non soil layer generally is represented using the capital letter "R" in the layer name.
 soildata[, is_soil := !grepl("^R$", camada_nome, ignore.case = FALSE)]
-soildata[is_soil == FALSE, .N] # 281 layers
+soildata[is_soil == FALSE, .N] # 218 layers
 # - Older studies may use the letter "D" such as in ctb0674 and ctb0787 to represent the bedrock or
 #   saprolithic material. We will consider these layers as non-soil layers when they lack data on
 #   carbon or clay content.
 soildata[camada_nome == "D" & (is.na(argila) | is.na(carbono)), is_soil := FALSE]
-soildata[is_soil == FALSE, .N] # 299 layers
+soildata[is_soil == FALSE, .N] # 224 layers
 # - Some researchers use the symbols CR and RCr to represent the bedrock or hard saprolithic
 #   material, such as ctb0005, ctb0006, ctb0025, ctb0030. Note that most of these studies were
 #   carried out in the south of Brazil. We will consider these layers as non-soil layers when they
@@ -259,7 +270,7 @@ soildata[
   grepl("^CR|RCr$", camada_nome, ignore.case = FALSE) & (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 335 layers
+soildata[is_soil == FALSE, .N] # 250 layers
 # - We may also find designations such as 2C/R, 2C/R, 2C/R, 2RC, 2RC, 2RC, C/CR, and C/R. These
 #   designations indicate that the layer is a transition between a soil horizon and the bedrock. We
 #   will consider these layers as non-soil layers when they lack data on carbon or clay content.
@@ -268,7 +279,7 @@ soildata[
     (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 343 layers
+soildata[is_soil == FALSE, .N] # 255 layers
 
 # Special cases
 # ctb0003
@@ -283,7 +294,7 @@ ctb0003[, is_soil := FALSE]
 soildata <- rbind(soildata, ctb0003)
 # sort data
 soildata <- soildata[order(id, profund_sup, profund_inf)]
-soildata[is_soil == FALSE, .N] # 456 layers
+soildata[is_soil == FALSE, .N] # 368 layers
 
 # Check multiple endpoints per event
 # For each 'id', count the number of layers where is_soil == FALSE. If there are multiple layers
@@ -301,129 +312,48 @@ if (FALSE) {
     by = camada_nome
   ][order(camada_nome)])
 }
-
-
-
-# MAXIMUM DEPTH
-# Filter out soil layers starting below the maximum depth. We will work only with data from layers
-# starting from the soil surface down to max_depth.
-max_depth <- 100
-nrow(soildata[profund_sup >= max_depth, ]) # 8096 layers with profund_sup >= max_depth
-soildata <- soildata[profund_sup >= 0 & profund_sup <= max_depth, ]
 summary_soildata(soildata)
-# Layers: 51229
-# Events: 17028
-# Georeferenced events: 14396
-# Datasets: 260
+# Layers: 51152
+# Events: 16994
+# Georeferenced events: 14372
+# Datasets: 259
 
+# # MISSING LAYERS
+# # Check for missing layers within each event (id)
+# print(id_missing <- check_missing_layer(soildata))
+# # There are 9864 complaints.
+# if(FALSE) {
+#   View(soildata[id %in% id_missing$id, .(id, camada_nome, profund_sup, profund_inf, argila, carbono)])
+# }
+# # If the soil classification (taxon_sibcs) is Latossolo, Neossolo Quartzarênico, or Gleissolo, we
+# # will add the missing layers, as these soils are quite homogeneous in the vertical profile.
+# unique(soildata[id %in% id_missing$id & grepl("Latossol|Quartz|Gleissol", taxon_sibcs), taxon_sibcs])
+# # Add missing layers for these events
+# soildata[id %in% id_missing$id & grepl("Latossol|Quartz|Gleissol", taxon_sibcs), ] <-
+#   add_missing_layer(soildata[id %in% id_missing$id & grepl("Latossol|Quartz|Gleissol", taxon_sibcs), ])
 
+# Clean events #####################################################################################
 
-
-
-
-
-
-
-
-
-
-# MISSING LAYERS
-# Check for missing layers within each event (id)
-print(id_missing <- check_missing_layer(soildata))
-# There are 9864 complaints.
-if(FALSE) {
-  View(soildata[id %in% id_missing$id, .(id, camada_nome, profund_sup, profund_inf, argila, carbono)])
+# Identify duplicated events
+# Duplicated events have equal spatial and temporal coordinates.
+# Make sure to analise events with complete spatial and temporal coordinates.
+soildata_events <- soildata[!is.na(coord_x) & !is.na(coord_y) & !is.na(data_ano), id[1],
+  by = c("dataset_id", "observacao_id", "coord_x", "coord_y", "data_ano")
+]
+nrow(soildata_events) # 13447 events
+test_columns <- c("coord_x", "coord_y", "data_ano")
+duplo <- duplicated(soildata_events[, ..test_columns])
+if (sum(duplo) > 0) {
+  message("Duplicated events found: ", sum(duplo))
+  soildata_events[duplo == TRUE, ]
+} else {
+  message("No duplicated events found.")
 }
-# If the soil classification (taxon_sibcs) is Latossolo, Neossolo Quartzarênico, or Gleissolo, we
-# will add the missing layers, as these soils are quite homogeneous in the vertical profile.
-unique(soildata[id %in% id_missing$id & grepl("Latossol|Quartz|Gleissol", taxon_sibcs), taxon_sibcs])
-# Add missing layers for these events
-soildata[id %in% id_missing$id & grepl("Latossol|Quartz|Gleissol", taxon_sibcs), ] <-
-  add_missing_layer(soildata[id %in% id_missing$id & grepl("Latossol|Quartz|Gleissol", taxon_sibcs), ])
 
-
-
-
-
-# Filter out layers with profund_sup == profund_inf
-soildata <- soildata[profund_sup < profund_inf, ]
+# Write data to disk ###############################################################################
 summary_soildata(soildata)
-# Layers: 49569
-# Events: 16581
-# Georeferenced events: 14200
-# Datasets: 254
-
-# Thickness
-# Compute layer thickness
-soildata[, espessura := profund_inf - profund_sup]
-
-# Maximum layer thickness (CANCELED)
-# Filter out soil layers with thickness > 50 cm
-# Some of these layers are below 30 cm depth or result form typing errors: a common recommendation
-# of soil description and sampling manuals is to use a maximum layers thickness of 50 cm
-max_thickness <- 50
-nrow(soildata[espessura > max_thickness, ]) # 3387 layers
-soildata[espessura > max_thickness, .(id, camada_nome, profund_sup, profund_inf, espessura)]
-# soildata <- soildata[espessura <= max_thickness, ]
-
-# Update layer id
-# Sort each event (id) by layer depth (profund_sup and profund_inf)
-soildata <- soildata[order(id, profund_sup, profund_inf)]
-soildata[, camada_id := 1:.N, by = id]
-
-# Topsoil
-# For each event (id), check if there is a layer with profund_sup == 0. Missing a surface layer is
-# common in reconnaissance soil surveys, where only the diagnostic subsurface horizons are 
-# described. It can also occur in studies that use data from various sources and have a focus on
-# subsurface horizons.
-# ctb0033 has 851 events without a topsoil layer. This is because, for many soil profiles, soil
-# samples for laboratory were not collected from the entire soil horizon. This seems to be due to 
-# the presence of a thin organic layer at the soil surface or coarse fragments that were not
-# sampled.
-# Filter out whole events without a topsoil layer.
-soildata[, topsoil := any(profund_sup == 0), by = id]
-nrow(unique(soildata[topsoil != TRUE, "id"])) # 710 events
-print(soildata[topsoil != TRUE, .N, by = dataset_id])
-# For each soil profile (id) in dataset_id == "ctb0033", identify the minimum value of profund_sup.
-# If the minimum value is between 0 and 10 cm, add that value to profund_sup and profund_inf of all
-# layers in that soil profile.
-miss_limit <- 10
-soildata[, min_profund_sup := min(profund_sup), by = id]
-soildata[min_profund_sup > miss_limit, min_profund_sup := 0]
-soildata[
-  dataset_id == "ctb0033" & min_profund_sup > 0,
-  profund_sup := profund_sup + min_profund_sup
-]
-soildata[
-  dataset_id == "ctb0033" & min_profund_sup > 0,
-  profund_inf := profund_inf + min_profund_sup
-]
-soildata[, min_profund_sup := NULL]
-# Recompute
-soildata[, topsoil := any(profund_sup == 0), by = id]
-soildata <- soildata[topsoil == TRUE, ]
-soildata[, topsoil := NULL]
-summary_soildata(soildata)
-# Layers: 47913
-# Events: 15871
-# Georeferenced events: 13560
-# Datasets: 254
-
-# Endpoint
-soildata[is.na(endpoint), endpoint := 0]
-
-# Clean events
-
-# Remove remaining duplicated events (NOT MOVED TO SOILDATA INTEGRATION)
-duplo <- soildata_events[duplo, V1]
-soildata <- soildata[!id %in% duplo, ] # remove duplicated events
-summary_soildata(soildata)
-# Layers: 29881
-# Events: 15729
-# Georeferenced events: 13381
-
-
-
-# Write data to disk ############################################################
-# Export cleaned data
-data.table::fwrite(soildata, "data/14_soildata_soc.txt", sep = "\t")
+# Layers: 51152
+# Events: 16994
+# Georeferenced events: 14372
+# Datasets: 259
+data.table::fwrite(soildata, "data/11_soildata.txt", sep = "\t")
