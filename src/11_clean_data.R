@@ -49,6 +49,18 @@ summary_soildata(soildata)
 
 # Clean layers #####################################################################################
 
+# EQUAL DEPTH
+# Some layers have equal values of 'profund_sup' and 'profund_inf'.
+# Check if there is any
+equal_depth <-
+  soildata[!is.na(profund_sup) & !is.na(profund_inf) & profund_sup == profund_inf, id]
+if (length(equal_depth) > 0) {
+  stop(
+    "Layers with equal values of 'profund_sup' and 'profund_inf' found in the following dataset(s):\n",
+    paste(equal_depth, collapse = ", ")
+  )
+}
+
 # NEGATIVE DEPTH
 # Some topsoil layers have negative values of 'profund_sup' or 'profund_inf'. These are used to
 # represent litter layers or organic layers above the mineral soil. For modelling purposes, however,
@@ -221,7 +233,9 @@ soildata[has_litter == TRUE & min_profund_sup >= 20, id]
 soildata[has_litter == TRUE, profund_sup := profund_sup - min_profund_sup]
 soildata[has_litter == TRUE, profund_inf := profund_inf - min_profund_sup]
 soildata[, min_profund_sup := NULL]
-soildata[has_litter == TRUE & camada_id == 1, profund_sup] # should all be 0 now
+all(soildata[has_litter == TRUE & camada_id == 1, profund_sup] == 0) # should all be 0 now
+
+
 
 
 
