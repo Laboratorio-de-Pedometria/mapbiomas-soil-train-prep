@@ -1,8 +1,11 @@
 # title: MapBiomas Soil
 # subtitle: 12. Prepare soil covariates
-# author: Alessandro Samuel-Rosa
-# data: 2025 CC-BY
+# author: Alessandro Samuel-Rosa and Taciara Zborowski Horst
+# data: 2025
 rm(list = ls())
+
+# Set MapBiomas Soil Collection
+collection <- "c3"
 
 # Install and load required packages
 if (!requireNamespace("data.table")) {
@@ -392,8 +395,8 @@ summary(soildata[, silt_clay_ratio])
 
 # Write data to disk ###############################################################################
 summary_soildata(soildata)
-# Layers: 51152
-# Events: 16994
-# Georeferenced events: 14372
+# Layers: 51173
+# Events: 17015
+# Georeferenced events: 14393
 # Datasets: 259
 data.table::fwrite(soildata, "data/12_soildata.txt", sep = "\t")
