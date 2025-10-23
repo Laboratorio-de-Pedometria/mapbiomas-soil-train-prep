@@ -1,8 +1,11 @@
 # title: MapBiomas Soil
 # subtitle: 14. Estimate coarse fragments
-# author: Alessandro Samuel-Rosa
+# author: Alessandro Samuel-Rosa and Taciara Zborowski Horst
 # data: 2025 CC-BY
 rm(list = ls())
+
+# Set MapBiomas Soil Collection
+collection <- "c3"
 
 # Install and load required packages
 if (!requireNamespace("data.table")) {
@@ -14,9 +17,6 @@ if (!requireNamespace("ranger")) {
 
 # Source helper functions
 source("src/00_helper_functions.r")
-
-# Set MapBiomas Soil Collection
-collection <- "c3"
 
 # SOILDATA
 
@@ -227,7 +227,6 @@ if (any(soildata[!is_na_skeleton, abs_error] >= abs_error_tolerance)) {
 variable_importance_threshold <- 0.02
 skeleton_model_variable <- sort(skeleton_model$variable.importance)
 skeleton_model_variable <- round(skeleton_model_variable / max(skeleton_model_variable), 2)
-dev.off()
 file_path <- paste0("res/fig/", collection, "_skeleton_variable_importance.png")
 png(file_path, width = 480 * 3, height = 480 * 4, res = 72 * 3)
 par(mar = c(4, 6, 1, 1) + 0.1)
@@ -245,7 +244,6 @@ names(skeleton_model_variable[skeleton_model_variable < variable_importance_thre
 color_breaks <- seq(0, abs_error_tolerance, length.out = 5)
 color_class <- cut(soildata[!is_na_skeleton, abs_error], breaks = color_breaks, include.lowest = TRUE)
 color_palette <- RColorBrewer::brewer.pal(length(color_breaks) - 1, "Purples")
-dev.off()
 file_path <- paste0("res/fig/", collection, "_skeleton_observed_versus_oob.png")
 png(file_path, width = 480 * 3, height = 480 * 3, res = 72 * 3)
 par(mar = c(4, 4.5, 2, 2) + 0.1)
@@ -272,7 +270,6 @@ nrow(unique(soildata[, "id"])) # Result: 17015
 nrow(soildata) # Result: 51173
 
 # Figure. Distribution of soil skeleton data
-dev.off()
 file_path <- paste0("res/fig/", collection, "_skeleton_histogram.png")
 png(file_path, width = 480 * 3, height = 480 * 3, res = 72 * 3)
 par(mar = c(5, 4, 2, 2) + 0.1)
@@ -303,7 +300,7 @@ summary_soildata(tmp)
 soildata[, abs_error := NULL]
 summary_soildata(soildata)
 # Layers: 51173
-# Events: 16994
+# Events: 17015
 # Georeferenced events: 14393
 # Datasets: 259
 data.table::fwrite(soildata, "data/14_soildata.txt", sep = "\t")
