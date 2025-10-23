@@ -20,6 +20,18 @@ summary_soildata(soildata)
 # Georeferenced events: 14372
 # Datasets: 259
 
+# Dataset-wise covariates ##########################################################################
+
+# COARSE DATASET
+# Dataset-wise presence of coarse fragments
+soildata[, DATASET_COARSE := any(esqueleto > 0, na.rm = TRUE), by = dataset_id]
+
+# Event-wise covariates ###########################################################################
+
+# COARSE EVENT
+# Event-wise presence of coarse fragments
+soildata[, EVENT_COARSE := any(esqueleto > 0, na.rm = TRUE), by = id]
+
 # SPATIAL COORDINATES
 # The spatial coordinates will be used as predictors in the modeling process to account for spatial
 # variability in soil properties. We expect that nearby locations will have more similar soil
@@ -206,10 +218,141 @@ soildata[, SUBORDER := ifelse(.N < 15, NA_character_, SUBORDER), by = SUBORDER]
 soildata[, .N, by = ORDER][order(ORDER)]
 soildata[, .N, by = SUBORDER][order(SUBORDER)]
 
+# STONESOL
+# Soil classes known for having a skeleton (bivariate)
+soildata[, STONESOL := NA_character_]
+soildata[ORDER != "UNKNOWN" | SUBORDER != "UNKNOWN", STONESOL := "FALSE"]
+soildata[ORDER == "NEOSSOLO", STONESOL := "TRUE"]
+soildata[ORDER == "PLINTOSSOLO", STONESOL := "TRUE"]
+soildata[SUBORDER == "FLUVICO", STONESOL := "TRUE"]
+soildata[SUBORDER == "CONCRECIONARIO", STONESOL := "TRUE"]
+soildata[SUBORDER == "LITOLICO", STONESOL := "TRUE"]
+soildata[SUBORDER == "PETRICO", STONESOL := "TRUE"]
+soildata[SUBORDER == "REGOLITICO", STONESOL := "TRUE"]
+soildata[SUBORDER == "QUARTZARENICO", STONESOL := "FALSE"]
+soildata[SUBORDER == "HAPLICO", STONESOL := "FALSE"]
+soildata[, .N, by = STONESOL]
+
+# LAYER-WISE COVARIATES ###########################################################################
+
+soildata[, unique(camada_nome)]
+
 # THICKNESS
 # Create new variable 'espessura' (thickness)
 soildata[, espessura := profund_inf - profund_sup]
 summary(soildata[, espessura])
+
+# STONY
+# Soil layers known for having concretions, nodules, rock fragments, rock-like pedogenic layers, and
+# human artifacts (bivariate)
+soildata[, STONY := NA_character_]
+soildata[camada_nome != "UNKNOWN", STONY := "FALSE"]
+soildata[grepl("c", camada_nome, ignore.case = FALSE), STONY := "TRUE"]
+soildata[grepl("F|f", camada_nome, ignore.case = FALSE), STONY := "TRUE"]
+soildata[grepl("R|r", camada_nome, ignore.case = FALSE), STONY := "TRUE"]
+soildata[grepl("u", camada_nome, ignore.case = FALSE), STONY := "TRUE"]
+# If there are no letters in camada_nome, keep as "UNKNOWN"
+soildata[!grepl("[a-zA-Z]", camada_nome), STONY := "UNKNOWN"]
+# If there is "camada", "cam.", "CAM", "Secçã", "AREIA", "Sombrico", "SUPERF", "C.SUPE."
+# in camada_nome, keep as "UNKNOWN"
+soildata[
+  grepl("camada|cam.|CAM|Secçã|AREIA|Sombrico|SUPERF|C.SUPE.", camada_nome, ignore.case = TRUE),
+  STONY := "UNKNOWN"
+]
+if (FALSE) {
+  View(soildata[, .N, by = .(STONY, camada_nome)][order(camada_nome)])
+}
+
+# ORGANIC
+# Organic layers (bivariate)
+soildata[, ORGANIC := NA_character_]
+# If there is a B or E letter in camada_nome, set ORGANIC to FALSE
+soildata[grepl("B|E", camada_nome, ignore.case = FALSE), ORGANIC := "FALSE"]
+soildata[carbono < 80, ORGANIC := "FALSE"]
+soildata[carbono >= 80, ORGANIC := "TRUE"]
+soildata[grepl("o", camada_nome, ignore.case = TRUE), ORGANIC := "TRUE"]
+soildata[grepl("H", camada_nome, ignore.case = FALSE), ORGANIC := "TRUE"]
+if( FALSE) {
+  View(soildata[, .N, by = .(ORGANIC, camada_nome)][order(camada_nome)])
+}
+
+# AHRZN
+# A horizon (bivariate)
+soildata[, AHRZN := NA_character_]
+soildata[camada_nome != "???", AHRZN := "FALSE"]
+soildata[grepl("A", camada_nome, ignore.case = FALSE), AHRZN := "TRUE"]
+unique(soildata[AHRZN == "TRUE", camada_nome])
+unique(soildata[AHRZN == "FALSE", camada_nome])
+soildata[, .N, by = AHRZN]
+
+# BHRZN
+# B horizon (bivariate)
+soildata[, BHRZN := NA_character_]
+soildata[camada_nome != "???", BHRZN := "FALSE"]
+soildata[grepl("B", camada_nome, ignore.case = FALSE), BHRZN := "TRUE"]
+unique(soildata[BHRZN == "TRUE", camada_nome])
+unique(soildata[BHRZN == "FALSE", camada_nome])
+soildata[, .N , by = BHRZN]
+
+# DENSIC
+# Dense horizon (bivariate)
+soildata[grepl("tg", camada_nome), DENSIC := TRUE]
+soildata[grepl("v", camada_nome), DENSIC := TRUE]
+soildata[grepl("n", camada_nome), DENSIC := TRUE]
+soildata[is.na(DENSIC), DENSIC := FALSE]
+soildata[camada_nome == "???", DENSIC := NA]
+soildata[, .N, by = DENSIC]
+
+# EHRZN
+# E horizon (bivariate)
+soildata[, EHRZN := NA_character_]
+soildata[camada_nome != "???", EHRZN := "FALSE"]
+soildata[grepl("E", camada_nome, ignore.case = FALSE), EHRZN := "TRUE"]
+unique(soildata[EHRZN == "TRUE", camada_nome])
+unique(soildata[EHRZN == "FALSE", camada_nome])
+soildata[, .N, by = EHRZN]
+
+# CHRZN
+# C horizon (bivariate)
+soildata[, CHRZN := NA_character_]
+soildata[camada_nome != "???", CHRZN := "FALSE"]
+soildata[grepl("C", camada_nome, ignore.case = FALSE), CHRZN := "TRUE"]
+unique(soildata[CHRZN == "TRUE", camada_nome])
+unique(soildata[CHRZN == "FALSE", camada_nome])
+soildata[, .N, by = CHRZN]
+
+# Bulk density of upper and lower layer
+# First, sort the data by soil event (id) and soil layer (camada_id).
+# For each soil layer (camada_id) in a soil event (id), identify the bulk density (dsi) of the
+# immediately upper and lower layers. If the layer is the first or last in a given soil event (id),
+# the bulk density of the upper or lower layer is set to NA, respectively.
+soildata <- soildata[order(id, camada_id)]
+soildata[, dsi_upper := shift(dsi, type = "lag"), by = id]
+soildata[, dsi_lower := shift(dsi, type = "lead"), by = id]
+summary(soildata[, dsi_upper])
+summary(soildata[, dsi_lower])
+
+# Coarse fragments of the upper and lower layer
+soildata[, coarse_upper := shift(esqueleto, type = "lag"), by = id]
+soildata[, coarse_lower := shift(esqueleto, type = "lead"), by = id]
+summary(soildata[, coarse_upper])
+summary(soildata[, coarse_lower])
+
+# Fine earth of the upper and lower layer
+soildata[, fine_upper := shift(terrafina, type = "lag"), by = id]
+soildata[, fine_lower := shift(terrafina, type = "lead"), by = id]
+summary(soildata[, fine_upper])
+summary(soildata[, fine_lower])
+
+# cec/clay ratio
+# Cation exchange capacity (ctc) to clay ratio
+soildata[ctc > 0 & argila > 0, cec_clay_ratio := ctc / argila]
+summary(soildata[, cec_clay_ratio])
+
+# silt/clay ratio
+# Silt to clay ratio
+soildata[silte > 0 & argila > 0, silt_clay_ratio := silte / argila]
+summary(soildata[, silt_clay_ratio])
 
 # Write data to disk ###############################################################################
 summary_soildata(soildata)
