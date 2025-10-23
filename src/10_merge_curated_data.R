@@ -172,3 +172,5 @@ summary_soildata(soildata)
 # Georeferenced events: 14674
 # Datasets: 261
 data.table::fwrite(soildata, "data/10_soildata.txt", sep = "\t")
+
+soildata[dataset_id == "ctb0044", ]
