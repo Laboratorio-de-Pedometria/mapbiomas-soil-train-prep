@@ -54,6 +54,33 @@ summary_soildata(soildata)
 
 # Clean layers #####################################################################################
 
+# LAYER NAMES
+# Remove empty spaces from layer names (camada_nome)
+soildata[, camada_nome := gsub(" ", "", camada_nome)]
+# Remove "'" from layer names (camada_nome)
+soildata[, camada_nome := gsub("'", "", camada_nome)]
+# Convert starting "ll" and "ii" to Roman letters in layer names (camada_nome)
+soildata[, camada_nome := sub("^ll", "II", camada_nome)]
+soildata[, camada_nome := sub("^ii", "II", camada_nome)]
+# bw -> Bw
+soildata[, camada_nome := sub("^bw", "Bw", camada_nome)]
+# O-2O -> 0-20
+soildata[, camada_nome := sub("^O-2O", "0-20", camada_nome)]
+# 3O-5O -> 30-50
+soildata[, camada_nome := sub("^3O-5O", "30-50", camada_nome)]
+# 3O-2O -> 30-20
+soildata[, camada_nome := sub("^3O-2O", "30-20", camada_nome)]
+# Replace empty layer names (camada_nome) with "profund_sup-profund_inf"
+soildata[camada_nome == "", camada_nome := paste0(profund_sup, "-", profund_inf)]
+# B21CN -> B21cn
+soildata[, camada_nome := sub("^B21CN", "B21cn", camada_nome)]
+# Bcn21 -> B21cn
+soildata[, camada_nome := sub("^Bcn21", "B21cn", camada_nome)]
+# pl -> f
+soildata[, camada_nome := gsub("pl", "f", camada_nome, ignore.case = FALSE)]
+# cn -> c
+soildata[, camada_nome := gsub("cn", "c", camada_nome, ignore.case = FALSE)]
+
 # EQUAL DEPTH
 # Some layers have equal values of 'profund_sup' and 'profund_inf'.
 # Check if there is any
@@ -255,13 +282,18 @@ summary_soildata(soildata)
 # SOIL/NON-SOIL LAYERS
 # The variable 'is_soil' identifies if a soil layer is considered a "true" soil layer or not.
 # - A non soil layer generally is represented using the capital letter "R" in the layer name.
-soildata[, is_soil := !grepl("^R$", camada_nome, ignore.case = FALSE)]
-soildata[is_soil == FALSE, .N] # 218 layers
+# - When there is a lithologic discontinuity, the R layer will be designated as "IIR" or "2R".
+soildata[, is_soil := !grepl("^R$|^IIR$|^2R$", camada_nome, ignore.case = FALSE)]
+soildata[is_soil == FALSE, .N] # 234 layers
 # - Older studies may use the letter "D" such as in ctb0674 and ctb0787 to represent the bedrock or
 #   saprolithic material. We will consider these layers as non-soil layers when they lack data on
-#   carbon or clay content.
-soildata[camada_nome == "D" & (is.na(argila) | is.na(carbono)), is_soil := FALSE]
-soildata[is_soil == FALSE, .N] # 224 layers
+#   carbon or clay content. The cases of lithologic discontinuity represented by "IID" or "2D" will
+#   also be considered here.
+soildata[
+  grepl("^D$|^IID$|^2D$", camada_nome, ignore.case = FALSE) & (is.na(argila) | is.na(carbono)),
+  is_soil := FALSE
+]
+soildata[is_soil == FALSE, .N] # 240 layers
 # - Some researchers use the symbols CR and RCr to represent the bedrock or hard saprolithic
 #   material, such as ctb0005, ctb0006, ctb0025, ctb0030. Note that most of these studies were
 #   carried out in the south of Brazil. We will consider these layers as non-soil layers when they
@@ -270,7 +302,7 @@ soildata[
   grepl("^CR|RCr$", camada_nome, ignore.case = FALSE) & (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 250 layers
+soildata[is_soil == FALSE, .N] # 266 layers
 # - We may also find designations such as 2C/R, 2C/R, 2C/R, 2RC, 2RC, 2RC, C/CR, and C/R. These
 #   designations indicate that the layer is a transition between a soil horizon and the bedrock. We
 #   will consider these layers as non-soil layers when they lack data on carbon or clay content.
@@ -279,7 +311,7 @@ soildata[
     (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 255 layers
+soildata[is_soil == FALSE, .N] # 271 layers
 
 # Special cases
 # ctb0003
@@ -294,7 +326,7 @@ ctb0003[, is_soil := FALSE]
 soildata <- rbind(soildata, ctb0003)
 # sort data
 soildata <- soildata[order(id, profund_sup, profund_inf)]
-soildata[is_soil == FALSE, .N] # 368 layers
+soildata[is_soil == FALSE, .N] # 384 layers
 
 # Check multiple endpoints per event
 # For each 'id', count the number of layers where is_soil == FALSE. If there are multiple layers
@@ -312,6 +344,18 @@ if (FALSE) {
     by = camada_nome
   ][order(camada_nome)])
 }
+soildata[, multiple_endpoints := NULL]
+soildata[, max_profund_inf := NULL]
+# Force the values of the soil properties for non-soil layers
+soildata[is_soil == FALSE, terrafina := 0]
+soildata[is_soil == FALSE, argila := 0]
+soildata[is_soil == FALSE, silte := 0]
+soildata[is_soil == FALSE, areia := 0]
+soildata[is_soil == FALSE, carbono := 0]
+soildata[is_soil == FALSE, ph := NA]
+soildata[is_soil == FALSE, ctc := NA]
+soildata[is_soil == FALSE, dsi := NA]
+# Summary
 summary_soildata(soildata)
 # Layers: 51152
 # Events: 16994
@@ -331,6 +375,82 @@ summary_soildata(soildata)
 # # Add missing layers for these events
 # soildata[id %in% id_missing$id & grepl("Latossol|Quartz|Gleissol", taxon_sibcs), ] <-
 #   add_missing_layer(soildata[id %in% id_missing$id & grepl("Latossol|Quartz|Gleissol", taxon_sibcs), ])
+
+# PARTICLE SIZE DISTRIBUTION
+# Round fine particle size fractions to avoid small numerical differences
+soildata[, argila := round(argila)]
+soildata[, silte := round(silte)]
+soildata[, areia := round(areia)]
+
+# Check if the sum of the fine particle size fractions (argila + silte + areia) is approximately
+# 1000 g/kg. Acceptable range is between 900 and 1100 g/kg.
+soildata[, psd_sum := argila + silte + areia]
+soildata[, psd_diff := abs(1000 - psd_sum)]
+# There are 382 layers where the sum of fine particle size fractions is only slightly different from
+# 1000 g/kg
+soildata[
+  psd_diff <= 100 & psd_diff > 0 & !is.na(psd_sum),
+  .(id, camada_nome, argila, silte, areia, psd_sum, psd_diff)
+]
+psd_sum_fail <- soildata[
+  psd_diff > 100 & is_soil == TRUE,
+  .(id, camada_nome, argila, silte, areia, psd_sum, psd_diff)
+]
+if (nrow(psd_sum_fail) > 0) {
+  stop(
+    "Layers with particle size fractions not summing to approximately 1000 g/kg found:\n",
+    print(psd_sum_fail)
+  )
+} else {
+  message("All layers have particle size fractions summing to approximately 1000 g/kg.")
+}
+# Standardize fine particle size fractions by rescaling them to sum to 1000 g/kg.
+soildata[, argila := round((argila / psd_sum) * 1000)]
+soildata[, areia := round((areia / psd_sum) * 1000)]
+soildata[, silte := 1000 - argila - areia]
+soildata[, psd_sum := NULL]
+soildata[, psd_diff := NULL]
+
+# FINE EARTH FRACTION
+# Round terrafina to avoid small numerical differences
+soildata[, terrafina := round(terrafina)]
+# Check for layers is_soil == TRUE and terrafina == 0: these are inconsistent cases.
+if (soildata[is_soil == TRUE & terrafina == 0, .N] > 0) {
+  warning(
+    "Layers with is_soil == TRUE and terrafina == 0 found. Please check the following layers:\n"
+  )
+  print(soildata[is_soil == TRUE & terrafina == 0, .(id, camada_nome, profund_sup, profund_inf, argila, terrafina)])
+} else {
+  message("All layers have consistent values of terrafina.")
+}
+# Check if layers is_soil != TRUE and terrafina > 0: these are inconsistent cases.
+if (soildata[is_soil == FALSE & terrafina > 0, .N] > 0) {
+  warning(
+    "Layers with is_soil == FALSE and terrafina > 0 found. Please check the following layers:\n"
+  )
+  print(soildata[
+    is_soil == FALSE & terrafina > 0,
+    .(id, camada_nome, profund_sup, profund_inf, argila, terrafina)
+  ])
+} else {
+  message("All layers have consistent values of terrafina.")
+}
+
+# ESQUELETO
+# Create new variable
+soildata[, esqueleto := 1000 - terrafina]
+# Check esqueleto == NA & terrafina == NA
+# There are 5544 layers with missing esqueleto
+if (FALSE) {
+  View(soildata[is.na(esqueleto) & is.na(terrafina), .N, by = camada_nome])
+}
+# Average of esqueleto by camada_nome
+if (FALSE) {
+  View(soildata[,
+    .(mean_esqueleto = mean(esqueleto, na.rm = TRUE)),
+    by = camada_nome
+  ][order(mean_esqueleto, decreasing = TRUE)])
+}
 
 # Clean events #####################################################################################
 
