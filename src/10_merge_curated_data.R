@@ -31,7 +31,7 @@ curated_files <- list.files(
   pattern = "^ctb[0-9]{4}\\.csv$",
   full.names = TRUE, recursive = TRUE
 )
-length(curated_files) # 36 datasets
+length(curated_files) # 35 datasets
 print(curated_files)
 
 # If length(curated_files) is larger than 0, read all files and store them in a list
@@ -43,9 +43,9 @@ if (length(curated_files) > 0) {
   warning("No curated files found")
 }
 summary_soildata(curated_data)
-# Layers: 10926
-# Events: 3995
-# Georeferenced events: 3557
+# Layers: 11637
+# Events: 4362
+# Georeferenced events: 3919
 # Datasets: 35
 
 # Error handling: Check for projected coordinates, printing the dataset_id of the rows with
@@ -62,9 +62,9 @@ if (length(proj_coords) > 0) {
 # Remove rows with projected coordinates from curated_data
 curated_data <- curated_data[!dataset_id %in% proj_coords]
 summary_soildata(curated_data)
-# Layers: 10926
-# Events: 3995
-# Georeferenced events: 3557
+# Layers: 11637
+# Events: 4362
+# Georeferenced events: 3919
 # Datasets: 35
 
 # Error handling: Check for points falling outside Brazil, printing the dataset_id of the rows
@@ -87,9 +87,9 @@ if (length(outside_brazil) > 0) {
 # Remove rows with points falling outside Brazil from curated_data
 curated_data <- curated_data[!dataset_id %in% outside_brazil]
 summary_soildata(curated_data)
-# Layers: 10926
-# Events: 3995
-# Georeferenced events: 3557
+# Layers: 11637
+# Events: 4362
+# Georeferenced events: 3919
 # Datasets: 35
 
 # Brazilian Soil Dataset 2024 ######################################################################
@@ -150,9 +150,9 @@ summary_soildata(br_soil2024)
 # Merge datasets, keeping all columns of both datasets
 soildata <- data.table::rbindlist(list(br_soil2024, curated_data), fill = TRUE)
 summary_soildata(soildata)
-# Layers: 58718
-# Events: 17561
-# Georeferenced events: 14674
+# Layers: 59429
+# Events: 17928
+# Georeferenced events: 15036
 # Datasets: 261
 
 # Check spatial distribution
@@ -165,8 +165,8 @@ if (FALSE) {
 
 # Export data ######################################################################################
 summary_soildata(soildata)
-# Layers: 58719
-# Events: 17561
-# Georeferenced events: 14674
+# Layers: 59429
+# Events: 17928
+# Georeferenced events: 15036
 # Datasets: 261
 data.table::fwrite(soildata, "data/10_soildata.txt", sep = "\t")
