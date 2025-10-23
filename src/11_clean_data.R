@@ -13,9 +13,9 @@ source("src/00_helper_functions.r")
 # Read SoilData data processed in the previous script
 soildata <- data.table::fread("data/10_soildata.txt", sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 58718
-# Events: 17561
-# Georeferenced events: 14674
+# Layers: 59429
+# Events: 17928
+# Georeferenced events: 15036
 # Datasets: 261
 
 # Clean datasets ###################################################################################
@@ -34,11 +34,6 @@ if (all(is.na(soildata[dataset_id == "ctb0009", ..target]))) {
   message("All soil properties are missing in dataset_id == 'ctb0009'. Removing this dataset.")
   soildata <- soildata[dataset_id != "ctb0009", ]
 }
-
-# ctb0101
-# Dados de "Sistema pedológico Planossolo-Plintossolo no Pantanal de Barão de Melgaço-MT"
-# The data in this dataset already is included in ctb0054.
-soildata <- soildata[dataset_id != "ctb0101", ]
 
 # ctb0001 - MAY BE USEFUL FOR VALIDATION
 # "Conteúdo de ferro do solo sob dois sistemas de cultivo na Estação Experimental Terras Baixas nos
