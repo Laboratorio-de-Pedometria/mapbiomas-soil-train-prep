@@ -3,6 +3,11 @@
 # author: Alessandro Samuel-Rosa
 # data: 2025 CC-BY
 
+# Install required packages
+if (!requireNamespace("data.table")) {
+  install.packages("data.table")
+}
+
 # R function for the simple imputation of missing values in the columns of a data.frame.
 # The argument 'x' is a data.frame containing multiple columns. Columns of x can be of type continuous (numeric) or categorical (factor or character). Three simple imputation methods are available:
 # 1. measure of central tendency (MCT): for continuous variables, the missing values are replaced by the median of the non-missing values, appending 'med' to the variable name; for categorical variables, the missing values are replaced by the mode of the non-missing values, appending 'mod' to the variable name;
