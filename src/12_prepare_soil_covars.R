@@ -365,6 +365,17 @@ unique(soildata[CHRZN == "TRUE", camada_nome])
 unique(soildata[CHRZN == "FALSE", camada_nome])
 soildata[, .N, by = CHRZN]
 
+# GLEY
+# Gleyed horizon (bivariate)
+soildata[, GLEY := NA_character_]
+# If has letters in camada_nome, set GLEY to FALSE
+soildata[grepl("[a-zA-Z]", camada_nome), GLEY := "FALSE"]
+# If has g, set GLEY to TRUE
+soildata[grepl("G|g", camada_nome, ignore.case = FALSE), GLEY := "TRUE"]
+unique(soildata[GLEY == "TRUE", camada_nome])
+unique(soildata[GLEY == "FALSE", camada_nome])
+soildata[, .N, by = GLEY]
+
 # Bulk density of upper and lower layer
 # First, sort the data by soil event (id) and soil layer (camada_id).
 # For each soil layer (camada_id) in a soil event (id), identify the bulk density (dsi) of the
@@ -404,8 +415,8 @@ summary(soildata[, silt_clay_ratio])
 
 # Write data to disk ###############################################################################
 summary_soildata(soildata)
-# Layers: 51173
-# Events: 17015
-# Georeferenced events: 14393
-# Datasets: 259
+# Layers: 51862
+# Events: 17350
+# Georeferenced events: 14725
+# Datasets: 260
 data.table::fwrite(soildata, "data/12_soildata.txt", sep = "\t")
