@@ -167,7 +167,7 @@ if (FALSE) {
 
 # Export data ######################################################################################
 summary_soildata(soildata)
-# Layers: 58718
+# Layers: 58719
 # Events: 17561
 # Georeferenced events: 14674
 # Datasets: 261
