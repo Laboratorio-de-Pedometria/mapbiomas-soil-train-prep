@@ -35,6 +35,12 @@ if (all(is.na(soildata[dataset_id == "ctb0009", ..target]))) {
   soildata <- soildata[dataset_id != "ctb0009", ]
 }
 
+# ctb0093
+# "Dados de Carbono de Solos - Projeto Forense Brasil"
+# Some of the events seem to be included in ctb0092. They are indicated by having the sampling year
+# as 2008. We will remove these for now.
+soildata <- soildata[!(dataset_id == "ctb0093" & data_ano == 2008), ]
+
 # ctb0001 - MAY BE USEFUL FOR VALIDATION
 # "Conteúdo de ferro do solo sob dois sistemas de cultivo na Estação Experimental Terras Baixas nos
 # anos de 2012 e 2013"
@@ -45,10 +51,10 @@ if (all(is.na(soildata[dataset_id == "ctb0009", ..target]))) {
 # soildata <- soildata[dataset_id != "ctb0026", ]
 
 summary_soildata(soildata)
-# Layers: 58609
-# Events: 17495
-# Georeferenced events: 14608
-# Datasets: 259
+# Layers: 59301
+# Events: 17832
+# Georeferenced events: 14942
+# Datasets: 260
 
 # Clean layers #####################################################################################
 
@@ -177,10 +183,10 @@ soildata[
 soildata <- soildata[!(na_depth == TRUE & dataset_id %in% c("ctb0050", "ctb0051", "ctb0053")), ]
 soildata[, na_depth := NULL]
 summary_soildata(soildata)
-# Layers: 58234
-# Events: 17119
-# Georeferenced events: 14600
-# Datasets: 259
+# Layers: 58925
+# Events: 17456
+# Georeferenced events: 14934
+# Datasets: 260
 
 # LITTER LAYERS
 # Some datasets contain litter layers at the soil surface. These layers are identified by the
@@ -217,10 +223,10 @@ soildata <- soildata[is.na(is_litter), ]
 soildata[, is_litter := NULL]
 soildata[, camada_id := 1:.N, by = id]
 summary_soildata(soildata)
-# Layers: 58068
-# Events: 17119
-# Georeferenced events: 14600
-# Datasets: 259
+# Layers: 58759
+# Events: 17456
+# Georeferenced events: 14934
+# Datasets: 260
 # Check if there are still litter layers
 soildata[
   grepl("H|O", camada_nome, ignore.case = FALSE) & camada_id == 1 & is.na(carbono) & is.na(argila),
@@ -242,10 +248,10 @@ soildata <- soildata[is.na(is_litter), ]
 soildata[, is_litter := NULL]
 soildata[, camada_id := 1:.N, by = id]
 summary_soildata(soildata)
-# Layers: 58052
-# Events: 17118
-# Georeferenced events: 14600
-# Datasets: 259
+# Layers: 58743
+# Events: 17455
+# Georeferenced events: 14934
+# Datasets: 260
 # Check if there are still litter layers
 soildata[
   grepl("H|O", camada_nome, ignore.case = FALSE) & camada_id == 1 & is.na(carbono) & is.na(argila),
@@ -256,10 +262,10 @@ soildata[is_litter == TRUE, .N] # 0 layers
 soildata[has_litter == TRUE, .N, by = id] # 165 events had litter layers... this means that we
 # lost some complete events when removing litter layers. We will deal with this later. ATTENTION!
 summary_soildata(soildata)
-# Layers: 58052
-# Events: 17118
-# Georeferenced events: 14600
-# Datasets: 259
+# Layers: 58743
+# Events: 17455
+# Georeferenced events: 14934
+# Datasets: 260
 # Adjust depths of the remaining layers of the events that had litter layers. We do so by
 # getting the minimum value of 'profund_sup' for each event 'id' that had litter layers removed and
 # subtracting this value from both 'profund_sup' and 'profund_inf'.
@@ -283,13 +289,13 @@ soildata[, is_litter := NULL]
 # Filter out soil layers starting below the maximum depth. We will work only with data from layers
 # starting from the soil surface down to max_depth.
 max_depth <- 100
-nrow(soildata[profund_sup >= max_depth, ]) # 8160 layers with profund_sup >= max_depth
+nrow(soildata[profund_sup >= max_depth, ]) # 8161 layers with profund_sup >= max_depth
 soildata <- soildata[profund_sup >= 0 & profund_sup <= max_depth, ]
 summary_soildata(soildata)
-# Layers: 51060
-# Events: 17015
-# Georeferenced events: 14393
-# Datasets: 259
+# Layers: 51749
+# Events: 17350
+# Georeferenced events: 14725
+# Datasets: 260
 
 # SOIL/NON-SOIL LAYERS
 # The variable 'is_soil' identifies if a soil layer is considered a "true" soil layer or not.
@@ -297,7 +303,7 @@ summary_soildata(soildata)
 # - When there is a lithologic discontinuity, the R layer will be designated as "IIR" or "2R" and
 # so on.
 soildata[, is_soil := !grepl("^R$|^IIR$|^2R$|^IIIR$|^3R$", camada_nome, ignore.case = FALSE)]
-soildata[is_soil == FALSE, .N] # 256 layers
+soildata[is_soil == FALSE, .N] # 249 layers
 # - Older studies may use the letter "D" such as in ctb0674 and ctb0787 to represent the bedrock or
 #   saprolithic material. We will consider these layers as non-soil layers when they lack data on
 #   carbon or clay content. The cases of lithologic discontinuity represented by "IID" or "2D" will
@@ -306,7 +312,7 @@ soildata[
   grepl("^D$|^IID$|^2D$", camada_nome, ignore.case = FALSE) & (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 262 layers
+soildata[is_soil == FALSE, .N] # 255 layers
 # - Some researchers use the symbols CR and RCr to represent the bedrock or hard saprolithic
 #   material, such as ctb0005, ctb0006, ctb0025, ctb0030. Note that most of these studies were
 #   carried out in the south of Brazil. We will consider these layers as non-soil layers when they
@@ -315,7 +321,7 @@ soildata[
   grepl("^CR|RCr$", camada_nome, ignore.case = FALSE) & (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 288 layers
+soildata[is_soil == FALSE, .N] # 281 layers
 # - We may also find designations such as 2C/R, 2C/R, 2C/R, 2RC, 2RC, 2RC, C/CR, and C/R. These
 #   designations indicate that the layer is a transition between a soil horizon and the bedrock. We
 #   will consider these layers as non-soil layers when they lack data on carbon or clay content.
@@ -324,7 +330,7 @@ soildata[
     (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 293 layers
+soildata[is_soil == FALSE, .N] # 286 layers
 
 # Special cases
 # ctb0003
@@ -339,7 +345,7 @@ ctb0003[, is_soil := FALSE]
 soildata <- rbind(soildata, ctb0003)
 # sort data
 soildata <- soildata[order(id, profund_sup, profund_inf)]
-soildata[is_soil == FALSE, .N] # 406 layers
+soildata[is_soil == FALSE, .N] # 399 layers
 
 # Check multiple endpoints per event
 # For each 'id', count the number of layers where is_soil == FALSE. If there are multiple layers
@@ -370,10 +376,10 @@ soildata[is_soil == FALSE, ctc := NA]
 soildata[is_soil == FALSE, dsi := NA]
 # Summary
 summary_soildata(soildata)
-# Layers: 51173
-# Events: 17015
-# Georeferenced events: 14393
-# Datasets: 259
+# Layers: 51862
+# Events: 17350
+# Georeferenced events: 14725
+# Datasets: 260
 
 # # MISSING LAYERS
 # # Check for missing layers within each event (id)
@@ -399,7 +405,7 @@ soildata[, areia := round(areia)]
 # 1000 g/kg. Acceptable range is between 900 and 1100 g/kg.
 soildata[, psd_sum := argila + silte + areia]
 soildata[, psd_diff := abs(1000 - psd_sum)]
-# There are 382 layers where the sum of fine particle size fractions is only slightly different from
+# There are 383 layers where the sum of fine particle size fractions is only slightly different from
 # 1000 g/kg
 soildata[
   psd_diff <= 100 & psd_diff > 0 & !is.na(psd_sum),
@@ -434,29 +440,32 @@ if (soildata[terrafina > 1000, .N] > 0) {
     print(soildata[terrafina > 1000, .(id, camada_nome, profund_sup, profund_inf, argila, terrafina)])
   )
 } else {
-  message("All layers have terrafina <= 1000 g/kg.")
+  message("All layers have terrafina <= 1000 g/kg.\n")
 }
 
 # Check for layers is_soil == TRUE and terrafina == 0: these are inconsistent cases.
 if (soildata[is_soil == TRUE & terrafina == 0, .N] > 0) {
-  warning(
-    "Layers with is_soil == TRUE and terrafina == 0 found. Please check the following layers:\n"
+  print(soildata[
+    is_soil == TRUE & terrafina == 0,
+    .(id, camada_nome, profund_sup, profund_inf, argila, terrafina)
+  ])
+  stop(
+    "Layers with is_soil == TRUE and terrafina == 0 found: please check the sources\n"
   )
-  print(soildata[is_soil == TRUE & terrafina == 0, .(id, camada_nome, profund_sup, profund_inf, argila, terrafina)])
 } else {
-  message("All layers have consistent values of terrafina.")
+  message("All layers have consistent values of terrafina.\n")
 }
 # Check if layers is_soil != TRUE and terrafina > 0: these are inconsistent cases.
 if (soildata[is_soil == FALSE & terrafina > 0, .N] > 0) {
-  warning(
-    "Layers with is_soil == FALSE and terrafina > 0 found. Please check the following layers:\n"
-  )
   print(soildata[
     is_soil == FALSE & terrafina > 0,
     .(id, camada_nome, profund_sup, profund_inf, argila, terrafina)
   ])
+  stop(
+    "Layers with is_soil == FALSE and terrafina > 0 found: please check the sources\n"
+  )
 } else {
-  message("All layers have consistent values of terrafina.")
+  message("All layers have consistent values of terrafina.\n")
 }
 soildata[, is_soil := NULL]
 
@@ -484,7 +493,7 @@ if (FALSE) {
 soildata_events <- soildata[!is.na(coord_x) & !is.na(coord_y) & !is.na(data_ano), id[1],
   by = c("dataset_id", "observacao_id", "coord_x", "coord_y", "data_ano")
 ]
-nrow(soildata_events) # 13468 events
+nrow(soildata_events) # 13800 events
 test_columns <- c("coord_x", "coord_y", "data_ano")
 duplo <- duplicated(soildata_events[, ..test_columns])
 if (sum(duplo) > 0) {
@@ -496,8 +505,8 @@ if (sum(duplo) > 0) {
 
 # Write data to disk ###############################################################################
 summary_soildata(soildata)
-# Layers: 51173
-# Events: 17015
-# Georeferenced events: 14393
-# Datasets: 259
+# Layers: 51862
+# Events: 17350
+# Georeferenced events: 14725
+# Datasets: 260
 data.table::fwrite(soildata, "data/11_soildata.txt", sep = "\t")
