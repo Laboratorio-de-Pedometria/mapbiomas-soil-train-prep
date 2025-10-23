@@ -1,5 +1,5 @@
 # title: MapBiomas Soil
-# subtitle: Prepare soil covariates
+# subtitle: 12. Prepare soil covariates
 # author: Alessandro Samuel-Rosa
 # data: 2025 CC-BY
 rm(list = ls())
@@ -206,3 +206,10 @@ soildata[, SUBORDER := ifelse(.N < 15, NA_character_, SUBORDER), by = SUBORDER]
 soildata[, .N, by = ORDER][order(ORDER)]
 soildata[, .N, by = SUBORDER][order(SUBORDER)]
 
+# Write data to disk ###############################################################################
+summary_soildata(soildata)
+# Layers: 51152
+# Events: 16994
+# Georeferenced events: 14372
+# Datasets: 259
+data.table::fwrite(soildata, "data/12_soildata.txt", sep = "\t")
