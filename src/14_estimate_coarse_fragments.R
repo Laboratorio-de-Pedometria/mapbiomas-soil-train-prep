@@ -53,7 +53,6 @@ covars_names <- c(
   "silte",
   "areia", "areia_upper", "areia_lower",
   "coarse_upper", "coarse_lower",
-  "fine_upper", "fine_lower",
   "ph", "ctc", "carbono",
   "dsi", "dsi_upper", "dsi_lower",
   "ORDER", "SUBORDER",
@@ -187,7 +186,7 @@ print(skeleton_model)
 
 # Proportion of correct classification of rock layers
 sum(round(skeleton_model$predictions[is_rock] / 10) == 100) / sum(is_rock)
-# 86% 
+# 86%
 
 # Compute regression model statistics and write to disk
 skeleton_model_stats <- error_statistics(
@@ -308,4 +307,3 @@ summary_soildata(soildata)
 # Georeferenced events: 14393
 # Datasets: 259
 data.table::fwrite(soildata, "data/14_soildata.txt", sep = "\t")
-  
