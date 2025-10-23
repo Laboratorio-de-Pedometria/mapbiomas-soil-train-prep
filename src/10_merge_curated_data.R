@@ -1,8 +1,11 @@
 # title: MapBiomas Soil
 # subtitle: 10. Merge curated data
-# author: Alessandro Samuel-Rosa
-# data: 2025 CC-BY
+# author: Alessandro Samuel-Rosa and Taciara Zborowski Horst
+# data: 2025
 rm(list = ls())
+
+# Set MapBiomas Soil Collection
+collection <- "c3"
 
 # Install and load required packages
 if (!requireNamespace("data.table")) {
@@ -172,5 +175,3 @@ summary_soildata(soildata)
 # Georeferenced events: 14674
 # Datasets: 261
 data.table::fwrite(soildata, "data/10_soildata.txt", sep = "\t")
-
-soildata[dataset_id == "ctb0044", ]
