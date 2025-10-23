@@ -24,13 +24,45 @@ summary_soildata(soildata)
 
 # COARSE DATASET
 # Dataset-wise presence of coarse fragments
+# If any layer in a dataset has esqueleto > 0, the dataset is considered to have coarse fragments
 soildata[, DATASET_COARSE := any(esqueleto > 0, na.rm = TRUE), by = dataset_id]
+# If all layers in a dataset have esqueleto == 0, the dataset is considered to have no coarse fragments
+soildata[, DATASET_COARSE := ifelse(
+  all(esqueleto == 0, na.rm = TRUE), FALSE, DATASET_COARSE
+), by = dataset_id]
+# If all layers in a dataset have esqueleto == NA, the dataset is considered to have no data on coarse fragments
+soildata[, DATASET_COARSE := ifelse(
+  all(is.na(esqueleto)), NA, DATASET_COARSE
+), by = dataset_id]
+soildata[, .N, by = DATASET_COARSE]
 
 # Event-wise covariates ###########################################################################
 
+# LOWERMOST
+# Create new variable 'lowermost' (bivariate)
+soildata[, lowermost := FALSE]
+# For each soil event (id), identify the lowermost layer (the one with the maximum profund_inf)
+soildata[, lowermost := ifelse(profund_inf == max(profund_inf, na.rm = TRUE), TRUE, lowermost), by = id]
+
+# UPPERMOST
+# Create new variable 'uppermost' (bivariate)
+soildata[, uppermost := FALSE]
+# For each soil event (id), identify the uppermost layer (the one with the minimum profund_sup)
+soildata[, uppermost := ifelse(profund_sup == min(profund_sup, na.rm = TRUE), TRUE, uppermost), by = id]
+
 # COARSE EVENT
 # Event-wise presence of coarse fragments
+# If any layer in a soil event has esqueleto > 0, the soil event is considered to have coarse fragments
 soildata[, EVENT_COARSE := any(esqueleto > 0, na.rm = TRUE), by = id]
+# If all layers in a soil event have esqueleto == 0, the soil event is considered to have no coarse fragments
+soildata[, EVENT_COARSE := ifelse(
+  all(esqueleto == 0, na.rm = TRUE), FALSE, EVENT_COARSE
+), by = id]
+# If all layers in a soil event have esqueleto == NA, the soil event is considered to have no data on coarse fragments
+soildata[, EVENT_COARSE := ifelse(
+  all(is.na(esqueleto)), NA, EVENT_COARSE
+), by = id]
+soildata[, .N, by = EVENT_COARSE]
 
 # SPATIAL COORDINATES
 # The spatial coordinates will be used as predictors in the modeling process to account for spatial
@@ -249,7 +281,7 @@ soildata[, STONY := NA_character_]
 soildata[camada_nome != "UNKNOWN", STONY := "FALSE"]
 soildata[grepl("c", camada_nome, ignore.case = FALSE), STONY := "TRUE"]
 soildata[grepl("F|f", camada_nome, ignore.case = FALSE), STONY := "TRUE"]
-soildata[grepl("R|r", camada_nome, ignore.case = FALSE), STONY := "TRUE"]
+soildata[grepl("r", camada_nome, ignore.case = FALSE), STONY := "TRUE"]
 soildata[grepl("u", camada_nome, ignore.case = FALSE), STONY := "TRUE"]
 # If there are no letters in camada_nome, keep as "UNKNOWN"
 soildata[!grepl("[a-zA-Z]", camada_nome), STONY := "UNKNOWN"]
@@ -343,6 +375,16 @@ soildata[, fine_upper := shift(terrafina, type = "lag"), by = id]
 soildata[, fine_lower := shift(terrafina, type = "lead"), by = id]
 summary(soildata[, fine_upper])
 summary(soildata[, fine_lower])
+
+# Clay content of the upper and lower layer
+soildata[, argila_upper := shift(argila, type = "lag"), by = id]
+soildata[, argila_lower := shift(argila, type = "lead"), by = id]
+
+# Sand content of the upper and lower layer
+soildata[, areia_upper := shift(areia, type = "lag"), by = id]
+soildata[, areia_lower := shift(areia, type = "lead"), by = id]
+summary(soildata[, areia_upper])
+summary(soildata[, areia_lower])
 
 # cec/clay ratio
 # Cation exchange capacity (ctc) to clay ratio
