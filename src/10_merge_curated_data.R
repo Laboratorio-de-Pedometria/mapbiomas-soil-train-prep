@@ -7,11 +7,6 @@ rm(list = ls())
 # Set MapBiomas Soil Collection
 collection <- "c3"
 
-# Install and load required packages
-if (!requireNamespace("data.table")) {
-  install.packages("data.table")
-}
-
 # Auxiliary data and functions #####################################################################
 # Source helper functions
 source("src/00_helper_functions.r")
@@ -36,7 +31,7 @@ curated_files <- list.files(
   pattern = "^ctb[0-9]{4}\\.csv$",
   full.names = TRUE, recursive = TRUE
 )
-length(curated_files) # 35 datasets
+length(curated_files) # 36 datasets
 print(curated_files)
 
 # If length(curated_files) is larger than 0, read all files and store them in a list
