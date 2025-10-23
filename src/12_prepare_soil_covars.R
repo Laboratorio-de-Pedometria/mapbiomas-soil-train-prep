@@ -7,11 +7,6 @@ rm(list = ls())
 # Set MapBiomas Soil Collection
 collection <- "c3"
 
-# Install and load required packages
-if (!requireNamespace("data.table")) {
-  install.packages("data.table")
-}
-
 # Source helper functions
 source("src/00_helper_functions.r")
 
