@@ -1,8 +1,11 @@
 # title: MapBiomas Soil
 # subtitle: 11. Clean data
-# author: Alessandro Samuel-Rosa
-# data: 2025 CC-BY
+# author: Alessandro Samuel-Rosa and Taciara Zborowski Horst
+# data: 2025
 rm(list = ls())
+
+# Set MapBiomas Soil Collection
+collection <- "c3"
 
 # Source helper functions
 source("src/00_helper_functions.r")
