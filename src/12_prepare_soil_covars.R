@@ -370,12 +370,6 @@ soildata[, coarse_lower := shift(esqueleto, type = "lead"), by = id]
 summary(soildata[, coarse_upper])
 summary(soildata[, coarse_lower])
 
-# Fine earth of the upper and lower layer
-soildata[, fine_upper := shift(terrafina, type = "lag"), by = id]
-soildata[, fine_lower := shift(terrafina, type = "lead"), by = id]
-summary(soildata[, fine_upper])
-summary(soildata[, fine_lower])
-
 # Clay content of the upper and lower layer
 soildata[, argila_upper := shift(argila, type = "lag"), by = id]
 soildata[, argila_lower := shift(argila, type = "lead"), by = id]
