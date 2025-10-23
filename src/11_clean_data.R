@@ -76,10 +76,22 @@ soildata[camada_nome == "", camada_nome := paste0(profund_sup, "-", profund_inf)
 soildata[, camada_nome := sub("^B21CN", "B21cn", camada_nome)]
 # Bcn21 -> B21cn
 soildata[, camada_nome := sub("^Bcn21", "B21cn", camada_nome)]
+# B2TPL -> B2tpl
+soildata[, camada_nome := sub("^B2TPL", "B2tpl", camada_nome)]
+# B31PL -> B31pl
+soildata[, camada_nome := sub("^B31PL", "B31pl", camada_nome)]
+# B3PL -> B3pl
+soildata[, camada_nome := sub("^B3PL", "B3pl", camada_nome)]
 # pl -> f
 soildata[, camada_nome := gsub("pl", "f", camada_nome, ignore.case = FALSE)]
 # cn -> c
 soildata[, camada_nome := gsub("cn", "c", camada_nome, ignore.case = FALSE)]
+# 0-20cm
+soildata[, camada_nome := gsub("0-20cm", "0-20", camada_nome, ignore.case = FALSE)]
+# 20-40cm
+soildata[, camada_nome := gsub("20-40cm", "20-40", camada_nome, ignore.case = FALSE)]
+# 40-60cm
+soildata[, camada_nome := gsub("40-60cm", "40-60", camada_nome, ignore.case = FALSE)]
 
 # EQUAL DEPTH
 # Some layers have equal values of 'profund_sup' and 'profund_inf'.
@@ -284,9 +296,10 @@ summary_soildata(soildata)
 # SOIL/NON-SOIL LAYERS
 # The variable 'is_soil' identifies if a soil layer is considered a "true" soil layer or not.
 # - A non soil layer generally is represented using the capital letter "R" in the layer name.
-# - When there is a lithologic discontinuity, the R layer will be designated as "IIR" or "2R".
-soildata[, is_soil := !grepl("^R$|^IIR$|^2R$", camada_nome, ignore.case = FALSE)]
-soildata[is_soil == FALSE, .N] # 234 layers
+# - When there is a lithologic discontinuity, the R layer will be designated as "IIR" or "2R" and
+# so on.
+soildata[, is_soil := !grepl("^R$|^IIR$|^2R$|^IIIR$|^3R$", camada_nome, ignore.case = FALSE)]
+soildata[is_soil == FALSE, .N] # 235 layers
 # - Older studies may use the letter "D" such as in ctb0674 and ctb0787 to represent the bedrock or
 #   saprolithic material. We will consider these layers as non-soil layers when they lack data on
 #   carbon or clay content. The cases of lithologic discontinuity represented by "IID" or "2D" will
@@ -295,7 +308,7 @@ soildata[
   grepl("^D$|^IID$|^2D$", camada_nome, ignore.case = FALSE) & (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 240 layers
+soildata[is_soil == FALSE, .N] # 241 layers
 # - Some researchers use the symbols CR and RCr to represent the bedrock or hard saprolithic
 #   material, such as ctb0005, ctb0006, ctb0025, ctb0030. Note that most of these studies were
 #   carried out in the south of Brazil. We will consider these layers as non-soil layers when they
@@ -304,7 +317,7 @@ soildata[
   grepl("^CR|RCr$", camada_nome, ignore.case = FALSE) & (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 266 layers
+soildata[is_soil == FALSE, .N] # 267 layers
 # - We may also find designations such as 2C/R, 2C/R, 2C/R, 2RC, 2RC, 2RC, C/CR, and C/R. These
 #   designations indicate that the layer is a transition between a soil horizon and the bedrock. We
 #   will consider these layers as non-soil layers when they lack data on carbon or clay content.
@@ -313,7 +326,7 @@ soildata[
     (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 271 layers
+soildata[is_soil == FALSE, .N] # 272 layers
 
 # Special cases
 # ctb0003
@@ -328,7 +341,7 @@ ctb0003[, is_soil := FALSE]
 soildata <- rbind(soildata, ctb0003)
 # sort data
 soildata <- soildata[order(id, profund_sup, profund_inf)]
-soildata[is_soil == FALSE, .N] # 384 layers
+soildata[is_soil == FALSE, .N] # 385 layers
 
 # Check multiple endpoints per event
 # For each 'id', count the number of layers where is_soil == FALSE. If there are multiple layers
