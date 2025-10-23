@@ -206,6 +206,11 @@ soildata[, SUBORDER := ifelse(.N < 15, NA_character_, SUBORDER), by = SUBORDER]
 soildata[, .N, by = ORDER][order(ORDER)]
 soildata[, .N, by = SUBORDER][order(SUBORDER)]
 
+# THICKNESS
+# Create new variable 'espessura' (thickness)
+soildata[, espessura := profund_inf - profund_sup]
+summary(soildata[, espessura])
+
 # Write data to disk ###############################################################################
 summary_soildata(soildata)
 # Layers: 51152

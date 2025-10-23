@@ -172,11 +172,6 @@ summary_soildata(soildata)
 # Georeferenced events: 14600
 # Datasets: 259
 
-# THICKNESS
-# Create new variable 'espessura' (thickness)
-soildata[, espessura := profund_inf - profund_sup]
-summary(soildata[, espessura])
-
 # LITTER LAYERS
 # Some datasets contain litter layers at the soil surface. These layers are identified by the
 # use of H or O in camada_nome and carbono == NA & argila == NA. We start by identifying these
