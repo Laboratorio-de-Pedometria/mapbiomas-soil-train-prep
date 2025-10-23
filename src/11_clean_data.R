@@ -1,5 +1,5 @@
 # title: MapBiomas Soil
-# subtitle: Clean data
+# subtitle: 11. Clean data
 # author: Alessandro Samuel-Rosa
 # data: 2025 CC-BY
 rm(list = ls())
@@ -172,6 +172,11 @@ summary_soildata(soildata)
 # Georeferenced events: 14600
 # Datasets: 259
 
+# THICKNESS
+# Create new variable 'espessura' (thickness)
+soildata[, espessura := profund_inf - profund_sup]
+summary(soildata[, espessura])
+
 # LITTER LAYERS
 # Some datasets contain litter layers at the soil surface. These layers are identified by the
 # use of H or O in camada_nome and carbono == NA & argila == NA. We start by identifying these
@@ -266,6 +271,8 @@ soildata[has_litter == TRUE, profund_sup := profund_sup - min_profund_sup]
 soildata[has_litter == TRUE, profund_inf := profund_inf - min_profund_sup]
 soildata[, min_profund_sup := NULL]
 all(soildata[has_litter == TRUE & camada_id == 1, profund_sup] == 0) # should all be 0 now
+soildata[, has_litter := NULL]
+soildata[, is_litter := NULL]
 
 # MAXIMUM DEPTH
 # Filter out soil layers starting below the maximum depth. We will work only with data from layers
@@ -435,8 +442,9 @@ if (soildata[is_soil == FALSE & terrafina > 0, .N] > 0) {
 } else {
   message("All layers have consistent values of terrafina.")
 }
+soildata[, is_soil := NULL]
 
-# ESQUELETO
+# COARSE FRAGMENTS
 # Create new variable
 soildata[, esqueleto := 1000 - terrafina]
 # Check esqueleto == NA & terrafina == NA
