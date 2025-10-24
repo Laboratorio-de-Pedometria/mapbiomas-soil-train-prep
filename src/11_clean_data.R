@@ -488,6 +488,9 @@ if (FALSE) {
 
 # Clean events #####################################################################################
 
+# Missing sampling date
+soildata[dataset_id == "ctb0023" & is.na(data_ano), data_ano := 1979]
+
 # Identify duplicated events
 # Duplicated events have equal spatial and temporal coordinates.
 # Make sure to analise events with complete spatial and temporal coordinates.
