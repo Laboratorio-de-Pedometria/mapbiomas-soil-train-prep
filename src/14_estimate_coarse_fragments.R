@@ -24,21 +24,21 @@ source("src/00_helper_functions.r")
 file_path <- "data/12_soildata.txt"
 soildata <- data.table::fread(file_path, sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 51152
-# Events: 16994
-# Georeferenced events: 14372
-# Datasets: 259
+# Layers: 51927
+# Events: 17357
+# Georeferenced events: 14851
+# Datasets: 260
 
 # DESIGN MATRIX
 
 # Target variable: Proportion of coarse fragments (esqueleto)
 # Identify soil layers missing the proportion of coarse fragments
 is_na_skeleton <- is.na(soildata[["esqueleto"]])
-sum(is_na_skeleton) # 5544 layers out of 51152
+sum(is_na_skeleton) # 6255 layers out of 51927
 
 # Identify soil layers with proportion of coarse fragments equal to 100%
 is_rock <- soildata[!is_na_skeleton, esqueleto == 1000]
-sum(is_rock) # 406 layers out of 45
+sum(is_rock) # 408 layers out of 51927
 
 # Covariates
 
@@ -57,7 +57,7 @@ covars_names <- c(
   "dsi", "dsi_upper", "dsi_lower",
   "ORDER", "SUBORDER",
   "pedregosidade", "rochosidade",
-  "STONESOL", "STONY", "ORGANIC", "AHRZN", "BHRZN", "CHRZN", "EHRZN", "DENSIC",
+  "STONESOL", "STONY", "ORGANIC", "AHRZN", "BHRZN", "CHRZN", "EHRZN", "DENSIC", "GLEY",
   "cec_clay_ratio", "silt_clay_ratio"
   # "bdod_0_5cm", "bdod_15_30cm", "bdod_5_15cm",
   # "cfvo_0_5cm",  "cfvo_15_30cm", "cfvo_5_15cm",
@@ -266,8 +266,8 @@ dev.off()
 skeleton_digits <- 0
 tmp <- predict(skeleton_model, data = covariates[is_na_skeleton, ])
 soildata[is_na_skeleton, esqueleto := round(tmp$predictions, skeleton_digits)]
-nrow(unique(soildata[, "id"])) # Result: 17015
-nrow(soildata) # Result: 51173
+nrow(unique(soildata[, "id"])) # Result: 17357
+nrow(soildata) # Result: 51927
 
 # Figure. Distribution of soil skeleton data
 file_path <- paste0("res/fig/", collection, "_skeleton_histogram.png")
@@ -289,18 +289,22 @@ legend("topright",
 dev.off()
 
 # Dataset for PSD modelling
-tmp <- soildata[!is.na(esqueleto) & !is.na(argila) & !is.na(areia) & !is.na(silte)]
+tmp <- soildata[
+  !is.na(esqueleto) &
+    !is.na(argila) & !is.na(areia) & !is.na(silte) &
+    !is.na(profund_sup) & !is.na(profund_inf)
+]
 summary_soildata(tmp)
-# Layers: 44568
-# Events: 14601
-# Georeferenced events: 12278
-# Datasets: 234
+# Layers: 44636
+# Events: 14639
+# Georeferenced events: 12432
+# Datasets: 235
 
 # Write data to disk ###############################################################################
 soildata[, abs_error := NULL]
 summary_soildata(soildata)
-# Layers: 51173
-# Events: 17015
-# Georeferenced events: 14393
-# Datasets: 259
+# Layers: 51927
+# Events: 17357
+# Georeferenced events: 14851
+# Datasets: 260
 data.table::fwrite(soildata, "data/14_soildata.txt", sep = "\t")
