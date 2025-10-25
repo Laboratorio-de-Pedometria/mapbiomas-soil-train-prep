@@ -13,7 +13,7 @@ source("src/00_helper_functions.r")
 # Read SoilData data processed in the previous script
 soildata <- data.table::fread("data/10_soildata.txt", sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 59429
+# Layers: 59369
 # Events: 17928
 # Georeferenced events: 15036
 # Datasets: 261
@@ -51,7 +51,7 @@ soildata <- soildata[!(dataset_id == "ctb0093" & data_ano == 2008), ]
 # soildata <- soildata[dataset_id != "ctb0026", ]
 
 summary_soildata(soildata)
-# Layers: 59301
+# Layers: 59241
 # Events: 17832
 # Georeferenced events: 14942
 # Datasets: 260
@@ -167,8 +167,7 @@ summary(soildata[, .(profund_sup, profund_inf)])
 #  - ctb0047: auger holes
 #  - ctb0048: auger holes
 ctb_to_ignore <- c(
-  "ctb0044", "ctb0047", "ctb0048",
-  "ctb0052" # Gateados: process depths
+  "ctb0044", "ctb0047", "ctb0048"
 )
 soildata[, na_depth := is.na(profund_sup) | is.na(profund_inf)]
 soildata[
@@ -183,7 +182,7 @@ soildata[
 soildata <- soildata[!(na_depth == TRUE & dataset_id %in% c("ctb0050", "ctb0051", "ctb0053")), ]
 soildata[, na_depth := NULL]
 summary_soildata(soildata)
-# Layers: 58925
+# Layers: 58865
 # Events: 17456
 # Georeferenced events: 14934
 # Datasets: 260
@@ -223,7 +222,7 @@ soildata <- soildata[is.na(is_litter), ]
 soildata[, is_litter := NULL]
 soildata[, camada_id := 1:.N, by = id]
 summary_soildata(soildata)
-# Layers: 58759
+# Layers: 58699
 # Events: 17456
 # Georeferenced events: 14934
 # Datasets: 260
@@ -248,7 +247,7 @@ soildata <- soildata[is.na(is_litter), ]
 soildata[, is_litter := NULL]
 soildata[, camada_id := 1:.N, by = id]
 summary_soildata(soildata)
-# Layers: 58743
+# Layers: 58683
 # Events: 17455
 # Georeferenced events: 14934
 # Datasets: 260
@@ -262,7 +261,7 @@ soildata[is_litter == TRUE, .N] # 0 layers
 soildata[has_litter == TRUE, .N, by = id] # 165 events had litter layers... this means that we
 # lost some complete events when removing litter layers. We will deal with this later. ATTENTION!
 summary_soildata(soildata)
-# Layers: 58743
+# Layers: 58683
 # Events: 17455
 # Georeferenced events: 14934
 # Datasets: 260
@@ -289,12 +288,13 @@ soildata[, is_litter := NULL]
 # Filter out soil layers starting below the maximum depth. We will work only with data from layers
 # starting from the soil surface down to max_depth.
 max_depth <- 100
-nrow(soildata[profund_sup >= max_depth, ]) # 8161 layers with profund_sup >= max_depth
+nrow(soildata[profund_sup >= max_depth, ])
+# 8170 layers with profund_sup >= max_depth
 soildata <- soildata[profund_sup >= 0 & profund_sup <= max_depth, ]
 summary_soildata(soildata)
-# Layers: 51749
-# Events: 17350
-# Georeferenced events: 14725
+# Layers: 51814
+# Events: 17357
+# Georeferenced events: 14851
 # Datasets: 260
 
 # SOIL/NON-SOIL LAYERS
@@ -303,7 +303,7 @@ summary_soildata(soildata)
 # - When there is a lithologic discontinuity, the R layer will be designated as "IIR" or "2R" and
 # so on.
 soildata[, is_soil := !grepl("^R$|^IIR$|^2R$|^IIIR$|^3R$", camada_nome, ignore.case = FALSE)]
-soildata[is_soil == FALSE, .N] # 256 layers
+soildata[is_soil == FALSE, .N] # 258 layers
 # - Older studies may use the letter "D" such as in ctb0674 and ctb0787 to represent the bedrock or
 #   saprolithic material. We will consider these layers as non-soil layers when they lack data on
 #   carbon or clay content. The cases of lithologic discontinuity represented by "IID" or "2D" will
@@ -312,7 +312,7 @@ soildata[
   grepl("^D$|^IID$|^2D$", camada_nome, ignore.case = FALSE) & (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 262 layers
+soildata[is_soil == FALSE, .N] # 264 layers
 # - Some researchers use the symbols CR and RCr to represent the bedrock or hard saprolithic
 #   material, such as ctb0005, ctb0006, ctb0025, ctb0030. Note that most of these studies were
 #   carried out in the south of Brazil. We will consider these layers as non-soil layers when they
@@ -321,7 +321,7 @@ soildata[
   grepl("^CR|RCr$", camada_nome, ignore.case = FALSE) & (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 288 layers
+soildata[is_soil == FALSE, .N] # 290 layers
 # - We may also find designations such as 2C/R, 2C/R, 2C/R, 2RC, 2RC, 2RC, C/CR, and C/R. These
 #   designations indicate that the layer is a transition between a soil horizon and the bedrock. We
 #   will consider these layers as non-soil layers when they lack data on carbon or clay content.
@@ -330,7 +330,7 @@ soildata[
     (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 293 layers
+soildata[is_soil == FALSE, .N] # 295 layers
 
 # Special cases
 # ctb0003
@@ -345,7 +345,7 @@ ctb0003[, is_soil := FALSE]
 soildata <- rbind(soildata, ctb0003)
 # sort data
 soildata <- soildata[order(id, profund_sup, profund_inf)]
-soildata[is_soil == FALSE, .N] # 406 layers
+soildata[is_soil == FALSE, .N] # 408 layers
 
 # Check multiple endpoints per event
 # For each 'id', count the number of layers where is_soil == FALSE. If there are multiple layers
@@ -376,9 +376,9 @@ soildata[is_soil == FALSE, ctc := NA]
 soildata[is_soil == FALSE, dsi := NA]
 # Summary
 summary_soildata(soildata)
-# Layers: 51862
-# Events: 17350
-# Georeferenced events: 14725
+# Layers: 51927
+# Events: 17357
+# Georeferenced events: 14851
 # Datasets: 260
 
 # # MISSING LAYERS
@@ -474,7 +474,7 @@ soildata[, is_soil := NULL]
 soildata[, esqueleto := 1000 - terrafina]
 # Check esqueleto == NA & terrafina == NA
 soildata[is.na(esqueleto) & is.na(terrafina), .N]
-# There are 6236 layers with missing esqueleto
+# There are 6255 layers with missing esqueleto
 if (FALSE) {
   View(soildata[is.na(esqueleto) & is.na(terrafina), .N, by = camada_nome])
 }
@@ -497,7 +497,7 @@ soildata[dataset_id == "ctb0023" & is.na(data_ano), data_ano := 1979]
 soildata_events <- soildata[!is.na(coord_x) & !is.na(coord_y) & !is.na(data_ano), id[1],
   by = c("dataset_id", "observacao_id", "coord_x", "coord_y", "data_ano")
 ]
-nrow(soildata_events) # 13800 events
+nrow(soildata_events) # 13929 events
 test_columns <- c("coord_x", "coord_y", "data_ano")
 duplo <- duplicated(soildata_events[, ..test_columns])
 if (sum(duplo) > 0) {
@@ -509,8 +509,8 @@ if (sum(duplo) > 0) {
 
 # Write data to disk ###############################################################################
 summary_soildata(soildata)
-# Layers: 51862
-# Events: 17350
-# Georeferenced events: 14725
+# Layers: 51927
+# Events: 17357
+# Georeferenced events: 14851
 # Datasets: 260
 data.table::fwrite(soildata, "data/11_soildata.txt", sep = "\t")
