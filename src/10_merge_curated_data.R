@@ -43,7 +43,7 @@ if (length(curated_files) > 0) {
   warning("No curated files found")
 }
 summary_soildata(curated_data)
-# Layers: 11637
+# Layers: 11577
 # Events: 4362
 # Georeferenced events: 3919
 # Datasets: 35
@@ -62,7 +62,7 @@ if (length(proj_coords) > 0) {
 # Remove rows with projected coordinates from curated_data
 curated_data <- curated_data[!dataset_id %in% proj_coords]
 summary_soildata(curated_data)
-# Layers: 11637
+# Layers: 11577
 # Events: 4362
 # Georeferenced events: 3919
 # Datasets: 35
@@ -87,7 +87,7 @@ if (length(outside_brazil) > 0) {
 # Remove rows with points falling outside Brazil from curated_data
 curated_data <- curated_data[!dataset_id %in% outside_brazil]
 summary_soildata(curated_data)
-# Layers: 11637
+# Layers: 11577
 # Events: 4362
 # Georeferenced events: 3919
 # Datasets: 35
@@ -150,7 +150,7 @@ summary_soildata(br_soil2024)
 # Merge datasets, keeping all columns of both datasets
 soildata <- data.table::rbindlist(list(br_soil2024, curated_data), fill = TRUE)
 summary_soildata(soildata)
-# Layers: 59429
+# Layers: 59369
 # Events: 17928
 # Georeferenced events: 15036
 # Datasets: 261
@@ -165,7 +165,7 @@ if (FALSE) {
 
 # Export data ######################################################################################
 summary_soildata(soildata)
-# Layers: 59429
+# Layers: 59369
 # Events: 17928
 # Georeferenced events: 15036
 # Datasets: 261
