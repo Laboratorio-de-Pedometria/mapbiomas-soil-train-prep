@@ -13,7 +13,7 @@ source("src/00_helper_functions.r")
 # Read data produced in the previous processing script
 soildata <- data.table::fread("data/11_soildata.txt", sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 53246
+# Layers: 53562
 # Events: 18676
 # Georeferenced events: 16170
 # Datasets: 261
@@ -417,7 +417,7 @@ summary(soildata[, silt_clay_ratio])
 
 # Write data to disk ###############################################################################
 summary_soildata(soildata)
-# Layers: 53246
+# Layers: 53562
 # Events: 18676
 # Georeferenced events: 16170
 # Datasets: 261
