@@ -13,10 +13,10 @@ source("src/00_helper_functions.r")
 # Read data produced in the previous processing script
 soildata <- data.table::fread("data/11_soildata.txt", sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 51927
-# Events: 17357
-# Georeferenced events: 14851
-# Datasets: 260
+# Layers: 53246
+# Events: 18676
+# Georeferenced events: 16170
+# Datasets: 261
 
 # Dataset-wise covariates ##########################################################################
 
@@ -255,6 +255,8 @@ soildata[SUBORDER == "VERMELHO-AMARELADO", SUBORDER := "VERMELHO-AMARELO"]
 soildata[SUBORDER == "VERMELHO-AMARELDISTROFICO", SUBORDER := "VERMELHO-AMARELO"]
 # VERMELHO-ESCURO
 soildata[SUBORDER == "VERMELHO-ESCURO", SUBORDER := "VERMELHO"]
+# AFLORAMENTO
+soildata[ORDER == "AFLORAMENTO", ORDER := NA_character_]
 # If categories in ORDER and SUBORDER have less than 15 observations, replace its values with NA
 soildata[, ORDER := ifelse(.N < 15, NA_character_, ORDER), by = ORDER]
 soildata[, SUBORDER := ifelse(.N < 15, NA_character_, SUBORDER), by = SUBORDER]
@@ -415,8 +417,8 @@ summary(soildata[, silt_clay_ratio])
 
 # Write data to disk ###############################################################################
 summary_soildata(soildata)
-# Layers: 51927
-# Events: 17357
-# Georeferenced events: 14851
-# Datasets: 260
+# Layers: 53246
+# Events: 18676
+# Georeferenced events: 16170
+# Datasets: 261
 data.table::fwrite(soildata, "data/12_soildata.txt", sep = "\t")
