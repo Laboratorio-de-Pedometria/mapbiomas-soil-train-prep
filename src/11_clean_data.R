@@ -13,10 +13,10 @@ source("src/00_helper_functions.r")
 # Read SoilData data processed in the previous script
 soildata <- data.table::fread("data/10_soildata.txt", sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 59369
-# Events: 17928
-# Georeferenced events: 15036
-# Datasets: 261
+# Layers: 60694
+# Events: 19253
+# Georeferenced events: 16361
+# Datasets: 262
 
 # Clean datasets ###################################################################################
 # ctb0042
@@ -51,10 +51,10 @@ soildata <- soildata[!(dataset_id == "ctb0093" & data_ano == 2008), ]
 # soildata <- soildata[dataset_id != "ctb0026", ]
 
 summary_soildata(soildata)
-# Layers: 59241
-# Events: 17832
-# Georeferenced events: 14942
-# Datasets: 260
+# Layers: 60566
+# Events: 19157
+# Georeferenced events: 16267
+# Datasets: 261
 
 # Clean layers #####################################################################################
 
@@ -98,7 +98,7 @@ soildata[, camada_nome := gsub("20-40cm", "20-40", camada_nome, ignore.case = FA
 soildata[, camada_nome := gsub("40-60cm", "40-60", camada_nome, ignore.case = FALSE)]
 
 # EQUAL DEPTH
-# Some layers have equal values of 'profund_sup' and 'profund_inf'.
+# Some layers might have equal values of 'profund_sup' and 'profund_inf'.
 # Check if there is any
 equal_depth <-
   soildata[!is.na(profund_sup) & !is.na(profund_inf) & profund_sup == profund_inf, id]
@@ -152,7 +152,8 @@ soildata[min_profund_sup < miss_limit & camada_id == 1, profund_sup := 0]
 # Recompute
 soildata[!is.na(profund_sup), has_topsoil := any(profund_sup == 0, na.rm = TRUE), by = id]
 nrow(unique(soildata[has_topsoil != TRUE, "id"]))
-# Now, there are 264 events without a topsoil layer. We will keep them for now.
+# Now, there are 264 events without a topsoil layer. We will keep them for now as they still can be
+# used for soil particle size modeling.
 soildata[, has_topsoil := NULL]
 soildata[, min_profund_sup := NULL]
 summary(soildata[, .(profund_sup, profund_inf)])
