@@ -487,6 +487,40 @@ if (FALSE) {
   ][order(mean_esqueleto, decreasing = TRUE)])
 }
 
+# Now we will identify the events with rock layers (esqueleto == 1000 g/kg) within the maximum depth.
+# When this happens, we will add a new layer (row) to the event representing another rock layer
+# starting from the bottom of the rock layer to the maximum depth (100 cm).
+soildata_rock <- soildata[esqueleto == 1000 & profund_sup < max_depth, ]
+if (nrow(soildata_rock) > 0) {
+  soildata_rock[, new_profund_sup := profund_inf]
+  soildata_rock[, new_profund_inf := max_depth]
+  soildata_rock <- soildata_rock[new_profund_sup < max_depth, ]
+  soildata_rock[, profund_sup := new_profund_sup]
+  soildata_rock[, profund_inf := new_profund_inf]
+  soildata_rock[, camada_nome := "R"]
+  soildata_rock[, esqueleto := 1000]
+  soildata_rock[, terrafina := 0]
+  soildata_rock[, argila := 0]
+  soildata_rock[, silte := 0]
+  soildata_rock[, areia := 0]
+  soildata_rock[, carbono := 0]
+  soildata_rock[, ph := NA]
+  soildata_rock[, ctc := NA]
+  soildata_rock[, dsi := NA]
+  soildata_rock[, id := id]
+  soildata <- rbind(soildata, soildata_rock, fill = TRUE)
+  # sort dataset
+  soildata <- soildata[order(id, profund_sup, profund_inf)]
+}
+soildata[, new_profund_sup := NULL]
+soildata[, new_profund_inf := NULL]
+rm(soildata_rock)
+summary_soildata(soildata)
+# Layers: 53562
+# Events: 18676
+# Georeferenced events: 16170
+# Datasets: 261
+
 # Clean events #####################################################################################
 
 # Missing sampling date
@@ -510,7 +544,7 @@ if (sum(duplo) > 0) {
 
 # Write data to disk ###############################################################################
 summary_soildata(soildata)
-# Layers: 53246
+# Layers: 53562
 # Events: 18676
 # Georeferenced events: 16170
 # Datasets: 261
