@@ -8,9 +8,6 @@ rm(list = ls())
 collection <- "c3"
 
 # Install and load required packages
-if (!requireNamespace("data.table")) {
-  install.packages("data.table")
-}
 if (!requireNamespace("ranger")) {
   install.packages("ranger")
 }
@@ -24,29 +21,30 @@ source("src/00_helper_functions.r")
 file_path <- "data/12_soildata.txt"
 soildata <- data.table::fread(file_path, sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 51927
-# Events: 17357
-# Georeferenced events: 14851
-# Datasets: 260
+# Layers: 53562
+# Events: 18676
+# Georeferenced events: 16170
+# Datasets: 261
 
 # DESIGN MATRIX
 
 # Target variable: Proportion of coarse fragments (esqueleto)
 # Identify soil layers missing the proportion of coarse fragments
 is_na_skeleton <- is.na(soildata[["esqueleto"]])
-sum(is_na_skeleton) # 6255 layers out of 51927
+sum(is_na_skeleton) # 7570 layers out of 53562
 
 # Identify soil layers with proportion of coarse fragments equal to 100%
 is_rock <- soildata[!is_na_skeleton, esqueleto == 1000]
-sum(is_rock) # 408 layers out of 51927
+sum(is_rock) # 724 layers out of 53562
 
 # Covariates
 
 # Set covariates
 colnames(soildata)
 covars_names <- c(
-  "DATASET_COARSE",
-  "EVENT_COARSE", "lowermost", "uppermost",
+  "dataset_id", "DATASET_COARSE",
+  "observacao_id", "EVENT_COARSE",
+  "lowermost", "uppermost",
   "estado_id", "coord_x_utm", "coord_y_utm",
   "profund_sup", "profund_inf", "espessura",
   "argila", "argila_upper", "argila_lower",
@@ -81,62 +79,62 @@ print(covariates)
 # MODELING
 
 # Prepare grid of hyperparameters
-# num.trees, mtry, min.node.size and max.depth
-# num_trees <- c(100, 200, 400, 800)
-# mtry <- c(2, 4, 8, 16)
-# min_node_size <- c(1, 2, 4, 8)
-# max_depth <- c(10, 20, 30, 40)
-# hyperparameters <- expand.grid(num_trees, mtry, min_node_size, max_depth)
-# colnames(hyperparameters) <- c("num_trees", "mtry", "min_node_size", "max_depth")
-# print(hyperparameters)
+num.trees, mtry, min.node.size and max.depth
+num_trees <- c(100, 200, 400, 800)
+mtry <- c(2, 4, 8, 16)
+min_node_size <- c(1, 2, 4, 8)
+max_depth <- c(10, 20, 30, 40)
+hyperparameters <- expand.grid(num_trees, mtry, min_node_size, max_depth)
+colnames(hyperparameters) <- c("num_trees", "mtry", "min_node_size", "max_depth")
+print(hyperparameters)
 
 # Fit ranger model testing different hyperparameters
-# t0 <- Sys.time()
-# hyper_results <- data.table::data.table()
-# for (i in 1:nrow(hyperparameters)) {
-#   print(hyperparameters[i, ])
-#   set.seed(1984)
-#   model <- ranger::ranger(
-#     y = soildata[!is_na_skeleton, esqueleto],
-#     x = covariates[!is_na_skeleton, ],
-#     num.trees = hyperparameters$num_trees[i],
-#     mtry = hyperparameters$mtry[i],
-#     min.node.size = hyperparameters$min_node_size[i],
-#     max.depth = hyperparameters$max_depth[i],
-#     replace = TRUE,
-#     verbose = TRUE
-#   )
-#   observed <- soildata[!is_na_skeleton, esqueleto]
-#   predicted <- model$predictions
-#   error <- observed - predicted
-#   residual <- mean(observed) - observed
-#   me <- mean(error)
-#   mae <- mean(abs(error))
-#   mse <- mean(error^2)
-#   rmse <- sqrt(mse)
-#   nse <- 1 - mse / mean(residual^2)
-#   slope <- coef(lm(observed ~ predicted))[2]
-#   hyper_results <- rbind(hyper_results, data.table::data.table(
-#     num_trees = hyperparameters$num_trees[i],
-#     mtry = hyperparameters$mtry[i],
-#     min_node_size = hyperparameters$min_node_size[i],
-#     max_depth = hyperparameters$max_depth[i],
-#     me = me,
-#     mae = mae,
-#     rmse = rmse,
-#     nse = nse,
-#     slope = slope
-#   ))
-# }
-# Sys.time() - t0
+t0 <- Sys.time()
+hyper_results <- data.table::data.table()
+for (i in 1:nrow(hyperparameters)) {
+  print(hyperparameters[i, ])
+  set.seed(1984)
+  model <- ranger::ranger(
+    y = soildata[!is_na_skeleton, esqueleto],
+    x = covariates[!is_na_skeleton, ],
+    num.trees = hyperparameters$num_trees[i],
+    mtry = hyperparameters$mtry[i],
+    min.node.size = hyperparameters$min_node_size[i],
+    max.depth = hyperparameters$max_depth[i],
+    replace = TRUE,
+    verbose = TRUE
+  )
+  observed <- soildata[!is_na_skeleton, esqueleto]
+  predicted <- model$predictions
+  error <- observed - predicted
+  residual <- mean(observed) - observed
+  me <- mean(error)
+  mae <- mean(abs(error))
+  mse <- mean(error^2)
+  rmse <- sqrt(mse)
+  nse <- 1 - mse / mean(residual^2)
+  slope <- coef(lm(observed ~ predicted))[2]
+  hyper_results <- rbind(hyper_results, data.table::data.table(
+    num_trees = hyperparameters$num_trees[i],
+    mtry = hyperparameters$mtry[i],
+    min_node_size = hyperparameters$min_node_size[i],
+    max_depth = hyperparameters$max_depth[i],
+    me = me,
+    mae = mae,
+    rmse = rmse,
+    nse = nse,
+    slope = slope
+  ))
+}
+Sys.time() - t0
 
 # Export the results to a TXT file
-# file_path <- paste0("res/tab/", collection, "_skeleton_ranger_hyperparameter_tunning.txt")
-# data.table::fwrite(hyper_results, file_path, sep = "\t")
-# if (FALSE) {
-#   # Read the results from disk
-#   hyper_results <- data.table::fread(file_path, sep = "\t")
-# }
+file_path <- paste0("res/tab/", collection, "_skeleton_ranger_hyperparameter_tunning.txt")
+data.table::fwrite(hyper_results, file_path, sep = "\t")
+if (FALSE) {
+  # Read the results from disk
+  hyper_results <- data.table::fread(file_path, sep = "\t")
+}
 
 # Assess results
 # What is the Spearman correlation between hyperparameters and model performance metrics?
