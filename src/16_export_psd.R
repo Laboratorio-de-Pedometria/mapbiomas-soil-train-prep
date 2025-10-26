@@ -4,6 +4,9 @@
 # data: 2025
 rm(list = ls())
 
+# Set MapBiomas Soil Collection
+collection <- "c3"
+
 # Source helper functions and packages
 source("src/00_helper_functions.r")
 
@@ -62,4 +65,32 @@ soildata_psd[, total := NULL] # Remove the temporary "total" column
 # We use "silte" to deal with rounding issues.
 soildata_psd[, silte := 1000 - esqueleto - argila - areia]
 
-# 
+# Now we add one unit to all samples so that the final sum of the four fractions is 1004 g/kg,
+# appending "1p" to their name.
+soildata_psd[, `:=`(
+  argila1p = argila + 1,
+  silte1p = silte + 1,
+  areia1p = areia + 1,
+  esqueleto1p = esqueleto + 1
+)]
+summary(soildata_psd[, .(esqueleto1p, argila1p, silte1p, areia1p)])
+soildata_psd[, total1p := argila1p + silte1p + areia1p + esqueleto1p]
+print(soildata_psd[total1p != 1004, ])
+soildata_psd[, total1p := NULL] # Remove the temporary "total1p" column
+# remove the original fraction columns
+soildata_psd[, `:=`(argila = NULL, silte = NULL, areia = NULL, esqueleto = NULL)]
+
+# Compute additive log ratio transformation variables, using "argila1p" as denominator
+soildata_psd[, log_silte1p_argila1p := log(silte1p / argila1p)]
+soildata_psd[, log_areia1p_argila1p := log(areia1p / argila1p)]
+soildata_psd[, log_esqueleto1p_argila1p := log(esqueleto1p / argila1p)]
+summary(soildata_psd[, .(log_silte1p_argila1p, log_areia1p_argila1p, log_esqueleto1p_argila1p)])
+
+# Export PSD data for spatial modelling ############################################################
+nrow(soildata_psd) # Result: 38833
+nrow(unique(soildata_psd[, "id"])) # Result: 13775
+# Save to "res/tab" folder
+folder_path <- "res/tab"
+file_name <- paste0(collection, "_", format(Sys.time(), "%Y_%m_%d"), "_soildata_psd.csv")
+file_path <- file.path(folder_path, file_name)
+data.table::fwrite(soildata_psd, file_path)
