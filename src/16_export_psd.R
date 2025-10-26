@@ -41,8 +41,11 @@ summary_soildata(psd_data)
 # Georeferenced events: 10819
 # Datasets: 177
 
-# Update the proportions of the fine earth fractions (argila, silte, areia) to sum to 1000 g/kg
-# minus the coarse fragments (esqueleto)
+# Update the proportions of the fine earth fractions (argila, silte, areia)
+# This the fractions were relative to the soil fine earth (diameter < 2mm). We update
+# them to be relative to the whole soil, accounting for the presence of coarse fragments
+# (skeleton, diameter > 2 mm). The proportion of skeleton already is relative to the
+# whole soil. The sum of the four fractions should be 1000 g/kg.
 psd_data[, `:=`(
   argila = round(argila / (1000 - esqueleto) * 1000),
   silte = round(silte / (1000 - esqueleto) * 1000),
