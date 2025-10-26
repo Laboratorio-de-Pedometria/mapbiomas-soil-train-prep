@@ -7,6 +7,9 @@
 if (!requireNamespace("data.table")) {
   install.packages("data.table")
 }
+if (!requireNamespace("sf")) {
+  install.packages("sf")
+}
 
 # R function for the simple imputation of missing values in the columns of a data.frame.
 # The argument 'x' is a data.frame containing multiple columns. Columns of x can be of type continuous (numeric) or categorical (factor or character). Three simple imputation methods are available:
