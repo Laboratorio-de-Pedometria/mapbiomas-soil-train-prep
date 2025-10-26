@@ -45,6 +45,9 @@ if (FALSE) {
   mapview::mapview(sand_samples)
 }
 
+
+# MOVE THIS TO 16_EXPORT_PSD.R #####################################################################
+
 # Select a random subset of the pseudo-samples. The number of samples selected is a fixed
 # proportion of the number of georeferenced events in the soildata (n_soildata).
 # Sampling is performed using a stratified sampling approach using the coordinates as strata.
