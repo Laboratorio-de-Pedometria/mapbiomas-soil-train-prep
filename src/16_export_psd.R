@@ -4,20 +4,12 @@
 # data: 2025
 rm(list = ls())
 
-# Install and load required packages
-if (!requireNamespace("data.table")) {
-  install.packages("data.table")
-}
-if (!requireNamespace("sf")) {
-  install.packages("sf")
-}
-
-# Source helper functions
+# Source helper functions and packages
 source("src/00_helper_functions.r")
 
 # SOILDATA
 # Read SoilData data processed in the previous script
-file_path <- "data/15_soildata_soc.txt"
+file_path <- "data/14_soildata.txt"
 soildata <- data.table::fread(file_path, sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
 # Layers: 29881
