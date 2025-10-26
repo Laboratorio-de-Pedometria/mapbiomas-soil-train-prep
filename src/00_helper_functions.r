@@ -204,7 +204,9 @@ summary_soildata <- function(x, na.rm = TRUE) {
   cat("\nLayers:", nrow(x))
   cat("\nEvents:", nrow(unique(x[, "id"])))
   cat("\nGeoreferenced events:", nrow(unique(x[!is.na(coord_x) & !is.na(coord_y), "id"])))
-  cat("\nDatasets:", length(unique(x[, dataset_id])))
+  if ("dataset_id" %in% names(x)) {
+    cat("\nDatasets:", length(unique(x[, dataset_id])))
+  }
   cat("\n")
   if (temp_id) {
     x[, id := NULL] # Remove temporary 'id' column
