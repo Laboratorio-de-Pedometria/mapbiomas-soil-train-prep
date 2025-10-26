@@ -138,13 +138,13 @@ if (FALSE) {
 
 # Assess results
 # What is the Spearman correlation between hyperparameters and model performance metrics?
-# correlation <- round(cor(hyper_results, method = "spearman"), 2)
-# file_path <- paste0("res/tab/", collection, "_skeleton_ranger_hyperparameter_correlation.txt")
-# data.table::fwrite(correlation, file_path, sep = "\t")
-# print(correlation[1:4, 5:9])
+correlation <- round(cor(hyper_results, method = "spearman"), 2)
+file_path <- paste0("res/tab/", collection, "_skeleton_ranger_hyperparameter_correlation.txt")
+data.table::fwrite(correlation, file_path, sep = "\t")
+print(correlation[1:4, 5:9])
 
 # Sort the results by RMSE
-# hyper_results <- hyper_results[order(rmse)]
+hyper_results <- hyper_results[order(rmse)]
 
 # Select the best hyperparameters
 # Among smallest `rmse`, select the hyperparameters with the smallest `num_trees`.
@@ -152,18 +152,18 @@ if (FALSE) {
 # Then select the hyperparameters with the smallest `max_depth`.
 # Then select the hyperparameters with the smallest `mtry`.
 # Then select the hyperparameters with the largest `min_node_size`.
-# digits <- 2
-# hyper_best <- round(hyper_results, digits)
-# hyper_best <- hyper_best[rmse == min(rmse), ]
-# hyper_best <- hyper_best[nse == max(nse), ]
-# hyper_best <- hyper_best[num_trees == min(num_trees), ]
-# hyper_best <- hyper_best[max_depth == min(max_depth), ]
-# hyper_best <- hyper_best[mtry == min(mtry), ]
-# hyper_best <- hyper_best[min_node_size == max(min_node_size), ]
-# print(hyper_best)
+digits <- 2
+hyper_best <- round(hyper_results, digits)
+hyper_best <- hyper_best[rmse == min(rmse), ]
+hyper_best <- hyper_best[nse == max(nse), ]
+hyper_best <- hyper_best[num_trees == min(num_trees), ]
+hyper_best <- hyper_best[max_depth == min(max_depth), ]
+hyper_best <- hyper_best[mtry == min(mtry), ]
+hyper_best <- hyper_best[min_node_size == max(min_node_size), ]
+print(hyper_best)
 
 # Hard code the best hyperparameters for the model
-hyper_best <- data.frame(num_trees = 800, mtry = 16, min_node_size = 2, max_depth = 30)
+hyper_best <- data.frame(num_trees = 800, mtry = 16, min_node_size = 4, max_depth = 30)
 
 # Fit the best model
 t0 <- Sys.time()
@@ -183,8 +183,8 @@ Sys.time() - t0
 print(skeleton_model)
 
 # Proportion of correct classification of rock layers
-sum(round(skeleton_model$predictions[is_rock] / 10) == 100) / sum(is_rock)
-# 86%
+round(sum(round(skeleton_model$predictions[is_rock] / 10) == 100) / sum(is_rock) * 100)
+# 90%
 
 # Compute regression model statistics and write to disk
 skeleton_model_stats <- error_statistics(
@@ -264,8 +264,8 @@ dev.off()
 skeleton_digits <- 0
 tmp <- predict(skeleton_model, data = covariates[is_na_skeleton, ])
 soildata[is_na_skeleton, esqueleto := round(tmp$predictions, skeleton_digits)]
-nrow(unique(soildata[, "id"])) # Result: 17357
-nrow(soildata) # Result: 51927
+nrow(unique(soildata[, "id"])) # Result: 18676
+nrow(soildata) # Result: 53562
 
 # Figure. Distribution of soil skeleton data
 file_path <- paste0("res/fig/", collection, "_skeleton_histogram.png")
@@ -293,16 +293,16 @@ tmp <- soildata[
     !is.na(profund_sup) & !is.na(profund_inf)
 ]
 summary_soildata(tmp)
-# Layers: 44636
-# Events: 14639
-# Georeferenced events: 12432
-# Datasets: 235
+# Layers: 46271
+# Events: 15984
+# Georeferenced events: 13775
+# Datasets: 237
 
 # Write data to disk ###############################################################################
 soildata[, abs_error := NULL]
 summary_soildata(soildata)
-# Layers: 51927
-# Events: 17357
-# Georeferenced events: 14851
-# Datasets: 260
+# Layers: 53562
+# Events: 18676
+# Georeferenced events: 16170
+# Datasets: 261
 data.table::fwrite(soildata, "data/14_soildata.txt", sep = "\t")
