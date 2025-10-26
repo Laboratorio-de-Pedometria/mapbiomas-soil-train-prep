@@ -64,8 +64,15 @@ if (FALSE) {
     mapview::mapview(sand_samples_selected, col.regions = "red")
 }
 
+# Extract coordinates to data.table
+sand_samples_selected <- data.table::as.data.table(sf::st_coordinates(sand_samples_selected))
 
-sand_samples[, `:=`(
+# Rename columns
+# X and Y to coord_x and coord_y
+data.table::setnames(sand_samples_selected, old = c("X", "Y"), new = c("coord_x", "coord_y"))
+
+# Add missing columns with fixed values
+sand_samples_selected[, `:=`(
   dataset_id = "sand-pseudo-sample",
   id = paste0("sand-pseudo-sample-", .I),
   profund_sup = 0,
@@ -75,8 +82,40 @@ sand_samples[, `:=`(
   silte = 0,
   areia = 1000
 )]
-summary_soildata(sand_samples)
-# Layers: 2969
-# Events: 2969
-# Georeferenced events: 2969
+
+# Add three rows to "sand_samples_selected", copying the values of "dataset_id", "id", "coord_x",
+# "coord_y", "esqueleto", "argila", "silte", and "areia" from existing rows, but changing
+# "profund_sup" and "profund_inf" by adding 20 cm and 40 cm respectively.
+additional_sand_layers <- rbind(
+  sand_samples_selected[, .(
+    dataset_id,
+    id,
+    coord_x,
+    coord_y,
+    profund_sup = profund_sup + 20,
+    profund_inf = profund_inf + 20,
+    esqueleto,
+    argila,
+    silte,
+    areia
+  )],
+  sand_samples_selected[, .(
+    dataset_id,
+    id,
+    coord_x,
+    coord_y,
+    profund_sup = profund_sup + 40,
+    profund_inf = profund_inf + 40,
+    esqueleto,
+    argila,
+    silte,
+    areia
+  )]
+)
+sand_samples_selected <- rbind(sand_samples_selected, additional_sand_layers)
+# Check the result
+summary_soildata(sand_samples_selected)
+# Layers: 2802
+# Events: 934
+# Georeferenced events: 934
 # Datasets: 1
