@@ -7,28 +7,19 @@ rm(list = ls())
 # Set MapBiomas Soil Collection
 collection <- "c3"
 
-# Install and load required packages
-if (!requireNamespace("data.table")) {
-  install.packages("data.table")
-}
-if (!requireNamespace("sf")) {
-  install.packages("sf")
-}
-
-# Source helper functions
+# Source helper functions and packages
 source("src/00_helper_functions.r")
 
-# SOILDATA
+# SOILDATA #########################################################################################
 
 # Read data from previous processing script
-file_path <- "data/12_soildata.txt"
+file_path <- "data/14_soildata.txt"
 soildata <- data.table::fread(file_path, sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 51152
-# Events: 16994
-# Georeferenced events: 14372
-# Datasets: 259
-
+# Layers: 53562
+# Events: 18676
+# Georeferenced events: 16170
+# Datasets: 261
 
 # EXTERNAL DATA ####################################################################################
 
