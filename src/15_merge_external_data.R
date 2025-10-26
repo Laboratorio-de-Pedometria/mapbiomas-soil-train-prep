@@ -23,7 +23,7 @@ summary_soildata(soildata)
 
 # EXTERNAL DATA ####################################################################################
 
-# Pseudo-samples: dunes, beaches
+# Pseudo-samples: beach, dune, and sandy spot
 folder_path <- "data/2025_10_23_pseudo_amostras_dunas_praias_areiais"
 # List all SHP files in the folder
 shp_files <- list.files(
@@ -32,11 +32,11 @@ shp_files <- list.files(
   full.names = TRUE, recursive = TRUE
 )
 # Read and merge all SHP files
-pseudo_list <- lapply(shp_files, sf::st_read)
-pseudo_data <- do.call(rbind, pseudo_list)
+pseudo_sand <- lapply(shp_files, sf::st_read)
+pseudo_sand <- do.call(rbind, pseudo_sand)
 
 if (FALSE) {
-  mapview::mapview(pseudo_data)
+  mapview::mapview(pseudo_sand)
 }
 
 # Extract the coordinates into a data.table
