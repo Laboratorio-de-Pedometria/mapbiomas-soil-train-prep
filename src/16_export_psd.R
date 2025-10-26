@@ -44,7 +44,7 @@ data.table::setnames(soildata_psd, old = c("coord_x", "coord_y"), new = c("longi
 
 # Reorder columns: id, longitude, latitude, profundidade, esqueleto, areia, silte, argila
 col_order <- c("id", "longitude", "latitude", "profundidade", "esqueleto", "areia", "silte", "argila")
-data.table::setcolorder(soildata_psd, col_order)
+soildata_psd <- soildata_psd[, ..col_order]
 
 # Update the proportions of the fine earth fractions (argila, silte, areia)
 # This the fractions were relative to the soil fine earth (diameter < 2mm). We update
@@ -87,10 +87,39 @@ soildata_psd[, log_esqueleto1p_argila1p := log(esqueleto1p / argila1p)]
 summary(soildata_psd[, .(log_silte1p_argila1p, log_areia1p_argila1p, log_esqueleto1p_argila1p)])
 
 # Export PSD data for spatial modelling ############################################################
+ncol(soildata_psd) # Result: 8
 nrow(soildata_psd) # Result: 38833
 nrow(unique(soildata_psd[, "id"])) # Result: 13775
-# Save to "res/tab" folder
-folder_path <- "res/tab"
-file_name <- paste0(collection, "_", format(Sys.time(), "%Y_%m_%d"), "_soildata_psd.csv")
-file_path <- file.path(folder_path, file_name)
-data.table::fwrite(soildata_psd, file_path)
+# Destination folder
+folder_path <- "res/tab/"
+file_name <- "soildata_psd.csv"
+
+# List existing files in the folder_path and get the last one. Then read it.
+existing_files <- list.files(path = folder_path, pattern = file_name)
+
+write_out <- TRUE
+if (length(existing_files) > 0) {
+  last_file <- existing_files[length(existing_files)]
+  last_soildata_psd <- data.table::fread(paste0(folder_path, last_file))
+  # Check if last_soildata_psd == soildata_psd. If not, write soildata_psd to disk.
+  # Use all.equal() as it is more robust to type differences after a read/write cycle.
+  # isTRUE() is needed because all.equal() returns a character string describing
+  # the difference if they are not equal, which would cause an error in an if() statement.
+  if (isTRUE(all.equal(last_soildata_psd, soildata_psd))) {
+    cat("No changes in PSD data. Not writing to disk.\n")
+    write_out <- FALSE
+  }
+}
+if (write_out) {
+  cat("Writing PSD data to disk...\n")
+  file_name <- paste0(collection, "_", format(Sys.time(), "%Y_%m_%d"), "_soildata_psd.csv")
+  file_path <- paste0(folder_path, file_name)
+  data.table::fwrite(soildata_psd, file_path)
+}
+
+# Load PSD data to Google Earth Engine #############################################################
+# Using the API results in a more laborious process, as we need to chunk the data to avoid
+# exceeding the 10 MB payload limit per request. Thus, we upload the data mannually using the
+# GEE web interface.
+# Location: projects/mapbiomas-workspace/SOLOS/AMOSTRAS/ORIGINAIS/collection3/
+# Asset name: the same as the CSV file name without the .csv extension
