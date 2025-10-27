@@ -39,8 +39,8 @@ sand_files <- list.files(
   full.names = TRUE, recursive = TRUE
 )
 # Read and merge all SHP files
-sand_samples <- lapply(sand_files, sf::st_read)
-sand_samples <- do.call(rbind, sand_samples)
+sand_samples_list <- lapply(sand_files, function(x) sf::st_geometry(sf::st_read(x, quiet = TRUE)))
+sand_samples <- do.call(c, sand_samples_list)
 
 if (FALSE) {
   mapview::mapview(sand_samples)
@@ -50,12 +50,13 @@ if (FALSE) {
 # approach using the coordinates as strata. We will use a ballanced sampling approach to ensure
 # that the samples are well distributed in space.
 set.seed(1984)
-n_sand_samples <- 1000
-prob <- rep(n_sand_samples / nrow(sand_samples), nrow(sand_samples))
-sand_samples_idx <- BalancedSampling::lpm2(prob, sf::st_coordinates(sand_samples))
+n_sand_samples <- 500
+# Use length() for sfc objects (geometry sets)
+prob_sand <- rep(n_sand_samples / length(sand_samples), length(sand_samples))
+sand_samples_idx <- BalancedSampling::lpm2(prob_sand, sf::st_coordinates(sand_samples))
 sand_samples_selected <- sand_samples[sand_samples_idx, ]
 nrow(sand_samples_selected)
-# 1000
+# 500
 
 # Check spatial distribution of the selected samples
 if (FALSE) {
@@ -78,18 +79,15 @@ sand_samples_selected[, `:=`(
   dataset_titulo = "Pseudo-sample from beach, dune, and sandy spot",
   organizacao_nome = "MapBiomas",
   dataset_licenca = "CC-BY 4.0",
-  taxon_sibcs = "Neossolo Quartzarênico",
   coord_precisao = 30,
   coord_fonte = "Google Earth/Maps",
   coord_datum = 4326,
   pais_id = "BR",
   data_ano = 2023,
   amostra_quanti = 1,
-  amostra_area = 10 * 10, # 5m x 5m area
-  pedregosidade = "Ausente",
-  rochosidade = "Ausente",
+  amostra_area = 10 * 10, # 10m x 10m area
   camada_id = 1,
-  camada_nome = "0-10",
+  camada_nome = "C",
   profund_sup = 0,
   profund_inf = 20,
   esqueleto = 0,
@@ -112,5 +110,120 @@ sand_samples_selected[, camada_id := 1:.N, by = id]
 sand_samples_selected[, profund_sup := profund_sup * camada_id]
 sand_samples_selected[, profund_inf := profund_inf * camada_id]
 
-# Update camada_nome according to profund_sup and profund_inf
-sand_samples_selected[, camada_nome := paste0(profund_sup, "-", profund_inf)]
+# Update "camada_nome" appending "camada_id" to "camada_nome"
+sand_samples_selected[, camada_nome := paste0(camada_nome, camada_id)]
+
+# EXTERNAL DATA - ROCKY OUTCROP PSEUDO-SAMPLES #####################################################
+# Read pseudo-samples of rocky outcrops.
+# These samples were created based on visual interpretation of satellite images
+# (Google Earth/Maps) and represent locations with high likelihood of rocky outcrops.
+rock_folder <- "data/2025_10_23_pseudo_amostras_aloramento_rochoso"
+# List all SHP files in the folder_path
+rock_files <- list.files(
+  path = rock_folder,
+  pattern = "\\.shp$",
+  full.names = TRUE, recursive = TRUE
+)
+# Read and merge all SHP files
+# Temporarily disable s2 processing to handle potential invalid geometries
+sf::sf_use_s2(FALSE)
+rock_samples_list <- lapply(rock_files, function(x) {
+  geom <- sf::st_geometry(sf::st_read(x, quiet = TRUE))
+  # Check if the geometry is a polygon/multipolygon and return the centroid if so
+  if (all(sf::st_geometry_type(geom) %in% c("POLYGON", "MULTIPOLYGON"))) {
+    # Repair invalid geometries before calculating the centroid
+    geom <- sf::st_centroid(sf::st_make_valid(geom))
+  }
+  return(geom)
+})
+rock_samples <- do.call(c, rock_samples_list)
+# Re-enable s2 processing
+sf::sf_use_s2(TRUE)
+
+if (FALSE) {
+  mapview::mapview(rock_samples)
+}
+# 12421
+
+# Select a random subset of the pseudo-samples. Sampling is performed using a stratified sampling
+# approach using the coordinates as strata. We will use a ballanced sampling approach to ensure
+# that the samples are well distributed in space.
+set.seed(1984)
+n_rock_samples <- 500
+# Use length() for sfc objects (geometry sets)
+prob_rock <- rep(n_rock_samples / length(rock_samples), length(rock_samples))
+rock_samples_idx <- BalancedSampling::lpm2(prob_rock, sf::st_coordinates(rock_samples))
+rock_samples_selected <- rock_samples[rock_samples_idx, ]
+length(rock_samples_selected)
+# 500
+
+# Check spatial distribution of the selected samples
+if (FALSE) {
+  mapview::mapview(rock_samples) +
+    mapview::mapview(rock_samples_selected, col.regions = "red")
+}
+
+# Extract coordinates to a data.table
+rock_samples_selected <- data.table::as.data.table(sf::st_coordinates(rock_samples_selected))
+
+# Rename columns
+# X and Y to coord_x and coord_y
+data.table::setnames(rock_samples_selected, old = c("X", "Y"), new = c("coord_x", "coord_y"))
+
+# Add columns to match the structure of "soildata"
+rock_samples_selected[, `:=`(
+  dataset_id = "rocky-outcrop-pseudo-sample",
+  observacao_id = .I,
+  id = paste0("rocky-outcrop-pseudo-sample-", .I),
+  dataset_titulo = "Pseudo-sample from rocky outcrop",
+  organizacao_nome = "MapBiomas",
+  dataset_licenca = "CC-BY 4.0",
+  coord_precisao = 30,
+  coord_fonte = "Google Earth/Maps",
+  coord_datum = 4326,
+  pais_id = "BR",
+  data_ano = 2023,
+  amostra_quanti = 1,
+  amostra_area = 10 * 10, # 10m x 10m area
+  camada_nome = "R",
+  camada_id = 1,
+  profund_sup = 0,
+  profund_inf = 20,
+  esqueleto = 1000,
+  terrafina = 0,
+  areia = 0,
+  silte = 0,
+  argila = 0,
+  ctc = NA_real_,
+  ph_h2o = NA_real_,
+  dsi = NA_real_
+)]
+
+# Replicate rows
+rock_samples_selected <- rock_samples_selected[rep(1:.N, each = 5)]
+
+# Update camada_id according to its order inside "id"
+rock_samples_selected[, camada_id := 1:.N, by = id]
+
+# Update depth intervals according to camada_id
+rock_samples_selected[, profund_sup := profund_sup * camada_id]
+rock_samples_selected[, profund_inf := profund_inf * camada_id]
+
+# Update "camada_nome" appending "camada_id" to "camada_nome"
+rock_samples_selected[, camada_nome := paste0(camada_nome, camada_id)]
+
+# MERGE EXTERNAL DATA INTO SOILDATA ################################################################
+# Merge the pseudo-samples into the main soildata data.table
+soildata <- data.table::rbindlist(
+  list(soildata, sand_samples_selected, rock_samples_selected),
+  use.names = TRUE, fill = TRUE
+)
+summary_soildata(soildata)
+# Layers: 58562
+# Events: 19676
+# Georeferenced events: 17170
+# Datasets: 263
+# Save the merged soildata to a file
+file_path <- "data/15_soildata.txt"
+data.table::fwrite(soildata, file_path, sep = "\t")
+# End of script
