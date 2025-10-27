@@ -147,6 +147,8 @@ print(soildata_psd[total_test != 100, ])
 soildata_psd[total_test != 100, silte_test := silte_test + (100 - total_test)]
 soildata_psd[, total_test := NULL] # Remove the temporary "total_test" column
 # The back-transform works fine. We can now remove the test columns.
+soildata_psd[, `:=`(argila1p_test = NULL, silte1p_test = NULL, areia1p_test = NULL, esqueleto1p_test = NULL)]
+soildata_psd[, `:=`(argila_test = NULL, silte_test = NULL, areia_test = NULL, esqueleto_test = NULL)]
 
 # Export PSD data for spatial modelling ############################################################
 ncol(soildata_psd) # Result: 11
