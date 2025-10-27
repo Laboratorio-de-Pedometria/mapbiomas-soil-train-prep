@@ -3,3 +3,4 @@ data/*.geojson
 .virtualenvs/
 .venv/
 data/2025_10_23_pseudo_amostras_dunas_praias_areiais/
+data/2025_10_23_pseudo_amostras_aloramento_rochoso/
