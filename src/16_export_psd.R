@@ -12,13 +12,13 @@ source("src/00_helper_functions.r")
 
 # SOILDATA
 # Read SoilData data processed in the previous script
-file_path <- "data/14_soildata.txt"
+file_path <- "data/15_soildata.txt"
 soildata <- data.table::fread(file_path, sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 53562
-# Events: 18676
-# Georeferenced events: 16170
-# Datasets: 261
+# Layers: 58562
+# Events: 19676
+# Georeferenced events: 17170
+# Datasets: 263
 
 # PARTICLE SIZE DISTRIBUTION
 # Create a data.table with the particle size distribution
@@ -31,9 +31,9 @@ soildata_psd <- soildata[
   .(id, coord_x, coord_y, profund_sup, profund_inf, esqueleto, argila, silte, areia)
 ]
 summary_soildata(soildata_psd)
-# Layers: 38833
-# Events: 13775
-# Georeferenced events: 13775
+# Layers: 43833
+# Events: 14775
+# Georeferenced events: 14775
 
 # Compute the depth as the midpoint of the depth interval and drop the depth interval columns.
 soildata_psd[, profundidade := profund_sup + (profund_inf - profund_sup) / 2, by = .I]
@@ -45,6 +45,7 @@ data.table::setnames(soildata_psd, old = c("coord_x", "coord_y"), new = c("longi
 # Reorder columns: id, longitude, latitude, profundidade, esqueleto, areia, silte, argila
 col_order <- c("id", "longitude", "latitude", "profundidade", "esqueleto", "areia", "silte", "argila")
 soildata_psd <- soildata_psd[, ..col_order]
+print(soildata_psd)
 
 # Update the proportions of the fine earth fractions (argila, silte, areia)
 # This the fractions were relative to the soil fine earth (diameter < 2mm). We update
@@ -87,9 +88,9 @@ soildata_psd[, log_esqueleto1p_argila1p := log(esqueleto1p / argila1p)]
 summary(soildata_psd[, .(log_silte1p_argila1p, log_areia1p_argila1p, log_esqueleto1p_argila1p)])
 
 # Export PSD data for spatial modelling ############################################################
-ncol(soildata_psd) # Result: 8
-nrow(soildata_psd) # Result: 38833
-nrow(unique(soildata_psd[, "id"])) # Result: 13775
+ncol(soildata_psd) # Result: 11
+nrow(soildata_psd) # Result: 43833
+nrow(unique(soildata_psd[, "id"])) # Result: 14775
 # Destination folder
 folder_path <- "res/tab/"
 file_name <- "soildata_psd.csv"
