@@ -97,6 +97,18 @@ soildata[, camada_nome := gsub("^o$", "O", camada_nome, ignore.case = FALSE)]
 soildata[, camada_nome := gsub("^bHS", "bhs", camada_nome, ignore.case = FALSE)]
 # T -> t
 soildata[, camada_nome := gsub("T", "t", camada_nome, ignore.case = FALSE)]
+# IIC -> 2C
+soildata[, camada_nome := gsub("^IIC", "2C", camada_nome, ignore.case = FALSE)]
+# IIB -> 2B
+soildata[, camada_nome := gsub("^IIB", "2B", camada_nome, ignore.case = FALSE)]
+# IIA -> 2A
+soildata[, camada_nome := gsub("^IIA", "2A", camada_nome, ignore.case = FALSE)]
+# IIIC -> 3C
+soildata[, camada_nome := gsub("^IIIC", "3C", camada_nome, ignore.case = FALSE)]
+# IVC -> 4C
+soildata[, camada_nome := gsub("^IVC", "4C", camada_nome, ignore.case = FALSE)]
+# VC -> 5C
+soildata[, camada_nome := gsub("^VC", "5C", camada_nome, ignore.case = FALSE)]
 # print cleaned layer names
 sort(unique(soildata[, camada_nome]))
 
