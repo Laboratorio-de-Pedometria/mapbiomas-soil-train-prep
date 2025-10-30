@@ -262,11 +262,6 @@ soildata[, .N, by = STONESOL]
 
 soildata[, unique(camada_nome)]
 
-# THICKNESS
-# Create new variable 'espessura' (thickness)
-soildata[, espessura := profund_inf - profund_sup]
-summary(soildata[, espessura])
-
 # STONY
 # Soil layers known for having concretions, nodules, rock fragments, rock-like pedogenic layers, and
 # human artifacts (bivariate)
