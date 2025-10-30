@@ -91,6 +91,8 @@ soildata[, camada_nome := gsub("0-20cm", "0-20", camada_nome, ignore.case = FALS
 soildata[, camada_nome := gsub("20-40cm", "20-40", camada_nome, ignore.case = FALSE)]
 # 40-60cm
 soildata[, camada_nome := gsub("40-60cm", "40-60", camada_nome, ignore.case = FALSE)]
+# o -> O
+soildata[, camada_nome := gsub("^o$", "O", camada_nome, ignore.case = FALSE)]
 # print cleaned layer names
 sort(unique(soildata[, camada_nome]))
 
