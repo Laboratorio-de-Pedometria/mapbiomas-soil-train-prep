@@ -392,8 +392,8 @@ summary(soildata[, silt_clay_ratio])
 
 # Write data to disk ###############################################################################
 summary_soildata(soildata)
-# Layers: 53562
-# Events: 18676
-# Georeferenced events: 16170
-# Datasets: 261
+# Layers: 53865
+# Events: 18790
+# Georeferenced events: 16282
+# Datasets: 264
 data.table::fwrite(soildata, "data/12_soildata.txt", sep = "\t")
