@@ -515,10 +515,10 @@ soildata[, new_profund_sup := NULL]
 soildata[, new_profund_inf := NULL]
 rm(soildata_rock)
 summary_soildata(soildata)
-# Layers: 53562
-# Events: 18676
-# Georeferenced events: 16170
-# Datasets: 261
+# Layers: 53866
+# Events: 18790
+# Georeferenced events: 16282
+# Datasets: 264
 
 # Clean events #####################################################################################
 
@@ -531,7 +531,7 @@ soildata[dataset_id == "ctb0023" & is.na(data_ano), data_ano := 1979]
 soildata_events <- soildata[!is.na(coord_x) & !is.na(coord_y) & !is.na(data_ano), id[1],
   by = c("dataset_id", "observacao_id", "coord_x", "coord_y", "data_ano")
 ]
-nrow(soildata_events) # 15248 events with complete spatial and temporal coordinates
+nrow(soildata_events) # 15360 events with complete spatial and temporal coordinates
 test_columns <- c("coord_x", "coord_y", "data_ano")
 duplo <- duplicated(soildata_events[, ..test_columns])
 if (sum(duplo) > 0) {
@@ -543,8 +543,8 @@ if (sum(duplo) > 0) {
 
 # Write data to disk ###############################################################################
 summary_soildata(soildata)
-# Layers: 53562
-# Events: 18676
-# Georeferenced events: 16170
-# Datasets: 261
+# Layers: 53866
+# Events: 18790
+# Georeferenced events: 16282
+# Datasets: 264
 data.table::fwrite(soildata, "data/11_soildata.txt", sep = "\t")
