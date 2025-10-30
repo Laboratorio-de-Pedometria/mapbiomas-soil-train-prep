@@ -13,10 +13,10 @@ source("src/00_helper_functions.r")
 # Read SoilData data processed in the previous script
 soildata <- data.table::fread("data/10_soildata.txt", sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 60694
-# Events: 19253
-# Georeferenced events: 16361
-# Datasets: 262
+# Layers: 61002
+# Events: 19329
+# Georeferenced events: 16437
+# Datasets: 265
 
 # Clean datasets ###################################################################################
 # ctb0042
@@ -35,12 +35,6 @@ if (all(is.na(soildata[dataset_id == "ctb0009", ..target]))) {
   soildata <- soildata[dataset_id != "ctb0009", ]
 }
 
-# ctb0093
-# "Dados de Carbono de Solos - Projeto Forense Brasil"
-# Some of the events seem to be included in ctb0092. They are indicated by having the sampling year
-# as 2008. We will remove these for now.
-soildata <- soildata[!(dataset_id == "ctb0093" & data_ano == 2008), ]
-
 # ctb0001 - MAY BE USEFUL FOR VALIDATION
 # "Conteúdo de ferro do solo sob dois sistemas de cultivo na Estação Experimental Terras Baixas nos
 # anos de 2012 e 2013"
@@ -51,14 +45,15 @@ soildata <- soildata[!(dataset_id == "ctb0093" & data_ano == 2008), ]
 # soildata <- soildata[dataset_id != "ctb0026", ]
 
 summary_soildata(soildata)
-# Layers: 60566
-# Events: 19157
-# Georeferenced events: 16267
-# Datasets: 261
+# Layers: 60944
+# Events: 19271
+# Georeferenced events: 16379
+# Datasets: 264
 
 # Clean layers #####################################################################################
 
 # LAYER NAMES
+sort(unique(soildata[, camada_nome]))
 # Remove empty spaces from layer names (camada_nome)
 soildata[, camada_nome := gsub(" ", "", camada_nome)]
 # Remove "'" from layer names (camada_nome)
@@ -96,6 +91,8 @@ soildata[, camada_nome := gsub("0-20cm", "0-20", camada_nome, ignore.case = FALS
 soildata[, camada_nome := gsub("20-40cm", "20-40", camada_nome, ignore.case = FALSE)]
 # 40-60cm
 soildata[, camada_nome := gsub("40-60cm", "40-60", camada_nome, ignore.case = FALSE)]
+# print cleaned layer names
+sort(unique(soildata[, camada_nome]))
 
 # EQUAL DEPTH
 # Some layers might have equal values of 'profund_sup' and 'profund_inf'.
@@ -107,6 +104,8 @@ if (length(equal_depth) > 0) {
     "Layers with equal values of 'profund_sup' and 'profund_inf' found in the following dataset(s):\n",
     paste(equal_depth, collapse = ", ")
   )
+} else {
+  message("No layers with equal values of 'profund_sup' and 'profund_inf' found. You can proceed.")
 }
 
 # NEGATIVE DEPTH
