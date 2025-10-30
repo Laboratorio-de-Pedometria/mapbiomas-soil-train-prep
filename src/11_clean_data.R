@@ -376,10 +376,10 @@ soildata[is_soil == FALSE, ctc := NA]
 soildata[is_soil == FALSE, dsi := NA]
 # Summary
 summary_soildata(soildata)
-# Layers: 53246
-# Events: 18676
-# Georeferenced events: 16170
-# Datasets: 261
+# Layers: 53512
+# Events: 18790
+# Georeferenced events: 16282
+# Datasets: 264
 
 # # MISSING LAYERS
 # # Check for missing layers within each event (id)
@@ -421,7 +421,7 @@ if (nrow(psd_sum_fail) > 0) {
     print(psd_sum_fail)
   )
 } else {
-  message("All layers have particle size fractions summing to approximately 1000 g/kg.")
+  message("All layers have particle size fractions summing to approximately 1000 g/kg. You can proceed.\n")
 }
 # Standardize fine particle size fractions by rescaling them to sum to 1000 g/kg.
 soildata[, argila := round((argila / psd_sum) * 1000)]
@@ -440,7 +440,7 @@ if (soildata[terrafina > 1000, .N] > 0) {
     print(soildata[terrafina > 1000, .(id, camada_nome, profund_sup, profund_inf, argila, terrafina)])
   )
 } else {
-  message("All layers have terrafina <= 1000 g/kg.\n")
+  message("All layers have terrafina <= 1000 g/kg.\nYou can proceed.")
 }
 
 # Check for layers is_soil == TRUE and terrafina == 0: these are inconsistent cases.
@@ -453,7 +453,7 @@ if (soildata[is_soil == TRUE & terrafina == 0, .N] > 0) {
     "Layers with is_soil == TRUE and terrafina == 0 found: please check the sources\n"
   )
 } else {
-  message("All layers have consistent values of terrafina.\n")
+  message("All layers have consistent values of terrafina.\nYou can proceed.")
 }
 # Check if layers is_soil != TRUE and terrafina > 0: these are inconsistent cases.
 if (soildata[is_soil == FALSE & terrafina > 0, .N] > 0) {
@@ -465,7 +465,7 @@ if (soildata[is_soil == FALSE & terrafina > 0, .N] > 0) {
     "Layers with is_soil == FALSE and terrafina > 0 found: please check the sources\n"
   )
 } else {
-  message("All layers have consistent values of terrafina.\n")
+  message("All layers have consistent values of terrafina.\nYou can proceed.")
 }
 soildata[, is_soil := NULL]
 
