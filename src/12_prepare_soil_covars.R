@@ -38,16 +38,6 @@ soildata[, .N, by = DATASET_COARSE]
 
 # Event-wise covariates ###########################################################################
 
-# UPPERMOST
-# Create new variable 'uppermost' (bivariate)
-soildata[, uppermost := FALSE]
-# For each soil event (id), identify the uppermost layer (the one with the minimum profund_sup)
-soildata[,
-  uppermost := ifelse(profund_sup == min(profund_sup, na.rm = TRUE), TRUE, uppermost),
-  by = id
-]
-soildata[, .N, by = uppermost]
-
 # COARSE EVENT
 # Event-wise presence of coarse fragments
 # If any layer in a soil event has esqueleto > 0, the soil event is considered to have coarse
