@@ -13,10 +13,10 @@ source("src/00_helper_functions.r")
 # Read data produced in the previous processing script
 soildata <- data.table::fread("data/11_soildata.txt", sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 53562
-# Events: 18676
-# Georeferenced events: 16170
-# Datasets: 261
+# Layers: 53866
+# Events: 18790
+# Georeferenced events: 16282
+# Datasets: 264
 
 # Dataset-wise covariates ##########################################################################
 
@@ -37,16 +37,6 @@ soildata[, DATASET_COARSE := ifelse(
 soildata[, .N, by = DATASET_COARSE]
 
 # Event-wise covariates ###########################################################################
-
-# LOWERMOST
-# Create new variable 'lowermost' (bivariate)
-soildata[, lowermost := FALSE]
-# For each soil event (id), identify the lowermost layer (the one with the maximum profund_inf)
-soildata[,
-  lowermost := ifelse(profund_inf == max(profund_inf, na.rm = TRUE), TRUE, lowermost),
-  by = id
-]
-soildata[, .N, by = lowermost]
 
 # UPPERMOST
 # Create new variable 'uppermost' (bivariate)
