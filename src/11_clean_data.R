@@ -474,7 +474,7 @@ soildata[, is_soil := NULL]
 soildata[, esqueleto := 1000 - terrafina]
 # Check esqueleto == NA & terrafina == NA
 soildata[is.na(esqueleto) & is.na(terrafina), .N]
-# There are 7570 layers with missing esqueleto: we will need to impute these values later on.
+# There are 7647 layers with missing esqueleto: we will need to impute these values later on.
 if (FALSE) {
   View(soildata[is.na(esqueleto) & is.na(terrafina), .N, by = camada_nome])
 }
