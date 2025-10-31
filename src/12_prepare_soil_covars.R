@@ -391,6 +391,11 @@ soildata[silte > 0 & argila > 0, silt_clay_ratio := silte / argila]
 summary(soildata[, silt_clay_ratio])
 
 # Write data to disk ###############################################################################
+# Number of unique soil events with complete spatial and temporal coordinates
+nrow(unique(
+  soildata[!is.na(coord_x) & !is.na(coord_y), .(dataset_id, observacao_id, coord_x, coord_y, data_ano)]
+))
+# 16569
 summary_soildata(soildata)
 # Layers: 54555
 # Events: 18870
