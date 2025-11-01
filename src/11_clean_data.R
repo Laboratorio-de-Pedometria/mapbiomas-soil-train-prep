@@ -18,7 +18,7 @@ soildata <- data.table::fread("data/10_soildata.txt", sep = "\t", na.strings = c
 summary_soildata(soildata)
 # Layers: 61242
 # Events: 19409
-# Georeferenced events: 16516
+# Georeferenced events: 16515
 # Datasets: 266
 
 # Clean datasets ###################################################################################
@@ -50,7 +50,7 @@ if (all(is.na(soildata[dataset_id == "ctb0009", ..target]))) {
 summary_soildata(soildata)
 # Layers: 61184
 # Events: 19351
-# Georeferenced events: 16458
+# Georeferenced events: 16457
 # Datasets: 265
 
 # Clean layers #####################################################################################
@@ -219,7 +219,7 @@ soildata[, na_depth := NULL]
 summary_soildata(soildata)
 # Layers: 60808
 # Events: 18975
-# Georeferenced events: 16450
+# Georeferenced events: 16449
 # Datasets: 265
 
 # LITTER LAYERS
@@ -259,7 +259,7 @@ soildata[, camada_id := 1:.N, by = id]
 summary_soildata(soildata)
 # Layers: 60562
 # Events: 18969
-# Georeferenced events: 16444
+# Georeferenced events: 16443
 # Datasets: 265
 # Check if there are still litter layers
 soildata[
@@ -284,7 +284,7 @@ soildata[, camada_id := 1:.N, by = id]
 summary_soildata(soildata)
 # Layers: 60546
 # Events: 18968
-# Georeferenced events: 16444
+# Georeferenced events: 16443
 # Datasets: 265
 # Check if there are still litter layers
 soildata[
@@ -293,12 +293,12 @@ soildata[
   by = id
 ]
 soildata[is_litter == TRUE, .N] # 0 layers
-soildata[has_litter == TRUE, .N, by = id] # 165 events had litter layers... this means that we
+soildata[has_litter == TRUE, .N, by = id] # 239 events had litter layers... this means that we
 # lost some complete events when removing litter layers. We will deal with this later. ATTENTION!
 summary_soildata(soildata)
 # Layers: 60546
 # Events: 18968
-# Georeferenced events: 16444
+# Georeferenced events: 16443
 # Datasets: 265
 # Adjust depths of the remaining layers of the events that had litter layers. We do so by
 # getting the minimum value of 'profund_sup' for each event 'id' that had litter layers removed and
@@ -328,7 +328,7 @@ soildata <- soildata[profund_sup >= 0 & profund_sup <= max_depth, ]
 summary_soildata(soildata)
 # Layers: 54059
 # Events: 18870
-# Georeferenced events: 16361
+# Georeferenced events: 16360
 # Datasets: 265
 
 # SOIL/NON-SOIL LAYERS
@@ -412,7 +412,7 @@ soildata[is_soil == FALSE, dsi := NA]
 summary_soildata(soildata)
 # Layers: 54172
 # Events: 18870
-# Georeferenced events: 16361
+# Georeferenced events: 16360
 # Datasets: 265
 
 # # MISSING LAYERS
@@ -439,7 +439,7 @@ soildata[, areia := round(areia)]
 # 1000 g/kg. Acceptable range is between 900 and 1100 g/kg.
 soildata[, psd_sum := argila + silte + areia]
 soildata[, psd_diff := abs(1000 - psd_sum)]
-# There are 431 layers where the sum of fine particle size fractions is only slightly different from
+# There are 433 layers where the sum of fine particle size fractions is only slightly different from
 # 1000 g/kg
 soildata[
   psd_diff <= 100 & psd_diff > 0 & !is.na(psd_sum),
@@ -551,7 +551,7 @@ rm(soildata_rock)
 summary_soildata(soildata)
 # Layers: 54555
 # Events: 18870
-# Georeferenced events: 16361
+# Georeferenced events: 16360
 # Datasets: 265
 
 # Clean events #####################################################################################
@@ -565,7 +565,7 @@ soildata[dataset_id == "ctb0023" & is.na(data_ano), data_ano := 1979]
 soildata_events <- soildata[!is.na(coord_x) & !is.na(coord_y) & !is.na(data_ano), id[1],
   by = c("dataset_id", "observacao_id", "coord_x", "coord_y", "data_ano")
 ]
-nrow(soildata_events) # 15441 events with complete spatial and temporal coordinates
+nrow(soildata_events) # 15440 events with complete spatial and temporal coordinates
 test_columns <- c("coord_x", "coord_y", "data_ano")
 duplo <- duplicated(soildata_events[, ..test_columns])
 if (sum(duplo) > 0) {
@@ -579,6 +579,6 @@ if (sum(duplo) > 0) {
 summary_soildata(soildata)
 # Layers: 54555
 # Events: 18870
-# Georeferenced events: 16361
+# Georeferenced events: 16360
 # Datasets: 265
 data.table::fwrite(soildata, "data/11_soildata.txt", sep = "\t")
