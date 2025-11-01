@@ -45,7 +45,7 @@ if (length(curated_files) > 0) {
 summary_soildata(curated_data)
 # Layers: 13450
 # Events: 5843
-# Georeferenced events: 5399
+# Georeferenced events: 5398
 # Datasets: 40
 
 # Error handling: Check for projected coordinates, printing the dataset_id of the rows with
@@ -66,7 +66,7 @@ curated_data <- curated_data[!dataset_id %in% proj_coords]
 summary_soildata(curated_data)
 # Layers: 13450
 # Events: 5843
-# Georeferenced events: 5399
+# Georeferenced events: 5398
 # Datasets: 40
 
 # Error handling: Check for points falling outside Brazil, printing the dataset_id of the rows
@@ -91,7 +91,7 @@ curated_data <- curated_data[!dataset_id %in% outside_brazil]
 summary_soildata(curated_data)
 # Layers: 13450
 # Events: 5843
-# Georeferenced events: 5399
+# Georeferenced events: 5398
 # Datasets: 40
 
 # Brazilian Soil Dataset 2024 ######################################################################
@@ -155,7 +155,7 @@ soildata <- data.table::rbindlist(list(br_soil2024, curated_data), fill = TRUE)
 summary_soildata(soildata)
 # Layers: 61242
 # Events: 19409
-# Georeferenced events: 16516
+# Georeferenced events: 16515
 # Datasets: 266
 
 # Check spatial distribution
@@ -170,6 +170,6 @@ if (interactive()) {
 summary_soildata(soildata)
 # Layers: 61242
 # Events: 19409
-# Georeferenced events: 16516
+# Georeferenced events: 16515
 # Datasets: 266
 data.table::fwrite(soildata, "data/10_soildata.txt", sep = "\t")
