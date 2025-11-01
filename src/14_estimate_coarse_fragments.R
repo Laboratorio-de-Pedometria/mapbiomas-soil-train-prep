@@ -186,14 +186,26 @@ covars2drop <- c(
   "coord_y", "coord_precisao", "coord_fonte", "coord_datum", "pais_id", "municipio_id", "data_ano",
   "ano_fonte", "amostra_quanti", "amostra_area", "amostra_tipo", "taxon_sibcs", "taxon_st",
   "taxon_wrb", "camada_nome", "camada_id", "amostra_id", "profund_sup", "profund_inf", "terrafina",
-  "pedregosidade", "rochosidade"
+  "pedregosidade", "rochosidade" 
 )
 # Check remaining covariates
 colnames(soildata[, !..covars2drop])
-covariates <- soildata[, !..covars2drop]
 
 # Check structure of the data
-print(covariates)
+print(soildata[, !..covars2drop])
+
+# Feature selection
+# 1. Quick clean: remove zero-variance and near-zero-variance predictors
+covars_names <- colnames(soildata[, !..covars2drop])
+near_zero_variance_covars <- caret::nearZeroVar(
+  soildata[, ..covars_names],
+  freqCut = 1000 / 1,
+  uniqueCut = 10,
+  saveMetrics = FALSE
+)
+print(colnames(soildata[, ..covars_names])[near_zero_variance_covars])
+# Drop covariates 'GurupiProv', 'SaoLuisProv', 'Stagnosols', and "dist2sand"
+covars_names <- colnames(soildata[, !..covars2drop])
 
 # Missing value imputation
 # Use the missingness-in-attributes (MIA) approach with +/- Inf, with the indicator for missingness
