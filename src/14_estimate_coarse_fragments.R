@@ -28,6 +28,98 @@ summary_soildata(soildata)
 
 # DESIGN MATRIX
 
+# Stoniness
+soildata[, .N, by = pedregosidade]
+# - -> NA_character_
+soildata[grepl("^-$", pedregosidade), pedregosidade := NA_character_]
+# Não pedregoso -> "Ausente"
+soildata[grepl("Não pedregos", pedregosidade, ignore.case = TRUE), pedregosidade := "Ausente"]
+# ausente -> "Ausente"
+soildata[grepl("ausente", pedregosidade), pedregosidade := "Ausente"]
+# Sem Pedregosidade -> "Ausente"
+soildata[grepl("Sem Pedregosidade", pedregosidade), pedregosidade := "Ausente"]
+# Pedregoso -> "Pedregosa"
+soildata[grepl("Pedregos", pedregosidade, ignore.case = TRUE), pedregosidade := "Pedregosa"]
+# Moderadamente pedregosa -> "Moderada"
+soildata[grepl("Moderadamente pedregos", pedregosidade, ignore.case = TRUE), pedregosidade := "Moderada"]
+# Extremamente pedregoso -> "Extrema"
+soildata[grepl("Extremamente pedregos", pedregosidade, ignore.case = TRUE), pedregosidade := "Extrema"]
+# Extremamente -> "Extrema"
+soildata[grepl("Extremamente", pedregosidade, ignore.case = TRUE), pedregosidade := "Extrema"]
+# Ligeiramente pedregoso -> "Ligeira"
+soildata[grepl("Ligeiramente pedregos", pedregosidade, ignore.case = TRUE), pedregosidade := "Ligeira"]
+# Ligeiramente -> "Ligeira"
+soildata[grepl("Ligeiramente", pedregosidade, ignore.case = TRUE), pedregosidade := "Ligeira"]
+# Forte -> "Muita"
+soildata[grepl("Forte", pedregosidade, ignore.case = TRUE), pedregosidade := "Muita"]
+# Muito -> "Muita"
+soildata[grepl("Muito", pedregosidade, ignore.case = TRUE), pedregosidade := "Muita"]
+# Pouca -> "Ligeira"
+soildata[grepl("Pouca", pedregosidade, ignore.case = TRUE), pedregosidade := "Ligeira"]
+soildata[, .N, by = pedregosidade]
+# Stoniness levels: Ausente, Extrema, Ligeira, Moderada, Muita, Pedregosa
+# New column 'stoniness' will copy only the relevant levels from 'pedregosidade'
+soildata[, stoniness := ifelse(
+  pedregosidade %in% c("Ausente", "Extrema", "Ligeira", "Moderada", "Muita", "Pedregosa"),
+  pedregosidade, "unknown"
+)]
+soildata[, .N, by = stoniness]
+# has_stoniness
+# NA = "unknown"
+# Ausente = FALSE
+# All other levels = TRUE
+soildata[, has_stoniness := ifelse(
+  is.na(pedregosidade) | pedregosidade == "unknown", "unknown",
+  ifelse(pedregosidade == "Ausente", FALSE, TRUE)
+)]
+soildata[, .N, by = has_stoniness]
+
+# Rockiness
+soildata[, .N, by = rochosidade]
+# - -> NA_character_
+soildata[grepl("^-$", rochosidade), rochosidade := NA_character_]
+# Sem Rochosidade -> "Ausente"
+soildata[grepl("Sem Rochosidade", rochosidade), rochosidade := "Ausente"]
+# Não rochosa -> "Ausente"
+soildata[grepl("Não rochos", rochosidade, ignore.case = TRUE), rochosidade := "Ausente"]
+# Moderadamente rochosa -> "Moderada"
+soildata[grepl("Moderadamente rochos", rochosidade, ignore.case = TRUE), rochosidade := "Moderada"]
+# Ligeiramente rochosa -> "Ligeira"
+soildata[grepl("Ligeiramente rochos", rochosidade, ignore.case = TRUE), rochosidade := "Ligeira"]
+# Não rochoso -> "Ausente"
+soildata[grepl("Não rochoso", rochosidade, ignore.case = TRUE), rochosidade := "Ausente"]
+# Extremamente rochosa -> "Extrema"
+soildata[grepl("Extremamente rochos", rochosidade, ignore.case = TRUE), rochosidade := "Extrema"]
+# Extremamente -> "Extrema"
+soildata[grepl("Extremamente", rochosidade, ignore.case = TRUE), rochosidade := "Extrema"]
+# Muito rochosa -> "Muita"
+soildata[grepl("Muito rochos", rochosidade, ignore.case = TRUE), rochosidade := "Muita"]
+# Muito -> "Muita"
+soildata[grepl("Muito", rochosidade, ignore.case = TRUE), rochosidade := "Muita"]
+# ausente -> "Ausente"
+soildata[grepl("ausente", rochosidade), rochosidade := "Ausente"]
+# Rochoso -> "Rochosa"
+soildata[grepl("Rochos", rochosidade, ignore.case = TRUE), rochosidade := "Rochosa"]
+# Pouco -> "Ligeira"
+soildata[grepl("Pouco", rochosidade, ignore.case = TRUE), rochosidade := "Ligeira"]
+soildata[, .N, by = rochosidade]
+# Rockiness levels: Ausente, Extrema, Ligeira, Moderada, Muita, Rochosa
+# New column 'rockiness' will copy only the relevant levels from 'rochosidade'
+soildata[, rockiness := ifelse(
+  rochosidade %in% c("Ausente", "Extrema", "Ligeira", "Moderada", "Muita", "Rochosa"),
+  rochosidade, "unknown"
+)]
+soildata[, .N, by = rockiness]
+# has_rockiness
+# NA = "unknown"
+# Ausente = FALSE
+# All other levels = TRUE
+soildata[, has_rockiness := ifelse(
+  is.na(rochosidade) | rochosidade == "unknown", "unknown",
+  ifelse(rochosidade == "Ausente", FALSE, TRUE)
+)]
+soildata[, .N, by = has_rockiness]
+
 # Target variable: Proportion of coarse fragments (esqueleto)
 # Identify soil layers missing the proportion of coarse fragments
 is_na_skeleton <- is.na(soildata[["esqueleto"]])
@@ -89,32 +181,32 @@ covars2drop <- c(
 )
 # Check remaining covariates
 colnames(soildata[, !..covars2drop])
-# Select covariates for modeling
-covars_names <- c(
-  "dataset_id", "DATASET_COARSE",
-  "observacao_id", "EVENT_COARSE",
-  "lowermost", "uppermost",
-  "estado_id", "coord_x_utm", "coord_y_utm",
-  "profund_sup", "profund_inf", "espessura",
-  "argila", "argila_upper", "argila_lower",
-  "silte",
-  "areia", "areia_upper", "areia_lower",
-  "coarse_upper", "coarse_lower",
-  "ph", "ctc", "carbono",
-  "dsi", "dsi_upper", "dsi_lower",
-  "ORDER", "SUBORDER",
-  "pedregosidade", "rochosidade",
-  "STONESOL", "STONY", "ORGANIC", "AHRZN", "BHRZN", "CHRZN", "EHRZN", "DENSIC", "GLEY",
-  "cec_clay_ratio", "silt_clay_ratio"
-  # "bdod_0_5cm", "bdod_15_30cm", "bdod_5_15cm",
-  # "cfvo_0_5cm",  "cfvo_15_30cm", "cfvo_5_15cm",
-  # "clay_0_5cm", "clay_15_30cm", "clay_5_15cm",
-  # "sand_0_5cm",  "sand_15_30cm", "sand_5_15cm",
-  # "soc_0_5cm", "soc_15_30cm", "soc_5_15cm",
-  # "lulc",
-  # "convergence", "cti", "eastness", "geom", "northness", "pcurv",
-  # "roughness", "slope", "spi"
-)
+# # Select covariates for modeling
+# covars_names <- c(
+#   "dataset_id", "DATASET_COARSE",
+#   "observacao_id", "EVENT_COARSE",
+#   "lowermost", "uppermost",
+#   "estado_id", "coord_x_utm", "coord_y_utm",
+#   "profund_sup", "profund_inf", "espessura",
+#   "argila", "argila_upper", "argila_lower",
+#   "silte",
+#   "areia", "areia_upper", "areia_lower",
+#   "coarse_upper", "coarse_lower",
+#   "ph", "ctc", "carbono",
+#   "dsi", "dsi_upper", "dsi_lower",
+#   "ORDER", "SUBORDER",
+#   "pedregosidade", "rochosidade",
+#   "STONESOL", "STONY", "ORGANIC", "AHRZN", "BHRZN", "CHRZN", "EHRZN", "DENSIC", "GLEY",
+#   "cec_clay_ratio", "silt_clay_ratio"
+#   # "bdod_0_5cm", "bdod_15_30cm", "bdod_5_15cm",
+#   # "cfvo_0_5cm",  "cfvo_15_30cm", "cfvo_5_15cm",
+#   # "clay_0_5cm", "clay_15_30cm", "clay_5_15cm",
+#   # "sand_0_5cm",  "sand_15_30cm", "sand_5_15cm",
+#   # "soc_0_5cm", "soc_15_30cm", "soc_5_15cm",
+#   # "lulc",
+#   # "convergence", "cti", "eastness", "geom", "northness", "pcurv",
+#   # "roughness", "slope", "spi"
+# )
 
 # Missing value imputation
 # Use the missingness-in-attributes (MIA) approach with +/- Inf, with the indicator for missingness
