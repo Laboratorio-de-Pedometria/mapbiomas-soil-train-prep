@@ -81,6 +81,15 @@ sum(is_rock) # 838 layers out of 54555
 
 # Set covariates
 colnames(soildata)
+covars2drop <- c(
+  "dataset_titulo", "organizacao_nome", "dataset_licenca", "sisb_id", "ibge_id", "coord_x", "id",
+  "coord_y", "coord_precisao", "coord_fonte", "coord_datum", "pais_id", "municipio_id", "data_ano",
+  "ano_fonte", "amostra_quanti", "amostra_area", "amostra_tipo", "taxon_sibcs", "taxon_st",
+  "taxon_wrb", "camada_nome", "camada_id", "amostra_id", "profund_sup", "profund_inf", "terrafina"
+)
+# Check remaining covariates
+colnames(soildata[, !..covars2drop])
+# Select covariates for modeling
 covars_names <- c(
   "dataset_id", "DATASET_COARSE",
   "observacao_id", "EVENT_COARSE",
