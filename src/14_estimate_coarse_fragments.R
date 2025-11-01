@@ -203,7 +203,12 @@ near_zero_variance_covars <- caret::nearZeroVar(
   saveMetrics = FALSE
 )
 near_zero_variance_covars <- colnames(soildata[, ..covars_names])[near_zero_variance_covars]
-print(near_zero_variance_covars)
+if (length(near_zero_variance_covars) == 0) {
+  print("No covariates with near-zero variance found.")
+} else {
+  print("Covariates with near-zero variance:")
+  print(near_zero_variance_covars)
+}
 # 'GurupiProv', 'SaoLuisProv', 'Stagnosols', and "dist2sand"
 covars_names <- setdiff(covars_names, near_zero_variance_covars)
 print(covars_names)
@@ -216,28 +221,102 @@ correlation_matrix <- cor(
   method = "spearman",
   use = "pairwise.complete.obs"
 )
-# Identify highly correlated covariates (correlation > 0.98)
-high_correlation <- which(abs(correlation_matrix) > 0.98, arr.ind = TRUE)
+# Identify highly correlated covariates
+cor_limit <- 0.98
+high_correlation <- which(abs(correlation_matrix) > cor_limit, arr.ind = TRUE)
 high_correlation <- high_correlation[high_correlation[, 1] != high_correlation[, 2], ]
 high_correlation <- high_correlation[order(high_correlation[, 1]), ]
-# Columns 'row' and 'col' are highly correlated. Drop one of them.
-covars_to_drop_corr <- c()
-for (i in 1:nrow(high_correlation)) {
-  row_covar <- colnames(correlation_matrix)[high_correlation[i, 1]]
-  col_covar <- colnames(correlation_matrix)[high_correlation[i, 2]]
-  if (!(row_covar %in% covars_to_drop_corr) & !(col_covar %in% covars_to_drop_corr)) {
-    covars_to_drop_corr <- c(covars_to_drop_corr, col_covar)
-  }
+if (nrow(high_correlation) == 0) {
+  print("No covariates with high correlation found.")
+} else {
+  print("Covariates with high correlation:")
+  print(high_correlation)
 }
-covars_names <- setdiff(covars_names, covars_to_drop_corr)
+
+# Remove one of each pair of highly correlated covariates
+# Programmatically identify which covariates to drop based on correlation count
+if (nrow(high_correlation) > 0) {
+  # Get the column names from indices
+  high_cor_names <- data.frame(
+    row_name = colnames(correlation_matrix)[high_correlation[, 1]],
+    col_name = colnames(correlation_matrix)[high_correlation[, 2]],
+    stringsAsFactors = FALSE
+  )
+  print("Highly correlated covariate pairs:")
+  print(unique(high_cor_names))
+  
+  # Identify all variables involved in high correlations
+  vars_in_cor <- unique(c(high_cor_names$row_name, high_cor_names$col_name))
+  
+  # For each correlated variable, count how many correlations it has
+  cor_count <- table(c(high_cor_names$row_name, high_cor_names$col_name))
+  cor_count <- sort(cor_count, decreasing = TRUE)
+  print("\nNumber of high correlations per variable:")
+  print(cor_count)
+  
+  # Programmatically decide which variables to drop
+  # Strategy: For each unique pair, drop the variable with more total correlations
+  # If tied, keep the one that appears first alphabetically (arbitrary but consistent)
+  covars_to_drop <- character()
+  processed_pairs <- character()
+  
+  for (i in 1:nrow(high_cor_names)) {
+    var1 <- high_cor_names$row_name[i]
+    var2 <- high_cor_names$col_name[i]
+    pair_id <- paste(sort(c(var1, var2)), collapse = "_")
+    
+    # Skip if we've already processed this pair
+    if (pair_id %in% processed_pairs) {
+      next
+    }
+    processed_pairs <- c(processed_pairs, pair_id)
+    
+    # Count correlations for each variable
+    count1 <- cor_count[var1]
+    count2 <- cor_count[var2]
+    
+    # Drop the one with more correlations; if tied, drop the one that comes later alphabetically
+    if (count1 > count2) {
+      var_to_drop <- var1
+    } else if (count2 > count1) {
+      var_to_drop <- var2
+    } else {
+      # Tied: drop the one that comes later alphabetically
+      var_to_drop <- ifelse(var1 > var2, var1, var2)
+    }
+    
+    # Only add if not already in the drop list
+    if (!var_to_drop %in% covars_to_drop) {
+      covars_to_drop <- c(covars_to_drop, var_to_drop)
+    }
+  }
+  
+  cat("\nDropping", length(covars_to_drop), "covariates due to high correlation:\n")
+  print(sort(covars_to_drop))
+  
+  # Update covars_names
+  covars_names <- setdiff(covars_names, covars_to_drop)
+  cat("\nTotal covariates remaining:", length(covars_names), "\n")
+}
+
+# Feature selection 3: train default random forest and compute variable importance
+set.seed(1234)
+rf_model <- ranger::ranger(
+  y = soildata[!is_na_skeleton, esqueleto],
+  x = soildata[!is_na_skeleton, ..covars_names],  
+  importance = "impurity",
+  verbose = TRUE,
+  num.threads = parallel::detectCores() - 1
+)
 
 # Missing value imputation
 # Use the missingness-in-attributes (MIA) approach with +/- Inf, with the indicator for missingness
 # (mask) to impute missing values in the covariates
-covariates <- imputation(soildata[, ..covars_names],
-  method = "mia", na.replacement = list(cont = Inf, cat = "unknown"), na.indicator = TRUE
+covariates <- data.table::as.data.table(
+  imputation(soildata[, ..covars_names],
+    method = "mia", na.replacement = list(cont = Inf, cat = "unknown"), na.indicator = TRUE
+  )
 )
-covariates <- data.table::as.data.table(covariates)
 print(covariates)
 
 # MODELING
