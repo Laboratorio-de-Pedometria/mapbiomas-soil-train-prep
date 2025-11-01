@@ -120,6 +120,12 @@ soildata[, has_rockiness := ifelse(
 )]
 soildata[, .N, by = has_rockiness]
 
+# State (estado_id)
+soildata[, .N, by = estado_id]
+# Rio de Janeiro -> RJ
+soildata[grepl("Rio de Janeiro", estado_id), estado_id := "RJ"]
+soildata[, .N, by = estado_id]
+
 # Target variable: Proportion of coarse fragments (esqueleto)
 # Identify soil layers missing the proportion of coarse fragments
 is_na_skeleton <- is.na(soildata[["esqueleto"]])
@@ -177,7 +183,8 @@ covars2drop <- c(
   "dataset_titulo", "organizacao_nome", "dataset_licenca", "sisb_id", "ibge_id", "coord_x", "id",
   "coord_y", "coord_precisao", "coord_fonte", "coord_datum", "pais_id", "municipio_id", "data_ano",
   "ano_fonte", "amostra_quanti", "amostra_area", "amostra_tipo", "taxon_sibcs", "taxon_st",
-  "taxon_wrb", "camada_nome", "camada_id", "amostra_id", "profund_sup", "profund_inf", "terrafina"
+  "taxon_wrb", "camada_nome", "camada_id", "amostra_id", "profund_sup", "profund_inf", "terrafina",
+  "pedregosidade", "rochosidade"
 )
 # Check remaining covariates
 colnames(soildata[, !..covars2drop])
