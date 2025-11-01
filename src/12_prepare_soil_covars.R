@@ -15,7 +15,7 @@ soildata <- data.table::fread("data/11_soildata.txt", sep = "\t", na.strings = c
 summary_soildata(soildata)
 # Layers: 54555
 # Events: 18870
-# Georeferenced events: 16361
+# Georeferenced events: 16360
 # Datasets: 265
 
 # Dataset-wise covariates ##########################################################################
@@ -395,10 +395,10 @@ summary(soildata[, silt_clay_ratio])
 nrow(unique(
   soildata[!is.na(coord_x) & !is.na(coord_y), .(dataset_id, observacao_id, coord_x, coord_y, data_ano)]
 ))
-# 16569
+# 16568
 summary_soildata(soildata)
 # Layers: 54555
 # Events: 18870
-# Georeferenced events: 16361
+# Georeferenced events: 16360
 # Datasets: 265
 data.table::fwrite(soildata, "data/12_soildata.txt", sep = "\t")
