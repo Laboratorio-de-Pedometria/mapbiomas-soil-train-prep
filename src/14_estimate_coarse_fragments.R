@@ -194,8 +194,7 @@ colnames(soildata[, !..covars2drop])
 # Check structure of the data
 print(soildata[, !..covars2drop])
 
-# Feature selection
-# 1. Quick clean: remove zero-variance and near-zero-variance predictors
+# 1. Feature selection: remove zero-variance and near-zero-variance predictors
 covars_names <- colnames(soildata[, !..covars2drop])
 near_zero_variance_covars <- caret::nearZeroVar(
   soildata[, ..covars_names],
@@ -203,9 +202,34 @@ near_zero_variance_covars <- caret::nearZeroVar(
   uniqueCut = 10,
   saveMetrics = FALSE
 )
-print(colnames(soildata[, ..covars_names])[near_zero_variance_covars])
-# Drop covariates 'GurupiProv', 'SaoLuisProv', 'Stagnosols', and "dist2sand"
-covars_names <- colnames(soildata[, !..covars2drop])
+near_zero_variance_covars <- colnames(soildata[, ..covars_names])[near_zero_variance_covars]
+print(near_zero_variance_covars)
+# 'GurupiProv', 'SaoLuisProv', 'Stagnosols', and "dist2sand"
+covars_names <- setdiff(covars_names, near_zero_variance_covars)
+print(covars_names)
+
+# 2. Feature selection: remove covariates with high correlation
+# Compute Spearman correlation matrix between quantitative covariates
+is_numeric <- sapply(soildata[, ..covars_names], is.numeric)
+correlation_matrix <- cor(
+  soildata[, ..covars_names][, is_numeric, with = FALSE],
+  method = "spearman",
+  use = "pairwise.complete.obs"
+)
+# Identify highly correlated covariates (correlation > 0.98)
+high_correlation <- which(abs(correlation_matrix) > 0.98, arr.ind = TRUE)
+high_correlation <- high_correlation[high_correlation[, 1] != high_correlation[, 2], ]
+high_correlation <- high_correlation[order(high_correlation[, 1]), ]
+# Columns 'row' and 'col' are highly correlated. Drop one of them.
+covars_to_drop_corr <- c()
+for (i in 1:nrow(high_correlation)) {
+  row_covar <- colnames(correlation_matrix)[high_correlation[i, 1]]
+  col_covar <- colnames(correlation_matrix)[high_correlation[i, 2]]
+  if (!(row_covar %in% covars_to_drop_corr) & !(col_covar %in% covars_to_drop_corr)) {
+    covars_to_drop_corr <- c(covars_to_drop_corr, col_covar)
+  }
+}
+covars_names <- setdiff(covars_names, covars_to_drop_corr)
 
 # Missing value imputation
 # Use the missingness-in-attributes (MIA) approach with +/- Inf, with the indicator for missingness
