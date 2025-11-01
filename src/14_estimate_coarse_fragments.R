@@ -25,6 +25,7 @@ summary_soildata(soildata)
 # Events: 18870
 # Georeferenced events: 16360
 # Datasets: 265
+soildata[, geomorphon := as.character(geomorphon)]
 
 # DESIGN MATRIX
 
@@ -178,8 +179,9 @@ sum(is_rock) # 838 layers out of 54555
 # Covariates
 
 # Set covariates
-colnames(soildata)
+sort(colnames(soildata))
 covars2drop <- c(
+  "esqueleto",
   "dataset_titulo", "organizacao_nome", "dataset_licenca", "sisb_id", "ibge_id", "coord_x", "id",
   "coord_y", "coord_precisao", "coord_fonte", "coord_datum", "pais_id", "municipio_id", "data_ano",
   "ano_fonte", "amostra_quanti", "amostra_area", "amostra_tipo", "taxon_sibcs", "taxon_st",
@@ -188,32 +190,10 @@ covars2drop <- c(
 )
 # Check remaining covariates
 colnames(soildata[, !..covars2drop])
-# # Select covariates for modeling
-# covars_names <- c(
-#   "dataset_id", "DATASET_COARSE",
-#   "observacao_id", "EVENT_COARSE",
-#   "lowermost", "uppermost",
-#   "estado_id", "coord_x_utm", "coord_y_utm",
-#   "profund_sup", "profund_inf", "espessura",
-#   "argila", "argila_upper", "argila_lower",
-#   "silte",
-#   "areia", "areia_upper", "areia_lower",
-#   "coarse_upper", "coarse_lower",
-#   "ph", "ctc", "carbono",
-#   "dsi", "dsi_upper", "dsi_lower",
-#   "ORDER", "SUBORDER",
-#   "pedregosidade", "rochosidade",
-#   "STONESOL", "STONY", "ORGANIC", "AHRZN", "BHRZN", "CHRZN", "EHRZN", "DENSIC", "GLEY",
-#   "cec_clay_ratio", "silt_clay_ratio"
-#   # "bdod_0_5cm", "bdod_15_30cm", "bdod_5_15cm",
-#   # "cfvo_0_5cm",  "cfvo_15_30cm", "cfvo_5_15cm",
-#   # "clay_0_5cm", "clay_15_30cm", "clay_5_15cm",
-#   # "sand_0_5cm",  "sand_15_30cm", "sand_5_15cm",
-#   # "soc_0_5cm", "soc_15_30cm", "soc_5_15cm",
-#   # "lulc",
-#   # "convergence", "cti", "eastness", "geom", "northness", "pcurv",
-#   # "roughness", "slope", "spi"
-# )
+covariates <- soildata[, !..covars2drop]
+
+# Check structure of the data
+print(covariates)
 
 # Missing value imputation
 # Use the missingness-in-attributes (MIA) approach with +/- Inf, with the indicator for missingness
