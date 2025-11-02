@@ -194,7 +194,7 @@ covars2drop <- c(
   "coord_x", "coord_y",  "data_ano", "taxon_sibcs", "taxon_st", "taxon_wrb", "profund_sup",
   "profund_inf", "ano_fonte", "pedregosidade", "rochosidade",
   # Near zero variance covariates
-  "GurupiProv", "SaoLuisProv", "Stagnosols",
+  "GurupiProv", "SaoLuisProv", "Stagnosols", "dist2sand",
   # Non-predictive covariates
   "Massad_aguaProv", "DENSIC", "bdod_100_200cm"
 )
@@ -219,9 +219,7 @@ if (length(near_zero_variance_covars) == 0) {
   print("Covariates with near-zero variance:")
   print(near_zero_variance_covars)
 }
-# 'GurupiProv', 'SaoLuisProv', and 'Stagnosols' was moved to list above; "dist2sand" was kept
-# Drop "dist2sand" from near_zero_variance_covars
-near_zero_variance_covars <- setdiff(near_zero_variance_covars, "dist2sand")
+# 'GurupiProv', 'SaoLuisProv', 'Stagnosols', and 'dist2sand' were added to list above
 covars_names <- setdiff(covars_names, near_zero_variance_covars)
 print(sort(covars_names))
 
@@ -244,7 +242,6 @@ if (nrow(high_correlation) == 0) {
   print("Covariates with high correlation:")
   print(high_correlation)
 }
-
 # Remove one of each pair of highly correlated covariates
 # Programmatically identify which covariates to drop based on correlation count
 if (nrow(high_correlation) > 0) {
@@ -310,9 +307,6 @@ if (nrow(high_correlation) > 0) {
   covars_names <- setdiff(covars_names, covars_to_drop)
   cat("\nTotal covariates remaining:", length(covars_names), "\n")
 }
-print(covars_names)
-
-
 
 # Missing value imputation
 # Use the missingness-in-attributes (MIA) approach with +/- Inf, with the indicator for missingness
@@ -324,7 +318,7 @@ covariates <- data.table::as.data.table(
 )
 print(covariates)
 
-# MODELING
+# MODELING #########################################################################################
 
 # Prepare grid of hyperparameters
 # mtry. Previous tests have demonstrated that mtry is overwhelmingly the most influential
@@ -333,13 +327,15 @@ print(covariates)
 #   suggested in initial tests in 2025 (c3). Here we try to increase it further. mtry controls the
 #   bias-variance trade-off of the model.
 #   mtry <- c(2, 4, 8, 16) # 2024 and 2025
-mtry <- c(16, 24, 32)
+# mtry <- c(16, 24, 32)
+mtry <- c(24, 32, 48)
 # max_depth. Previous tests have shown that increasing max_depth improves model more than
 #   increasing the number of trees. This parameter defines how much each individual tree is allowed
 #   to learn. The best results obtained in previous/inicial tests consistently were with max_depth
 #   set 20 or 30. Here we try to fine tune it further.
 # max_depth <- c(10, 20, 30, 40)
-max_depth <- c(20, 25, 30)
+# max_depth <- c(20, 25, 30)
+max_depth <- c(25)
 # num_trees. This parameter is about stabilizing the model. Previous/initial tests produced only
 #   small improvements when increasing num_trees when compared to increasing max_depth or mtry.
 #   In order to be computationally efficient, we fix num_trees to 400 here.
@@ -349,8 +345,8 @@ num_trees <- 400
 # while increasing to 8 is too restrictive and causes underfitting. So values of 2 and 4 where
 # consistently produced the best results in previous/initial tests. Here we try intermediate values.
 # min_node_size <- c(1, 2, 4, 8)
-min_node_size <- c(2, 3, 4)
-
+# min_node_size <- c(2, 3, 4)
+min_node_size <- c(2, 3)
 hyperparameters <- expand.grid(num_trees, mtry, min_node_size, max_depth)
 colnames(hyperparameters) <- c("num_trees", "mtry", "min_node_size", "max_depth")
 print(hyperparameters)
@@ -368,7 +364,6 @@ for (i in 1:nrow(hyperparameters)) {
     mtry = hyperparameters$mtry[i],
     min.node.size = hyperparameters$min_node_size[i],
     max.depth = hyperparameters$max_depth[i],
-    always.split.variables = c(),
     replace = TRUE,
     verbose = TRUE,
     num.threads = parallel::detectCores() - 1
@@ -432,7 +427,7 @@ hyper_best <- hyper_best[min_node_size == max(min_node_size), ]
 print(hyper_best)
 
 # Hard code the best hyperparameters for the model
-hyper_best <- data.frame(num_trees = 400, mtry = 50, min_node_size = 2, max_depth = 25)
+hyper_best <- data.frame(num_trees = 400, mtry = 48, min_node_size = 3, max_depth = 25)
 
 # Fit the best model
 t0 <- Sys.time()
@@ -451,13 +446,13 @@ skeleton_model <- ranger::ranger(
 )
 Sys.time() - t0
 print(skeleton_model)
-# OOB prediction error (MSE): 4142.32
-# R squared (OOB): 0.8568503
+# OOB prediction error (MSE): 4160.929
+# R squared (OOB): 0.8562072
 
 # Proportion of correctly classified rock layers (esqueleto == 1000)
 # Tolerance of 0, 5, and 10%
-round(sum(round(skeleton_model$predictions[is_rock] / 10) == 100) / sum(is_rock) * 100) # 90%
-round(sum(round(skeleton_model$predictions[is_rock] / 10) >= 95) / sum(is_rock) * 100) # 99%
+round(sum(round(skeleton_model$predictions[is_rock] / 10) == 100) / sum(is_rock) * 100) # 89%
+round(sum(round(skeleton_model$predictions[is_rock] / 10) >= 95) / sum(is_rock) * 100) # 98%
 round(sum(round(skeleton_model$predictions[is_rock] / 10) >= 90) / sum(is_rock) * 100) # 100%
 
 # Compute regression model statistics and write to disk
@@ -494,7 +489,7 @@ if (any(soildata[!is_na_skeleton, abs_error] >= abs_error_tolerance)) {
 } else {
   print(paste0("All absolute errors are below ", abs_error_tolerance, " %."))
 }
-# 2900 layers with absolute error >= 100 %
+# 2935 layers with absolute error >= 100 %
 
 # Figure: Variable importance
 variable_importance_threshold <- 0.02
