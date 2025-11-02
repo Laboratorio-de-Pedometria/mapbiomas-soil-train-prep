@@ -368,6 +368,7 @@ soildata[is_soil == FALSE, .N] # 342 layers
 
 # Special cases
 # ctb0003
+# ATTENTION: WE SHOULD ADD 10 CM-THICK LAYERS TO THE EVENTS INSTEAD OF 20 CM-THICK LAYERS!!!!!!!!!!!
 # The study planned to sample the 0-20 cm layer only. When the soil was shallower than 20 cm, the
 # soil was sampled until the bedrock. Thus, if profund_inf < 20 cm, add a 20 cm thick layer
 # starting from profund_inf and name it "R".
