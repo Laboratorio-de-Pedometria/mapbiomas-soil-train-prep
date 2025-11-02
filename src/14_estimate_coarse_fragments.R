@@ -29,6 +29,9 @@ soildata[, geomorphon := as.character(geomorphon)]
 
 # DESIGN MATRIX
 
+# Depth
+soildata[, profundidade := profund_sup + (profund_inf - profund_sup) / 2, by = .I]
+
 # Stoniness
 soildata[, .N, by = pedregosidade]
 # - -> NA_character_
@@ -217,8 +220,10 @@ if (length(near_zero_variance_covars) == 0) {
   print(near_zero_variance_covars)
 }
 # 'GurupiProv', 'SaoLuisProv', and 'Stagnosols' was moved to list above; "dist2sand" was kept
-# covars_names <- setdiff(covars_names, near_zero_variance_covars)
-# print(covars_names)
+# Drop "dist2sand" from near_zero_variance_covars
+near_zero_variance_covars <- setdiff(near_zero_variance_covars, "dist2sand")
+covars_names <- setdiff(covars_names, near_zero_variance_covars)
+print(sort(covars_names))
 
 # 2. Feature selection: remove covariates with high correlation
 # Compute Spearman correlation matrix between quantitative covariates
@@ -306,6 +311,8 @@ if (nrow(high_correlation) > 0) {
   cat("\nTotal covariates remaining:", length(covars_names), "\n")
 }
 print(covars_names)
+
+
 
 # Missing value imputation
 # Use the missingness-in-attributes (MIA) approach with +/- Inf, with the indicator for missingness
