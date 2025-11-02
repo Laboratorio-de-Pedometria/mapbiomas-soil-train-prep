@@ -417,7 +417,7 @@ hyper_best <- hyper_best[min_node_size == max(min_node_size), ]
 print(hyper_best)
 
 # Hard code the best hyperparameters for the model
-hyper_best <- data.frame(num_trees = 800, mtry = 16, min_node_size = 4, max_depth = 30)
+hyper_best <- data.frame(num_trees = 200, mtry = 24, min_node_size = 3, max_depth = 30)
 
 # Fit the best model
 t0 <- Sys.time()
@@ -431,7 +431,8 @@ skeleton_model <- ranger::ranger(
   max.depth = hyper_best$max_depth,
   importance = "impurity",
   replace = TRUE,
-  verbose = TRUE
+  verbose = TRUE,
+  num.threads = parallel::detectCores() - 1
 )
 Sys.time() - t0
 print(skeleton_model)
