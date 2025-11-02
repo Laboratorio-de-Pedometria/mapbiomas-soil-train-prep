@@ -81,6 +81,13 @@ summary_soildata(soildata_psd)
 soildata_psd[, profundidade := profund_sup + (profund_inf - profund_sup) / 2, by = .I]
 soildata_psd[, `:=`(profund_sup = NULL, profund_inf = NULL)]
 
+# Drop rows with depth (profundidade) > 105
+soildata_psd <- soildata_psd[profundidade <= 105, ]
+summary_soildata(soildata_psd)
+# Layers: 48900
+# Events: 14948
+# Georeferenced events: 14948
+
 # Rename "coord_x" and "coord_y" to "longitude" and "latitude" respectively
 data.table::setnames(soildata_psd, old = c("coord_x", "coord_y"), new = c("longitude", "latitude"))
 
@@ -92,7 +99,7 @@ if (interactive()) {
   View(soildata_psd)
 }
 
-# DATA TRANSFORMATION #####
+# DATA TRANSFORMATION ##############################################################################
 # Update the proportions of the fine earth fractions (argila, silte, areia)
 # The fractions are relative to the soil fine earth (diameter < 2mm). We update them to be relative
 # to the whole soil, accounting for the presence of coarse fragments (skeleton, diameter > 2 mm).
@@ -180,8 +187,8 @@ soildata_psd[, `:=`(argila1p = NULL, silte1p = NULL, areia1p = NULL, esqueleto1p
 
 # Export PSD data for spatial modelling ############################################################
 ncol(soildata_psd) # Result: 11
-nrow(soildata_psd) # Result: 51415
-nrow(unique(soildata_psd[, "id"])) # Result: 14966
+nrow(soildata_psd) # Result: 48900
+nrow(unique(soildata_psd[, "id"])) # Result: 14948
 # Destination folder
 folder_path <- "res/tab/"
 file_name <- "soildata_psd.csv"
