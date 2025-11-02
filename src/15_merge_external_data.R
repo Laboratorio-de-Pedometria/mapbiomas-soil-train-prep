@@ -21,10 +21,10 @@ if (!requireNamespace("BalancedSampling")) {
 file_path <- "data/14_soildata.txt"
 soildata <- data.table::fread(file_path, sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 53562
-# Events: 18676
-# Georeferenced events: 16170
-# Datasets: 261
+# Layers: 54555
+# Events: 18870
+# Georeferenced events: 16360
+# Datasets: 265
 
 # EXTERNAL DATA - BEACH, DUNE, AND SANDY SPOT PSEUDO-SAMPLES #######################################
 
@@ -32,17 +32,21 @@ summary_soildata(soildata)
 # These samples were created based on visual interpretation of satellite images
 # (Google Earth/Maps) and represent locations with high likelihood of sandy soils.
 sand_folder <- "data/2025_10_23_pseudo_amostras_dunas_praias_areiais"
-# List all SHP files in the folder
-sand_files <- list.files(
-  path = sand_folder,
-  pattern = "\\.shp$",
-  full.names = TRUE, recursive = TRUE
-)
-# Read and merge all SHP files
-sand_samples_list <- lapply(sand_files, function(x) sf::st_geometry(sf::st_read(x, quiet = TRUE)))
-sand_samples <- do.call(c, sand_samples_list)
-
-if (FALSE) {
+if (!dir.exists(sand_folder)) {
+  stop(paste0("Folder not found: ", sand_folder))
+} else {
+  print(paste0("Reading pseudo-samples from folder: ", sand_folder))
+  # List all SHP files in the folder
+  sand_files <- list.files(
+    path = sand_folder,
+    pattern = "\\.shp$",
+    full.names = TRUE, recursive = TRUE
+  )
+  # Read and merge all SHP files
+  sand_samples_list <- lapply(sand_files, function(x) sf::st_geometry(sf::st_read(x, quiet = TRUE)))
+  sand_samples <- do.call(c, sand_samples_list)
+}
+if (interactive()) {
   mapview::mapview(sand_samples)
 }
 
