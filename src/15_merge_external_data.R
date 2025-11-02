@@ -149,29 +149,33 @@ print(sand_samples_selected[1:20, .(id, profund_sup, profund_inf, camada_id, cam
 # These samples were created based on visual interpretation of satellite images
 # (Google Earth/Maps) and represent locations with high likelihood of rocky outcrops.
 rock_folder <- "data/2025_10_23_pseudo_amostras_aloramento_rochoso"
-# List all SHP files in the folder_path
-rock_files <- list.files(
-  path = rock_folder,
-  pattern = "\\.shp$",
-  full.names = TRUE, recursive = TRUE
-)
-# Read and merge all SHP files
-# Temporarily disable s2 processing to handle potential invalid geometries
-sf::sf_use_s2(FALSE)
-rock_samples_list <- lapply(rock_files, function(x) {
-  geom <- sf::st_geometry(sf::st_read(x, quiet = TRUE))
-  # Check if the geometry is a polygon/multipolygon and return the centroid if so
-  if (all(sf::st_geometry_type(geom) %in% c("POLYGON", "MULTIPOLYGON"))) {
-    # Repair invalid geometries before calculating the centroid
-    geom <- sf::st_centroid(sf::st_make_valid(geom))
-  }
-  return(geom)
-})
-rock_samples <- do.call(c, rock_samples_list)
-# Re-enable s2 processing
-sf::sf_use_s2(TRUE)
-
-if (FALSE) {
+if (!dir.exists(rock_folder)) {
+  stop(paste("Folder not found:", rock_folder))
+} else {
+  print(paste("Reading pseudo-samples from folder:", rock_folder))
+  # List all SHP files in the folder_path
+  rock_files <- list.files(
+    path = rock_folder,
+    pattern = "\\.shp$",
+    full.names = TRUE, recursive = TRUE
+  )
+  # Read and merge all SHP files
+  # Temporarily disable s2 processing to handle potential invalid geometries
+  sf::sf_use_s2(FALSE)
+  rock_samples_list <- lapply(rock_files, function(x) {
+    geom <- sf::st_geometry(sf::st_read(x, quiet = TRUE))
+    # Check if the geometry is a polygon/multipolygon and return the centroid if so
+    if (all(sf::st_geometry_type(geom) %in% c("POLYGON", "MULTIPOLYGON"))) {
+      # Repair invalid geometries before calculating the centroid
+      geom <- sf::st_centroid(sf::st_make_valid(geom))
+    }
+    return(geom)
+  })
+  rock_samples <- do.call(c, rock_samples_list)
+  # Re-enable s2 processing
+  sf::sf_use_s2(TRUE)
+}
+if (interactive()) {
   mapview::mapview(rock_samples)
 }
 # 12421
