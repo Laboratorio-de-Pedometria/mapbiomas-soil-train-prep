@@ -93,38 +93,24 @@ if (interactive()) {
 }
 
 # Update the proportions of the fine earth fractions (argila, silte, areia)
-# This the fractions were relative to the soil fine earth (diameter < 2mm). We update
-# them to be relative to the whole soil, accounting for the presence of coarse fragments
-# (skeleton, diameter > 2 mm). The proportion of skeleton already is relative to the
-# whole soil. The sum of the four fractions should be 1000 g/kg.
-soildata_psd[, `:=`(
-  argila = round(argila * (1000 - esqueleto) / 1000),
-  silte = round(silte * (1000 - esqueleto) / 1000),
-  areia = round(areia * (1000 - esqueleto) / 1000)
-)]
-summary(soildata_psd[, .(esqueleto, argila, silte, areia)])
+# The fractions are relative to the soil fine earth (diameter < 2mm). We update them to be relative
+# to the whole soil, accounting for the presence of coarse fragments (skeleton, diameter > 2 mm).
+# The proportion of skeleton already is relative to the whole soil. We also add one unit to each
+# fraction to avoid zero values, appending "1p" to their name. This will be useful for the
+# additive log ratio transformation in the next step. The sum of the four fractions should be
+# 1004 g/kg.
+soildata_psd[, argila1p := round(argila * (1000 - esqueleto) / 1000) + 1]
+soildata_psd[, silte1p := round(silte * (1000 - esqueleto) / 1000) + 1]
+soildata_psd[, areia1p := round(areia * (1000 - esqueleto) / 1000) + 1]
+soildata_psd[, esqueleto1p := esqueleto + 1]
+summary(soildata_psd[, .(esqueleto1p, argila1p, silte1p, areia1p)])
 
-# Validation: Check if the sum of the four fractions is 1000 g/kg
-soildata_psd[, total := argila + silte + areia + esqueleto]
-print(soildata_psd[total != 1000, ])
+# Validation: Check if the sum of the four fractions is 1004 g/kg
+soildata_psd[, total := argila1p + silte1p + areia1p + esqueleto1p]
+print(soildata_psd[total != 1004, .(esqueleto1p, argila1p, silte1p, areia1p, total)])
 soildata_psd[, total := NULL] # Remove the temporary "total" column
 # We use "silte" to deal with rounding issues.
-soildata_psd[, silte := 1000 - esqueleto - argila - areia]
-
-# Now we add one unit to all samples so that the final sum of the four fractions is 1004 g/kg,
-# appending "1p" to their name.
-soildata_psd[, `:=`(
-  argila1p = argila + 1,
-  silte1p = silte + 1,
-  areia1p = areia + 1,
-  esqueleto1p = esqueleto + 1
-)]
-summary(soildata_psd[, .(esqueleto1p, argila1p, silte1p, areia1p)])
-soildata_psd[, total1p := argila1p + silte1p + areia1p + esqueleto1p]
-print(soildata_psd[total1p != 1004, ])
-soildata_psd[, total1p := NULL] # Remove the temporary "total1p" column
-# remove the original fraction columns
-soildata_psd[, `:=`(argila = NULL, silte = NULL, areia = NULL, esqueleto = NULL)]
+soildata_psd[, silte1p := 1004 - (argila1p + areia1p + esqueleto1p)]
 
 # Compute additive log ratio transformation variables, using "argila1p" as denominator
 soildata_psd[, log_silte1p_argila1p := log(silte1p / argila1p)]
