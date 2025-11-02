@@ -92,6 +92,7 @@ if (interactive()) {
   View(soildata_psd)
 }
 
+# DATA TRANSFORMATION #####
 # Update the proportions of the fine earth fractions (argila, silte, areia)
 # The fractions are relative to the soil fine earth (diameter < 2mm). We update them to be relative
 # to the whole soil, accounting for the presence of coarse fragments (skeleton, diameter > 2 mm).
@@ -100,17 +101,11 @@ if (interactive()) {
 # additive log ratio transformation in the next step. The sum of the four fractions should be
 # 1004 g/kg.
 soildata_psd[, argila1p := round(argila * (1000 - esqueleto) / 1000) + 1]
-soildata_psd[, silte1p := round(silte * (1000 - esqueleto) / 1000) + 1]
 soildata_psd[, areia1p := round(areia * (1000 - esqueleto) / 1000) + 1]
 soildata_psd[, esqueleto1p := esqueleto + 1]
-summary(soildata_psd[, .(esqueleto1p, argila1p, silte1p, areia1p)])
-
-# Validation: Check if the sum of the four fractions is 1004 g/kg
-soildata_psd[, total := argila1p + silte1p + areia1p + esqueleto1p]
-print(soildata_psd[total != 1004, .(esqueleto1p, argila1p, silte1p, areia1p, total)])
-soildata_psd[, total := NULL] # Remove the temporary "total" column
 # We use "silte" to deal with rounding issues.
 soildata_psd[, silte1p := 1004 - (argila1p + areia1p + esqueleto1p)]
+summary(soildata_psd[, .(esqueleto1p, argila1p, silte1p, areia1p)])
 
 # Compute additive log ratio transformation variables, using "argila1p" as denominator
 soildata_psd[, log_silte1p_argila1p := log(silte1p / argila1p)]
@@ -130,56 +125,58 @@ soildata_psd[, esqueleto1p_test := exp(log_esqueleto1p_argila1p) * argila1p_test
 print(soildata_psd[, .(argila1p_test, silte1p_test, areia1p_test, esqueleto1p_test)])
 # Check if the proportions sum to 1
 soildata_psd[, total1p_test := argila1p_test + silte1p_test + areia1p_test + esqueleto1p_test]
-print(soildata_psd[total1p_test != 1, ])
+print(soildata_psd[total1p_test != 1.0])
 soildata_psd[, total1p_test := NULL] # Remove the temporary "total1p_test" column
 
-# Then multiply each fraction by the total sum of fractions (100.4 dag/kg) to get the absolute
-# values, subtract 0.1 from each fraction to revert the +0.1 adjustment, and round to the nearest
+# Then multiply each fraction by the total sum of fractions (1004 g/kg) to get the absolute
+# values, subtract 1 from each fraction to revert the +1 adjustment, and round to the nearest
 # integer:
-# argila = round(argila * 100.4 - 0.1)
-# silte = round(silte * 100.4 - 0.1)
-# areia = round(areia * 100.4 - 0.1)
-# esqueleto = round(esqueleto * 100.4 - 0.1)
+# argila = round(argila * 1004 - 1)
+# silte = round(silte * 1004 - 1)
+# areia = round(areia * 1004 - 1)
+# esqueleto = round(esqueleto * 1004 - 1)
 soildata_psd[, `:=`(
-  argila_test = round(argila1p_test * 100.4 - 0.1),
-  silte_test = round(silte1p_test * 100.4 - 0.1),
-  areia_test = round(areia1p_test * 100.4 - 0.1),
-  esqueleto_test = round(esqueleto1p_test * 100.4 - 0.1)
+  argila_test = round(argila1p_test * 1004 - 1),
+  silte_test = round(silte1p_test * 1004 - 1),
+  areia_test = round(areia1p_test * 1004 - 1),
+  esqueleto_test = round(esqueleto1p_test * 1004 - 1)
 )]
 print(soildata_psd[, .(argila_test, silte_test, areia_test, esqueleto_test)])
-# Check if the proportions sum to 100%
+# Check if the proportions sum to 1000 g/kg
 soildata_psd[, total_test := argila_test + silte_test + areia_test + esqueleto_test]
-print(soildata_psd[total_test != 100, ])
+print(soildata_psd[total_test != 1000, ])
 soildata_psd[, total_test := NULL] # Remove the temporary "total_test" column
 
 # Next, set any negative value to zero (should not happen)
 # Check for negative values
 print(soildata_psd[argila_test < 0 | silte_test < 0 | areia_test < 0 | esqueleto_test < 0, ])
-# Set negative values to zero
-# argila = ifelse(argila < 0, 0, argila)
-# silte = ifelse(silte < 0, 0, silte)
-# areia = ifelse(areia < 0, 0, areia)
-# esqueleto = ifelse(esqueleto < 0, 0, esqueleto)
-soildata_psd[argila_test < 0, argila_test := 0]
-soildata_psd[silte_test < 0, silte_test := 0]
-soildata_psd[areia_test < 0, areia_test := 0]
-soildata_psd[esqueleto_test < 0, esqueleto_test := 0]
-# Check if the proportions sum to 100 dag/kg again
-soildata_psd[, total_test := argila_test + silte_test + areia_test + esqueleto_test]
-print(soildata_psd[total_test != 100, ])
-soildata_psd[, total_test := NULL] # Remove the temporary "total_test" column
 
-# Finally, adjust the fractions so that they sum to 100 dag/kg, using the "silte_test" column
-# to account for rounding issues.
-# silte = 100 - (argila + areia + esqueleto) 
-soildata_psd[, total_test := argila_test + silte_test + areia_test + esqueleto_test]
-print(soildata_psd[total_test != 100, ])
-# If the sum is not 100 dag/kg, add/subtract the difference to/from the "silte_test" column
-soildata_psd[total_test != 100, silte_test := silte_test + (100 - total_test)]
-soildata_psd[, total_test := NULL] # Remove the temporary "total_test" column
+# Finally, rescale clay, silt, and sand to sum 1000 g/kg: they should be equal to the original
+# values!
+soildata_psd[, `:=`(
+  argila_test = round(argila_test / (1000 - esqueleto_test) * 1000),
+  silte_test = round(silte_test / (1000 - esqueleto_test) * 1000),
+  areia_test = round(areia_test / (1000 - esqueleto_test) * 1000)
+)]
+soildata_psd[, argila_diff := abs(argila - argila_test)]
+# View(soildata_psd[argila_diff != 0, .(id, argila, argila_test, argila_diff)])
+soildata_psd[, silte_diff := abs(silte - silte_test)]
+# View(soildata_psd[silte_diff != 0, .(id, silte, silte_test, silte_diff)])
+soildata_psd[, areia_diff := abs(areia - areia_test)]
+# View(soildata_psd[areia_diff != 0, .(id, areia, areia_test, areia_diff)])
+soildata_psd[, esqueleto_diff := abs(esqueleto - esqueleto_test)]
+# View(soildata_psd[esqueleto_diff != 0, .(id, esqueleto, esqueleto_test, esqueleto_diff)])
+soildata_psd[, argila_diff := NULL]
+soildata_psd[, silte_diff := NULL]
+soildata_psd[, areia_diff := NULL]
+soildata_psd[, esqueleto_diff := NULL]
+
 # The back-transform works fine. We can now remove the test columns.
 soildata_psd[, `:=`(argila1p_test = NULL, silte1p_test = NULL, areia1p_test = NULL, esqueleto1p_test = NULL)]
 soildata_psd[, `:=`(argila_test = NULL, silte_test = NULL, areia_test = NULL, esqueleto_test = NULL)]
+
+# remove 1p
+soildata_psd[, `:=`(argila1p = NULL, silte1p = NULL, areia1p = NULL, esqueleto1p = NULL)]
 
 # Export PSD data for spatial modelling ############################################################
 ncol(soildata_psd) # Result: 11
