@@ -259,6 +259,7 @@ rock_samples_selected[, profund_inf := profund_inf * camada_id]
 rock_samples_selected[, profund_sup := profund_inf - 10]
 # Update "camada_nome" appending "camada_id" to "camada_nome"
 rock_samples_selected[, camada_nome := paste0(camada_nome, camada_id)]
+print(rock_samples_selected[1:20, .(id, profund_sup, profund_inf, camada_id, camada_nome)])
 
 # MERGE EXTERNAL DATA INTO SOILDATA ################################################################
 # Merge the pseudo-samples into the main soildata data.table
