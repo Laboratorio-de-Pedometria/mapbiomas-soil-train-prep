@@ -181,12 +181,18 @@ sum(is_rock) # 838 layers out of 54555
 # Set covariates
 sort(colnames(soildata))
 covars2drop <- c(
-  "esqueleto",
-  "dataset_titulo", "organizacao_nome", "dataset_licenca", "sisb_id", "ibge_id", "coord_x", "id",
-  "coord_y", "coord_precisao", "coord_fonte", "coord_datum", "pais_id", "municipio_id", "data_ano",
-  "ano_fonte", "amostra_quanti", "amostra_area", "amostra_tipo", "taxon_sibcs", "taxon_st",
-  "taxon_wrb", "camada_nome", "camada_id", "amostra_id", "profund_sup", "profund_inf", "terrafina",
-  "pedregosidade", "rochosidade",
+  # Target variable
+  "esqueleto", "terrafina",
+  # Identifiers and metadata
+  "dataset_titulo", "organizacao_nome", "dataset_licenca", "sisb_id", "ibge_id", "id", 
+  "coord_precisao", "coord_fonte", "coord_datum", "pais_id", "municipio_id", "amostra_quanti",
+  "amostra_area", "amostra_tipo", "camada_nome", "camada_id", "amostra_id", 
+  # Redundant covariates
+  "coord_x", "coord_y",  "data_ano", "taxon_sibcs", "taxon_st", "taxon_wrb", "profund_sup",
+  "profund_inf", "ano_fonte", "pedregosidade", "rochosidade",
+  # Near zero variance covariates
+  "GurupiProv", "SaoLuisProv", "Stagnosols",
+  # Non-predictive covariates
   "Massad_aguaProv", "DENSIC", "bdod_100_200cm"
 )
 # Check remaining covariates
@@ -210,9 +216,9 @@ if (length(near_zero_variance_covars) == 0) {
   print("Covariates with near-zero variance:")
   print(near_zero_variance_covars)
 }
-# 'GurupiProv', 'SaoLuisProv', 'Stagnosols', and "dist2sand"
-covars_names <- setdiff(covars_names, near_zero_variance_covars)
-print(covars_names)
+# 'GurupiProv', 'SaoLuisProv', and 'Stagnosols' was moved to list above; "dist2sand" was kept
+# covars_names <- setdiff(covars_names, near_zero_variance_covars)
+# print(covars_names)
 
 # 2. Feature selection: remove covariates with high correlation
 # Compute Spearman correlation matrix between quantitative covariates
@@ -355,6 +361,7 @@ for (i in 1:nrow(hyperparameters)) {
     mtry = hyperparameters$mtry[i],
     min.node.size = hyperparameters$min_node_size[i],
     max.depth = hyperparameters$max_depth[i],
+    always.split.variables = c(),
     replace = TRUE,
     verbose = TRUE,
     num.threads = parallel::detectCores() - 1
