@@ -186,7 +186,8 @@ covars2drop <- c(
   "coord_y", "coord_precisao", "coord_fonte", "coord_datum", "pais_id", "municipio_id", "data_ano",
   "ano_fonte", "amostra_quanti", "amostra_area", "amostra_tipo", "taxon_sibcs", "taxon_st",
   "taxon_wrb", "camada_nome", "camada_id", "amostra_id", "profund_sup", "profund_inf", "terrafina",
-  "pedregosidade", "rochosidade" 
+  "pedregosidade", "rochosidade",
+  "Massad_aguaProv", "DENSIC"
 )
 # Check remaining covariates
 colnames(soildata[, !..covars2drop])
@@ -222,7 +223,7 @@ correlation_matrix <- cor(
   use = "pairwise.complete.obs"
 )
 # Identify highly correlated covariates
-cor_limit <- 0.98
+cor_limit <- 0.95
 high_correlation <- which(abs(correlation_matrix) > cor_limit, arr.ind = TRUE)
 high_correlation <- high_correlation[high_correlation[, 1] != high_correlation[, 2], ]
 high_correlation <- high_correlation[order(high_correlation[, 1]), ]
@@ -319,23 +320,23 @@ print(covariates)
 #   suggested in initial tests in 2025 (c3). Here we try to increase it further. mtry controls the
 #   bias-variance trade-off of the model.
 #   mtry <- c(2, 4, 8, 16) # 2024 and 2025
-mtry <- c(16, 24)
+mtry <- c(16, 24, 32)
 # max_depth. Previous tests have shown that increasing max_depth improves model more than
 #   increasing the number of trees. This parameter defines how much each individual tree is allowed
 #   to learn. The best results obtained in previous/inicial tests consistently were with max_depth
 #   set 20 or 30. Here we try to fine tune it further.
 # max_depth <- c(10, 20, 30, 40)
-max_depth <- c(20, 25, 30)
+max_depth <- c(25, 30, 35)
 # num_trees. This parameter is about stabilizing the model. Previous/initial tests produced only
 #   small improvements when increasing num_trees when compared to increasing max_depth or mtry.
-#   In order to be computationally efficient, we fix num_trees to 200 here.
+#   In order to be computationally efficient, we fix num_trees to 400 here.
 # num_trees <- c(100, 200, 400, 800)
-num_trees <- 200
+num_trees <- 400
 # min_node_size. Previous/initial tests have using min_node_size = 1 causes slight overfitting,
 # while increasing to 8 is too restrictive and causes underfitting. So values of 2 and 4 where
 # consistently produced the best results in previous/initial tests. Here we try intermediate values.
 # min_node_size <- c(1, 2, 4, 8)
-min_node_size <- c(2, 3, 4, 5)
+min_node_size <- c(2, 3, 4)
 
 hyperparameters <- expand.grid(num_trees, mtry, min_node_size, max_depth)
 colnames(hyperparameters) <- c("num_trees", "mtry", "min_node_size", "max_depth")
@@ -417,7 +418,7 @@ hyper_best <- hyper_best[min_node_size == max(min_node_size), ]
 print(hyper_best)
 
 # Hard code the best hyperparameters for the model
-hyper_best <- data.frame(num_trees = 200, mtry = 24, min_node_size = 3, max_depth = 30)
+hyper_best <- data.frame(num_trees = 400, mtry = 32, min_node_size = 2, max_depth = 25)
 
 # Fit the best model
 t0 <- Sys.time()
@@ -439,7 +440,7 @@ print(skeleton_model)
 
 # Proportion of correct classification of rock layers
 round(sum(round(skeleton_model$predictions[is_rock] / 10) == 100) / sum(is_rock) * 100)
-# 90%
+# 78%
 
 # Compute regression model statistics and write to disk
 skeleton_model_stats <- error_statistics(
@@ -475,6 +476,7 @@ if (any(soildata[!is_na_skeleton, abs_error] >= abs_error_tolerance)) {
 } else {
   print(paste0("All absolute errors are below ", abs_error_tolerance, " %."))
 }
+# 3023 layers with absolute error >= 100 %
 
 # Figure: Variable importance
 variable_importance_threshold <- 0.02
