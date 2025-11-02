@@ -176,6 +176,7 @@ if (!dir.exists(rock_folder)) {
   # Re-enable s2 processing
   sf::sf_use_s2(TRUE)
 }
+rock_samples <- sf::st_as_sf(rock_samples)
 if (interactive()) {
   mapview::mapview(rock_samples)
 }
@@ -193,7 +194,7 @@ sf::sf_use_s2(old_s2)
 set.seed(1984)
 n_rock_samples <- 500
 # Use length() for sfc objects (geometry sets)
-prob_rock <- rep(n_rock_samples / length(rock_samples), length(rock_samples))
+prob_rock <- rep(n_rock_samples / nrow(rock_samples), nrow(rock_samples))
 # Prepare balancing variables: coordinates + biome code
 # lpm2 needs a matrix where each column is a balancing variable
 coords <- sf::st_coordinates(rock_samples)
