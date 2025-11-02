@@ -437,10 +437,13 @@ skeleton_model <- ranger::ranger(
 )
 Sys.time() - t0
 print(skeleton_model)
+# OOB prediction error (MSE): 4216.676 
+# R squared (OOB): 0.8542807 
 
-# Proportion of correct classification of rock layers
+# Proportion of correctly classified rock layers (esqueleto == 1000): 86%
 round(sum(round(skeleton_model$predictions[is_rock] / 10) == 100) / sum(is_rock) * 100)
-# 78%
+# Proportion of correctly classified rock layers if we consider a tolerance of 10%: 95%
+round(sum(round(skeleton_model$predictions[is_rock] / 10) >= 95) / sum(is_rock) * 100)
 
 # Compute regression model statistics and write to disk
 skeleton_model_stats <- error_statistics(
