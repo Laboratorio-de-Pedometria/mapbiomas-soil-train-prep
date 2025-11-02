@@ -135,46 +135,6 @@ soildata[, .N, by = estado_id]
 is_na_skeleton <- is.na(soildata[["esqueleto"]])
 sum(is_na_skeleton) # 7894 layers out of 54555
 
-# # Compute thickness of each soil layer
-# soildata[, espessura := profund_inf - profund_sup]
-# rockdata <- soildata[esqueleto == 1000, ]
-# print(rockdata[, .(id, camada_nome, profund_sup, profund_inf, espessura)])
-# # If a rock layer has thickness (espessura) greater than 10 cm, slice it into multiple layers of
-# # about 10 cm that fit into the the original layer thickness (espessura). For example, if a rock
-# # layer has thickness of 25 cm, slice it into three layers of thickness 8.33 cm each.
-# rockdata_expanded <- data.table::data.table()
-# for (i in 1:nrow(rockdata)) {
-#   layer_thickness <- rockdata[i, espessura]
-#   if (layer_thickness > 10) {
-#     num_slices <- ceiling(layer_thickness / 10)
-#     slice_thickness <- layer_thickness / num_slices
-#     for (j in 0:(num_slices - 1)) {
-#       new_layer <- data.table::copy(rockdata[i, ])
-#       new_layer[, profund_sup := profund_sup + j * slice_thickness]
-#       new_layer[, profund_inf := profund_sup + slice_thickness]
-#       new_layer[, espessura := slice_thickness]
-#       rockdata_expanded <- rbind(rockdata_expanded, new_layer)
-#     }
-#   } else {
-#     rockdata_expanded <- rbind(rockdata_expanded, rockdata[i, ])
-#   }
-# }
-# rockdata_expanded[, profund_sup := round(profund_sup, 1)]
-# rockdata_expanded[, profund_inf := round(profund_inf, 1)]
-# rockdata_expanded[, espessura := round(profund_inf - profund_sup, 1)]
-# # Update layer order (camada_id) by soil profile (id)
-# rockdata_expanded[, camada_id := seq_len(.N), by = id]
-# nrow(rockdata_expanded) # 3735 layers
-# print(rockdata_expanded[, .(id, camada_nome, profund_sup, profund_inf, espessura)])
-# # Replace original rock layers with expanded rock layers.
-# soildata <- soildata[is.na(esqueleto) | esqueleto < 1000, ]
-# soildata <- rbind(soildata, rockdata_expanded)
-# summary_soildata(soildata)
-# # Layers: 57452
-# # Events: 18870
-# # Georeferenced events: 16360
-# # Datasets: 265
-
 # Identify soil layers with proportion of coarse fragments equal to 100%
 is_rock <- soildata[!is_na_skeleton, esqueleto == 1000]
 sum(is_rock) # 838 layers out of 54555
