@@ -482,7 +482,7 @@ if (any(soildata[!is_na_skeleton, abs_error] >= abs_error_tolerance)) {
 } else {
   print(paste0("All absolute errors are below ", abs_error_tolerance, " %."))
 }
-# 2936 layers with absolute error >= 100 %
+# 2895 layers with absolute error >= 100 %
 
 # Figure: Variable importance
 variable_importance_threshold <- 0.02
@@ -527,8 +527,8 @@ dev.off()
 skeleton_digits <- 0
 tmp <- predict(skeleton_model, data = covariates[is_na_skeleton, ])
 soildata[is_na_skeleton, esqueleto := round(tmp$predictions, skeleton_digits)]
-nrow(unique(soildata[, "id"])) # Result: 18676
-nrow(soildata) # Result: 53562
+nrow(unique(soildata[, "id"])) # Result: 18870
+nrow(soildata) # Result: 54555
 
 # Figure. Distribution of soil skeleton data
 file_path <- paste0("res/fig/", collection, "_skeleton_histogram.png")
@@ -556,16 +556,16 @@ tmp <- soildata[
     !is.na(profund_sup) & !is.na(profund_inf)
 ]
 summary_soildata(tmp)
-# Layers: 46271
-# Events: 15984
-# Georeferenced events: 13775
-# Datasets: 237
+# Layers: 47182
+# Events: 16179
+# Georeferenced events: 13966
+# Datasets: 242
 
 # Write data to disk ###############################################################################
 soildata[, abs_error := NULL]
 summary_soildata(soildata)
-# Layers: 53562
-# Events: 18676
-# Georeferenced events: 16170
-# Datasets: 261
+# Layers: 54555
+# Events: 18870
+# Georeferenced events: 16360
+# Datasets: 265
 data.table::fwrite(soildata, "data/14_soildata.txt", sep = "\t")
