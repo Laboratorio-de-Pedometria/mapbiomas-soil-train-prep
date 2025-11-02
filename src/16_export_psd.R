@@ -88,7 +88,6 @@ data.table::setnames(soildata_psd, old = c("coord_x", "coord_y"), new = c("longi
 # rows by id and profundidade.
 col_order <- c("id", "longitude", "latitude", "profundidade", "esqueleto", "areia", "silte", "argila")
 soildata_psd <- soildata_psd[, ..col_order][order(id, profundidade)]
-print(soildata_psd)
 if (interactive()) {
   View(soildata_psd)
 }
