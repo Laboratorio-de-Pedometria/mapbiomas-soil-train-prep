@@ -187,9 +187,7 @@ covars2drop <- c(
   "ano_fonte", "amostra_quanti", "amostra_area", "amostra_tipo", "taxon_sibcs", "taxon_st",
   "taxon_wrb", "camada_nome", "camada_id", "amostra_id", "profund_sup", "profund_inf", "terrafina",
   "pedregosidade", "rochosidade",
-  "Massad_aguaProv", "DENSIC", "DATASET_COARSE", "bdod_100_200cm", "Plinthosols", "dev_magnitude",
-  "Arenosols", "black_soils", "CosteiraMargem_ContinentalProv", "VulcanicasSubprov",
-  "SedimentosSubprov", "altitude", "Alisols"
+  "Massad_aguaProv", "DENSIC", "bdod_100_200cm"
 )
 # Check remaining covariates
 colnames(soildata[, !..covars2drop])
@@ -226,7 +224,7 @@ correlation_matrix <- cor(
 )
 # Identify highly correlated covariates
 cor_limit <- 0.95
-high_correlation <- which(abs(correlation_matrix) > cor_limit, arr.ind = TRUE)
+high_correlation <- which(abs(correlation_matrix) >= cor_limit, arr.ind = TRUE)
 high_correlation <- high_correlation[high_correlation[, 1] != high_correlation[, 2], ]
 high_correlation <- high_correlation[order(high_correlation[, 1]), ]
 if (nrow(high_correlation) == 0) {
@@ -420,7 +418,7 @@ hyper_best <- hyper_best[min_node_size == max(min_node_size), ]
 print(hyper_best)
 
 # Hard code the best hyperparameters for the model
-hyper_best <- data.frame(num_trees = 400, mtry = 40, min_node_size = 2, max_depth = 25)
+hyper_best <- data.frame(num_trees = 400, mtry = 50, min_node_size = 2, max_depth = 25)
 
 # Fit the best model
 t0 <- Sys.time()
@@ -439,14 +437,14 @@ skeleton_model <- ranger::ranger(
 )
 Sys.time() - t0
 print(skeleton_model)
-# OOB prediction error (MSE): 4153.778
-# R squared (OOB): 0.8564543
+# OOB prediction error (MSE): 4142.32
+# R squared (OOB): 0.8568503
 
 # Proportion of correctly classified rock layers (esqueleto == 1000)
 # Tolerance of 0, 5, and 10%
-round(sum(round(skeleton_model$predictions[is_rock] / 10) == 100) / sum(is_rock) * 100) # 88%
-round(sum(round(skeleton_model$predictions[is_rock] / 10) >= 95) / sum(is_rock) * 100) # 96%
-round(sum(round(skeleton_model$predictions[is_rock] / 10) >= 90) / sum(is_rock) * 100) # 99%
+round(sum(round(skeleton_model$predictions[is_rock] / 10) == 100) / sum(is_rock) * 100) # 90%
+round(sum(round(skeleton_model$predictions[is_rock] / 10) >= 95) / sum(is_rock) * 100) # 99%
+round(sum(round(skeleton_model$predictions[is_rock] / 10) >= 90) / sum(is_rock) * 100) # 100%
 
 # Compute regression model statistics and write to disk
 skeleton_model_stats <- error_statistics(
@@ -482,7 +480,7 @@ if (any(soildata[!is_na_skeleton, abs_error] >= abs_error_tolerance)) {
 } else {
   print(paste0("All absolute errors are below ", abs_error_tolerance, " %."))
 }
-# 2895 layers with absolute error >= 100 %
+# 2900 layers with absolute error >= 100 %
 
 # Figure: Variable importance
 variable_importance_threshold <- 0.02
