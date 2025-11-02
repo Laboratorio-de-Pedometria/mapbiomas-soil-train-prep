@@ -125,6 +125,7 @@ sand_samples_selected[, `:=`(
   areia = 1000,
   silte = 0,
   argila = 0,
+  carbono = 0,
   ctc = NA_real_,
   ph_h2o = NA_real_,
   dsi = NA_real_
@@ -180,22 +181,34 @@ if (interactive()) {
 }
 # 12421
 
-# Select a random subset of the pseudo-samples. Sampling is performed using a stratified sampling
-# approach using the coordinates as strata. We will use a ballanced sampling approach to ensure
-# that the samples are well distributed in space.
+# Intersect Brazilian biomes at the locations of the rocky soil pseudo-samples
+old_s2 <- sf::sf_use_s2()
+sf::sf_use_s2(FALSE)
+rock_samples <- sf::st_intersection(rock_samples, biome)
+sf::sf_use_s2(old_s2)
+
+# Select a random subset of the pseudo-samples. Sampling is performed using a balanced sampling
+# approach using 1) the coordinates and 2) the biome as strata. We will use a balanced sampling
+# approach to ensure that the samples are well distributed in space and in biome.
 set.seed(1984)
 n_rock_samples <- 500
 # Use length() for sfc objects (geometry sets)
 prob_rock <- rep(n_rock_samples / length(rock_samples), length(rock_samples))
-rock_samples_idx <- BalancedSampling::lpm2(prob_rock, sf::st_coordinates(rock_samples))
+# Prepare balancing variables: coordinates + biome code
+# lpm2 needs a matrix where each column is a balancing variable
+coords <- sf::st_coordinates(rock_samples)
+biome_numeric <- as.numeric(as.factor(rock_samples$code_biome))
+# Balanced sampling
+rock_samples_idx <- BalancedSampling::lpm2(prob_rock, cbind(coords, biome = biome_numeric))
 rock_samples_selected <- rock_samples[rock_samples_idx, ]
 length(rock_samples_selected)
 # 500
+rm(rock_samples_idx, prob_rock, biome_numeric, coords)
 
 # Check spatial distribution of the selected samples
-if (FALSE) {
+if (interactive()) {
   mapview::mapview(rock_samples) +
-    mapview::mapview(rock_samples_selected, col.regions = "red")
+    mapview::mapview(rock_samples_selected, col.regions = "red", cex = 4)
 }
 
 # Extract coordinates to a data.table
@@ -207,9 +220,9 @@ data.table::setnames(rock_samples_selected, old = c("X", "Y"), new = c("coord_x"
 
 # Add columns to match the structure of "soildata"
 rock_samples_selected[, `:=`(
-  dataset_id = "rocky-outcrop-pseudo-sample",
+  dataset_id = "rock-pseudo",
   observacao_id = .I,
-  id = paste0("rocky-outcrop-pseudo-sample-", .I),
+  id = paste0("rock-pseudo-", .I),
   dataset_titulo = "Pseudo-sample from rocky outcrop",
   organizacao_nome = "MapBiomas",
   dataset_licenca = "CC-BY 4.0",
@@ -223,29 +236,29 @@ rock_samples_selected[, `:=`(
   camada_nome = "R",
   camada_id = 1,
   profund_sup = 0,
-  profund_inf = 20,
+  profund_inf = 10,
   esqueleto = 1000,
   terrafina = 0,
   areia = 0,
   silte = 0,
   argila = 0,
+  carbono = 0,
   ctc = NA_real_,
   ph_h2o = NA_real_,
   dsi = NA_real_
 )]
 
 # Replicate rows
-rock_samples_selected <- rock_samples_selected[rep(1:.N, each = 5)]
+rock_samples_selected <- rock_samples_selected[rep(1:.N, each = 10)]
 
 # Update camada_id according to its order inside "id"
 rock_samples_selected[, camada_id := 1:.N, by = id]
-
 # Update depth intervals according to camada_id
-rock_samples_selected[, profund_sup := profund_sup * camada_id]
 rock_samples_selected[, profund_inf := profund_inf * camada_id]
-
+rock_samples_selected[, profund_sup := profund_inf - 10]
 # Update "camada_nome" appending "camada_id" to "camada_nome"
 rock_samples_selected[, camada_nome := paste0(camada_nome, camada_id)]
+rock_samples_selected[1:20, .(id, profund_sup, profund_inf, camada_id, camada_nome, esqueleto, areia, silte, argila)]
 
 # MERGE EXTERNAL DATA INTO SOILDATA ################################################################
 # Merge the pseudo-samples into the main soildata data.table
@@ -254,11 +267,10 @@ soildata <- data.table::rbindlist(
   use.names = TRUE, fill = TRUE
 )
 summary_soildata(soildata)
-# Layers: 58562
-# Events: 19676
-# Georeferenced events: 17170
-# Datasets: 263
+# Layers: 64555
+# Events: 19870
+# Georeferenced events: 17360
+# Datasets: 267
 # Save the merged soildata to a file
 file_path <- "data/15_soildata.txt"
 data.table::fwrite(soildata, file_path, sep = "\t")
-# End of script
