@@ -10,17 +10,59 @@ collection <- "c3"
 # Source helper functions and packages
 source("src/00_helper_functions.r")
 
-# SOILDATA
+# LOAD SOILDATA ####################################################################################
 # Read SoilData data processed in the previous script
 file_path <- "data/15_soildata.txt"
 soildata <- data.table::fread(file_path, sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 58562
-# Events: 19676
-# Georeferenced events: 17170
-# Datasets: 263
+# Layers: 64555
+# Events: 19870
+# Georeferenced events: 17360
+# Datasets: 267
 
-# PARTICLE SIZE DISTRIBUTION
+# ROCK LAYERS EXPANSION ############################################################################
+# Compute thickness of each soil layer
+soildata[, espessura := profund_inf - profund_sup]
+rockdata <- soildata[esqueleto == 1000, ]
+print(rockdata[, .(id, camada_nome, profund_sup, profund_inf, espessura)])
+
+# If a rock layer has thickness (espessura) greater than 10 cm, slice it into multiple layers of
+# about 10 cm that fit into the the original layer thickness (espessura). For example, if a rock
+# layer has thickness of 25 cm, slice it into three layers of thickness 8.33 cm each.
+rockdata_expanded <- data.table::data.table()
+for (i in 1:nrow(rockdata)) {
+  layer_thickness <- rockdata[i, espessura]
+  if (layer_thickness > 10) {
+    num_slices <- ceiling(layer_thickness / 10)
+    slice_thickness <- layer_thickness / num_slices
+    for (j in 0:(num_slices - 1)) {
+      new_layer <- data.table::copy(rockdata[i, ])
+      new_layer[, profund_sup := profund_sup + j * slice_thickness]
+      new_layer[, profund_inf := profund_sup + slice_thickness]
+      new_layer[, espessura := slice_thickness]
+      rockdata_expanded <- rbind(rockdata_expanded, new_layer)
+    }
+  } else {
+    rockdata_expanded <- rbind(rockdata_expanded, rockdata[i, ])
+  }
+}
+rockdata_expanded[, profund_sup := round(profund_sup, 1)]
+rockdata_expanded[, profund_inf := round(profund_inf, 1)]
+rockdata_expanded[, espessura := round(profund_inf - profund_sup, 1)]
+# Update layer order (camada_id) by soil profile (id)
+rockdata_expanded[, camada_id := seq_len(.N), by = id]
+nrow(rockdata_expanded) # 8735 layers (includes all layers)
+print(rockdata_expanded[, .(id, camada_nome, profund_sup, profund_inf, espessura)])
+# Replace original rock layers with expanded rock layers.
+soildata <- soildata[is.na(esqueleto) | esqueleto < 1000, ]
+soildata <- rbind(soildata, rockdata_expanded)
+summary_soildata(soildata)
+# Layers: 67452
+# Events: 19870
+# Georeferenced events: 17360
+# Datasets: 267
+
+# PARTICLE SIZE DISTRIBUTION #######################################################################
 # Create a data.table with the particle size distribution
 # The target variables are skeleton (esqueleto), argila (clay), silte (silt), and areia (sand). We
 # also need the coordinates (coord_x, coord_y) and the depth interval (profund_sup, profund_inf).
@@ -31,9 +73,9 @@ soildata_psd <- soildata[
   .(id, coord_x, coord_y, profund_sup, profund_inf, esqueleto, argila, silte, areia)
 ]
 summary_soildata(soildata_psd)
-# Layers: 43833
-# Events: 14775
-# Georeferenced events: 14775
+# Layers: 51415
+# Events: 14966
+# Georeferenced events: 14966
 
 # Compute the depth as the midpoint of the depth interval and drop the depth interval columns.
 soildata_psd[, profundidade := profund_sup + (profund_inf - profund_sup) / 2, by = .I]
@@ -42,10 +84,14 @@ soildata_psd[, `:=`(profund_sup = NULL, profund_inf = NULL)]
 # Rename "coord_x" and "coord_y" to "longitude" and "latitude" respectively
 data.table::setnames(soildata_psd, old = c("coord_x", "coord_y"), new = c("longitude", "latitude"))
 
-# Reorder columns: id, longitude, latitude, profundidade, esqueleto, areia, silte, argila
+# Reorder columns: id, longitude, latitude, profundidade, esqueleto, areia, silte, argila. Then sort
+# rows by id and profundidade.
 col_order <- c("id", "longitude", "latitude", "profundidade", "esqueleto", "areia", "silte", "argila")
-soildata_psd <- soildata_psd[, ..col_order]
+soildata_psd <- soildata_psd[, ..col_order][order(id, profundidade)]
 print(soildata_psd)
+if (interactive()) {
+  View(soildata_psd)
+}
 
 # Update the proportions of the fine earth fractions (argila, silte, areia)
 # This the fractions were relative to the soil fine earth (diameter < 2mm). We update
@@ -152,15 +198,14 @@ soildata_psd[, `:=`(argila_test = NULL, silte_test = NULL, areia_test = NULL, es
 
 # Export PSD data for spatial modelling ############################################################
 ncol(soildata_psd) # Result: 11
-nrow(soildata_psd) # Result: 43833
-nrow(unique(soildata_psd[, "id"])) # Result: 14775
+nrow(soildata_psd) # Result: 51415
+nrow(unique(soildata_psd[, "id"])) # Result: 14966
 # Destination folder
 folder_path <- "res/tab/"
 file_name <- "soildata_psd.csv"
 
 # List existing files in the folder_path and get the last one. Then read it.
 existing_files <- list.files(path = folder_path, pattern = file_name)
-
 write_out <- TRUE
 if (length(existing_files) > 0) {
   last_file <- existing_files[length(existing_files)]
