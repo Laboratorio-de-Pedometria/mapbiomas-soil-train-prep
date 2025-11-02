@@ -244,37 +244,37 @@ if (nrow(high_correlation) > 0) {
   )
   print("Highly correlated covariate pairs:")
   print(unique(high_cor_names))
-  
+
   # Identify all variables involved in high correlations
   vars_in_cor <- unique(c(high_cor_names$row_name, high_cor_names$col_name))
-  
+
   # For each correlated variable, count how many correlations it has
   cor_count <- table(c(high_cor_names$row_name, high_cor_names$col_name))
   cor_count <- sort(cor_count, decreasing = TRUE)
   print("\nNumber of high correlations per variable:")
   print(cor_count)
-  
+
   # Programmatically decide which variables to drop
   # Strategy: For each unique pair, drop the variable with more total correlations
   # If tied, keep the one that appears first alphabetically (arbitrary but consistent)
   covars_to_drop <- character()
   processed_pairs <- character()
-  
+
   for (i in 1:nrow(high_cor_names)) {
     var1 <- high_cor_names$row_name[i]
     var2 <- high_cor_names$col_name[i]
     pair_id <- paste(sort(c(var1, var2)), collapse = "_")
-    
+
     # Skip if we've already processed this pair
     if (pair_id %in% processed_pairs) {
       next
     }
     processed_pairs <- c(processed_pairs, pair_id)
-    
+
     # Count correlations for each variable
     count1 <- cor_count[var1]
     count2 <- cor_count[var2]
-    
+
     # Drop the one with more correlations; if tied, drop the one that comes later alphabetically
     if (count1 > count2) {
       var_to_drop <- var1
@@ -284,30 +284,21 @@ if (nrow(high_correlation) > 0) {
       # Tied: drop the one that comes later alphabetically
       var_to_drop <- ifelse(var1 > var2, var1, var2)
     }
-    
+
     # Only add if not already in the drop list
     if (!var_to_drop %in% covars_to_drop) {
       covars_to_drop <- c(covars_to_drop, var_to_drop)
     }
   }
-  
+
   cat("\nDropping", length(covars_to_drop), "covariates due to high correlation:\n")
   print(sort(covars_to_drop))
-  
+
   # Update covars_names
   covars_names <- setdiff(covars_names, covars_to_drop)
   cat("\nTotal covariates remaining:", length(covars_names), "\n")
 }
-
-# Feature selection 3: train default random forest and compute variable importance
-set.seed(1234)
-rf_model <- ranger::ranger(
-  y = soildata[!is_na_skeleton, esqueleto],
-  x = soildata[!is_na_skeleton, ..covars_names],  
-  importance = "impurity",
-  verbose = TRUE,
-  num.threads = parallel::detectCores() - 1
-)
+print(covars_names)
 
 # Missing value imputation
 # Use the missingness-in-attributes (MIA) approach with +/- Inf, with the indicator for missingness
@@ -322,11 +313,30 @@ print(covariates)
 # MODELING
 
 # Prepare grid of hyperparameters
-num.trees, mtry, min.node.size and max.depth
-num_trees <- c(100, 200, 400, 800)
-mtry <- c(2, 4, 8, 16)
-min_node_size <- c(1, 2, 4, 8)
-max_depth <- c(10, 20, 30, 40)
+# mtry. Previous tests have demonstrated that mtry is overwhelmingly the most influential
+#   hyperparameter. As mtry increases, model performance improves. Its absolute correlation with ME,
+#   MAE, RMSE, and NSE is consistently larger than 0.8. An mtry = 16 was used in 2024 (c2) and was
+#   suggested in initial tests in 2025 (c3). Here we try to increase it further. mtry controls the
+#   bias-variance trade-off of the model.
+#   mtry <- c(2, 4, 8, 16) # 2024 and 2025
+mtry <- c(16, 24)
+# max_depth. Previous tests have shown that increasing max_depth improves model more than
+#   increasing the number of trees. This parameter defines how much each individual tree is allowed
+#   to learn. The best results obtained in previous/inicial tests consistently were with max_depth
+#   set 20 or 30. Here we try to fine tune it further.
+# max_depth <- c(10, 20, 30, 40)
+max_depth <- c(20, 25, 30)
+# num_trees. This parameter is about stabilizing the model. Previous/initial tests produced only
+#   small improvements when increasing num_trees when compared to increasing max_depth or mtry.
+#   In order to be computationally efficient, we fix num_trees to 200 here.
+# num_trees <- c(100, 200, 400, 800)
+num_trees <- 200
+# min_node_size. Previous/initial tests have using min_node_size = 1 causes slight overfitting,
+# while increasing to 8 is too restrictive and causes underfitting. So values of 2 and 4 where
+# consistently produced the best results in previous/initial tests. Here we try intermediate values.
+# min_node_size <- c(1, 2, 4, 8)
+min_node_size <- c(2, 3, 4, 5)
+
 hyperparameters <- expand.grid(num_trees, mtry, min_node_size, max_depth)
 colnames(hyperparameters) <- c("num_trees", "mtry", "min_node_size", "max_depth")
 print(hyperparameters)
@@ -345,7 +355,8 @@ for (i in 1:nrow(hyperparameters)) {
     min.node.size = hyperparameters$min_node_size[i],
     max.depth = hyperparameters$max_depth[i],
     replace = TRUE,
-    verbose = TRUE
+    verbose = TRUE,
+    num.threads = parallel::detectCores() - 1
   )
   observed <- soildata[!is_na_skeleton, esqueleto]
   predicted <- model$predictions
