@@ -519,12 +519,12 @@ plot(
   y = soildata[!is_na_skeleton, esqueleto], x = skeleton_model$predictions,
   panel.first = grid(),
   pch = 21, bg = color_palette[as.numeric(color_class)],
-  ylab = "Observed proportion of coarse fragments (%)",
-  xlab = "Fitted proportion of coarse fragments (%)"
+  ylab = "Observed proportion of coarse fragments (dag/kg)",
+  xlab = "Fitted proportion of coarse fragments (dag/kg)"
 )
 abline(0, 1)
 legend("topleft",
-  title = "Absolute error (%)",
+  title = "Absolute error (dag/kg)",
   legend = levels(color_class),
   pt.bg = color_palette, border = "white", box.lwd = 0, pch = 21
 )
@@ -542,7 +542,7 @@ file_path <- paste0("res/fig/", collection, "_skeleton_histogram.png")
 png(file_path, width = 480 * 3, height = 480 * 3, res = 72 * 3)
 par(mar = c(5, 4, 2, 2) + 0.1)
 hist(soildata[, esqueleto],
-  xlab = "Proportion of coarse fragments (%)",
+  xlab = "Proportion of coarse fragments (dag/kg)",
   ylab = paste0("Absolute frequency (n = ", length(soildata[, esqueleto]), ")"),
   main = "", col = "gray", border = "gray"
 )
