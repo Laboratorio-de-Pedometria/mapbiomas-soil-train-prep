@@ -15,9 +15,9 @@ source("src/00_helper_functions.r")
 file_path <- "data/15_soildata.txt"
 soildata <- data.table::fread(file_path, sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 64555
-# Events: 19870
-# Georeferenced events: 17360
+# Layers: 56118
+# Events: 19445
+# Georeferenced events: 16943
 # Datasets: 267
 
 # ROCK LAYERS EXPANSION ############################################################################
@@ -51,15 +51,15 @@ rockdata_expanded[, profund_inf := round(profund_inf, 1)]
 rockdata_expanded[, espessura := round(profund_inf - profund_sup, 1)]
 # Update layer order (camada_id) by soil profile (id)
 rockdata_expanded[, camada_id := seq_len(.N), by = id]
-nrow(rockdata_expanded) # 8735 layers (includes all layers)
+nrow(rockdata_expanded) # 7904 layers (includes all layers)
 print(rockdata_expanded[, .(id, camada_nome, profund_sup, profund_inf, espessura)])
 # Replace original rock layers with expanded rock layers.
 soildata <- soildata[is.na(esqueleto) | esqueleto < 1000, ]
 soildata <- rbind(soildata, rockdata_expanded)
 summary_soildata(soildata)
-# Layers: 67452
-# Events: 19870
-# Georeferenced events: 17360
+# Layers: 58266
+# Events: 19445
+# Georeferenced events: 16943
 # Datasets: 267
 
 # PARTICLE SIZE DISTRIBUTION #######################################################################
@@ -73,20 +73,22 @@ soildata_psd <- soildata[
   .(id, coord_x, coord_y, profund_sup, profund_inf, esqueleto, argila, silte, areia)
 ]
 summary_soildata(soildata_psd)
-# Layers: 51415
-# Events: 14966
-# Georeferenced events: 14966
+# Layers: 43855
+# Events: 14543
+# Georeferenced events: 14543
 
 # Compute the depth as the midpoint of the depth interval and drop the depth interval columns.
-soildata_psd[, profundidade := profund_sup + (profund_inf - profund_sup) / 2, by = .I]
+soildata_psd[, profundidade := (profund_inf + profund_sup) / 2, by = .I]
 soildata_psd[, `:=`(profund_sup = NULL, profund_inf = NULL)]
+# Check depth range
+summary(soildata_psd$profundidade)
 
-# Drop rows with depth (profundidade) > 105
-soildata_psd <- soildata_psd[profundidade <= 105, ]
+# Drop rows with depth (profundidade) > 100
+soildata_psd <- soildata_psd[profundidade <= 100, ]
 summary_soildata(soildata_psd)
-# Layers: 48900
-# Events: 14948
-# Georeferenced events: 14948
+# Layers: 43855
+# Events: 14543
+# Georeferenced events: 14543
 
 # Rename "coord_x" and "coord_y" to "longitude" and "latitude" respectively
 data.table::setnames(soildata_psd, old = c("coord_x", "coord_y"), new = c("longitude", "latitude"))
@@ -187,8 +189,8 @@ soildata_psd[, `:=`(argila1p = NULL, silte1p = NULL, areia1p = NULL, esqueleto1p
 
 # Export PSD data for spatial modelling ############################################################
 ncol(soildata_psd) # Result: 11
-nrow(soildata_psd) # Result: 48900
-nrow(unique(soildata_psd[, "id"])) # Result: 14948
+nrow(soildata_psd) # Result: 43855
+nrow(unique(soildata_psd[, "id"])) # Result: 14543
 # Destination folder
 folder_path <- "res/tab/"
 file_name <- "soildata_psd.csv"
