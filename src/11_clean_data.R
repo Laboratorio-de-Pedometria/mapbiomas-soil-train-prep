@@ -337,7 +337,7 @@ summary_soildata(soildata)
 # - When there is a lithologic discontinuity, the R layer will be designated as "IIR" or "2R" and
 # so on.
 soildata[, is_soil := !grepl("^R$|^IIR$|^2R$|^IIIR$|^3R$", camada_nome, ignore.case = FALSE)]
-soildata[is_soil == FALSE, .N] # 299 layers
+soildata[is_soil == FALSE, .N] # 296 layers
 # - Older studies may use the letter "D" such as in ctb0674 and ctb0787 to represent the bedrock or
 #   saprolithic material. We will consider these layers as non-soil layers when they lack data on
 #   carbon or clay content. The cases of lithologic discontinuity represented by "IID" or "2D" will
@@ -346,7 +346,7 @@ soildata[
   grepl("^D$|^IID$|^2D$", camada_nome, ignore.case = FALSE) & (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 305 layers
+soildata[is_soil == FALSE, .N] # 302 layers
 # - Some researchers use the symbols CR and RCr to represent the bedrock or hard saprolithic
 #   material, such as ctb0005, ctb0006, ctb0025, ctb0030. Note that most of these studies were
 #   carried out in the south of Brazil. We will consider these layers as non-soil layers when they
@@ -355,7 +355,7 @@ soildata[
   grepl("^CR|RCr$", camada_nome, ignore.case = FALSE) & (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 337 layers
+soildata[is_soil == FALSE, .N] # 328 layers
 # - We may also find designations such as 2C/R, 2C/R, 2C/R, 2RC, 2RC, 2RC, C/CR, and C/R. These
 #   designations indicate that the layer is a transition between a soil horizon and the bedrock. We
 #   will consider these layers as non-soil layers when they lack data on carbon or clay content.
@@ -364,23 +364,22 @@ soildata[
     (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 342 layers
+soildata[is_soil == FALSE, .N] # 333 layers
 
 # Special cases
 # ctb0003
-# ATTENTION: WE SHOULD ADD 10 CM-THICK LAYERS TO THE EVENTS INSTEAD OF 20 CM-THICK LAYERS!!!!!!!!!!!
 # The study planned to sample the 0-20 cm layer only. When the soil was shallower than 20 cm, the
-# soil was sampled until the bedrock. Thus, if profund_inf < 20 cm, add a 20 cm thick layer
+# soil was sampled until the bedrock. Thus, if profund_inf < 20 cm, add a 10-cm thick layer
 # starting from profund_inf and name it "R".
 ctb0003 <- soildata[dataset_id == "ctb0003" & profund_inf < 20, ]
 ctb0003[, profund_sup := profund_inf]
-ctb0003[, profund_inf := profund_sup + (20 - profund_sup)]
+ctb0003[, profund_inf := profund_sup + (10 - profund_sup)]
 ctb0003[, camada_nome := "R"]
 ctb0003[, is_soil := FALSE]
 soildata <- rbind(soildata, ctb0003)
 # sort data
 soildata <- soildata[order(id, profund_sup, profund_inf)]
-soildata[is_soil == FALSE, .N] # 455 layers
+soildata[is_soil == FALSE, .N] # 446 layers
 
 # Check multiple endpoints per event
 # For each 'id', count the number of layers where is_soil == FALSE. If there are multiple layers
