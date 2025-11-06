@@ -318,6 +318,7 @@ soildata[, min_profund_sup := NULL]
 all(soildata[has_litter == TRUE & camada_id == 1, profund_sup] == 0) # should all be 0 now
 soildata[, has_litter := NULL]
 soildata[, is_litter := NULL]
+summary(soildata[, .(profund_sup, profund_inf)])
 
 # MAXIMUM DEPTH
 # Filter out soil layers starting below the maximum depth. We will work only with data from layers
@@ -380,6 +381,7 @@ soildata <- rbind(soildata, ctb0003)
 # sort data
 soildata <- soildata[order(id, profund_sup, profund_inf)]
 soildata[is_soil == FALSE, .N] # 446 layers
+
 
 # Check multiple endpoints per event
 # For each 'id', count the number of layers where is_soil == FALSE. If there are multiple layers
