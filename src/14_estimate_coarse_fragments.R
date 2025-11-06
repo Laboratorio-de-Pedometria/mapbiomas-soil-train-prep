@@ -71,7 +71,7 @@ covars2drop <- c(
   # Near zero variance covariates
   "GurupiProv", "SaoLuisProv", "Stagnosols", "dist2sand",
   # Non-predictive covariates
-  "Massad_aguaProv", "DENSIC", "bdod_100_200cm"
+  "Massad_aguaProv", "DENSIC", "bdod_100_200cm", "EHRZN"
 )
 # Check remaining covariates
 colnames(soildata[, !..covars2drop])
@@ -321,12 +321,12 @@ skeleton_model <- ranger::ranger(
 )
 Sys.time() - t0
 print(skeleton_model)
-# OOB prediction error (MSE): 4160.929
-# R squared (OOB): 0.8562072
+# OOB prediction error (MSE): 4198.282
+# R squared (OOB): 0.8512358
 
 # Proportion of correctly classified rock layers (esqueleto == 1000)
 # Tolerance of 0, 5, and 10%
-round(sum(round(skeleton_model$predictions[is_rock] / 10) == 100) / sum(is_rock) * 100) # 89%
+round(sum(round(skeleton_model$predictions[is_rock] / 10) == 100) / sum(is_rock) * 100) # 92%
 round(sum(round(skeleton_model$predictions[is_rock] / 10) >= 95) / sum(is_rock) * 100) # 98%
 round(sum(round(skeleton_model$predictions[is_rock] / 10) >= 90) / sum(is_rock) * 100) # 100%
 
@@ -338,6 +338,8 @@ skeleton_model_stats <- error_statistics(
 file_path <- paste0("res/tab/", collection, "_skeleton_ranger_model_statistics.txt")
 data.table::fwrite(skeleton_model_stats, file_path, sep = "\t")
 print(round(skeleton_model_stats, 2))
+#             me   mae     mse  rmse  mec slope
+# predicted 1.59 24.14 4271.46 65.36 0.65  1.03
 
 # Write model parameters to disk
 file_path <- paste0("res/tab/", collection, "_skeleton_ranger_model_parameters.txt")
@@ -364,7 +366,7 @@ if (any(soildata[!is_na_skeleton, abs_error] >= abs_error_tolerance)) {
 } else {
   print(paste0("All absolute errors are below ", abs_error_tolerance, " %."))
 }
-# 2935 layers with absolute error >= 100 %
+# 2691 layers with absolute error >= 100 %
 
 # Figure: Variable importance
 variable_importance_threshold <- 0.02
