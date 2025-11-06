@@ -71,7 +71,7 @@ covars2drop <- c(
   # Near zero variance covariates
   "GurupiProv", "SaoLuisProv", "Stagnosols", "dist2sand",
   # Non-predictive covariates
-  "Massad_aguaProv", "DENSIC", "bdod_100_200cm", "EHRZN"
+  "Massad_aguaProv", "DENSIC", "bdod_100_200cm"
 )
 # Check remaining covariates
 colnames(soildata[, !..covars2drop])
@@ -411,8 +411,8 @@ dev.off()
 skeleton_digits <- 0
 tmp <- predict(skeleton_model, data = covariates[is_na_skeleton, ])
 soildata[is_na_skeleton, esqueleto := round(tmp$predictions, skeleton_digits)]
-nrow(unique(soildata[, "id"])) # Result: 18870
-nrow(soildata) # Result: 54555
+nrow(unique(soildata[, "id"])) # Result: 18845
+nrow(soildata) # Result: 50118
 
 # Figure. Distribution of soil skeleton data
 file_path <- paste0("res/fig/", collection, "_skeleton_histogram.png")
@@ -440,16 +440,16 @@ tmp <- soildata[
     !is.na(profund_sup) & !is.na(profund_inf)
 ]
 summary_soildata(tmp)
-# Layers: 47182
-# Events: 16179
-# Georeferenced events: 13966
-# Datasets: 242
+# Layers: 43060
+# Events: 16146
+# Georeferenced events: 13943
+# Datasets: 241
 
 # Write data to disk ###############################################################################
 soildata[, abs_error := NULL]
 summary_soildata(soildata)
-# Layers: 54555
-# Events: 18870
-# Georeferenced events: 16360
+# Layers: 50118
+# Events: 18845
+# Georeferenced events: 16343
 # Datasets: 265
 data.table::fwrite(soildata, "data/14_soildata.txt", sep = "\t")
