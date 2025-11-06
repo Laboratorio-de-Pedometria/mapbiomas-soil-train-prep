@@ -323,10 +323,10 @@ soildata[, is_litter := NULL]
 # Filter out soil layers starting below the maximum depth. We will work only with data from layers
 # starting from the soil surface down to max_depth.
 nrow(soildata[profund_sup > max_depth, ])
-# 6415 layers with profund_sup > max_depth
+# 6836 layers with profund_sup > max_depth
 soildata <- soildata[profund_sup >= 0 & profund_sup <= max_depth, ]
 summary_soildata(soildata)
-# Layers: 54059
+# Layers: 53638
 # Events: 18870
 # Georeferenced events: 16360
 # Datasets: 265
