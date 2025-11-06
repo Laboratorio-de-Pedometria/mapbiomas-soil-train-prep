@@ -11,7 +11,7 @@ collection <- "c3"
 source("src/00_helper_functions.r")
 
 # Define maximum depth for soil layers to be used in modeling
-max_depth <- 105
+max_depth <- 100
 
 # Read SoilData data processed in the previous script
 soildata <- data.table::fread("data/10_soildata.txt", sep = "\t", na.strings = c("", "NA", "NaN"))
