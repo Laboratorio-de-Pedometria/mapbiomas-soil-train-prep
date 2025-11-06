@@ -35,9 +35,9 @@ print(biome)
 file_path <- "data/14_soildata.txt"
 soildata <- data.table::fread(file_path, sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 54555
-# Events: 18870
-# Georeferenced events: 16360
+# Layers: 50118
+# Events: 18845
+# Georeferenced events: 16343
 # Datasets: 265
 
 # EXTERNAL DATA - BEACH, DUNE, AND SANDY SPOT PSEUDO-SAMPLES #######################################
@@ -69,16 +69,19 @@ if (interactive()) {
 # Intersect Brazilian biomes at the locations of the sandy soil pseudo-samples
 old_s2 <- sf::sf_use_s2()
 sf::sf_use_s2(FALSE)
-sand_samples <- sf::st_intersection(sand_samples, biome)
+sand_samples <- sf::st_intersection(sand_samples, biome[-7, ]) # Exclude "Sistema Costeiro" biome
 sf::sf_use_s2(old_s2)
 
 # Select a random subset of the pseudo-samples. Sampling is performed using a balanced sampling
 # approach using 1) the coordinates and 2) the biome as strata. We will use a balanced sampling
 # approach to ensure that the samples are well distributed in space and in biome.
 set.seed(1984)
-n_sand_samples <- 500
+n_sand_samples <- 100
 # Use length() for sfc objects (geometry sets)
-prob_sand <- rep(n_sand_samples / nrow(sand_samples), nrow(sand_samples))
+prob_sand <- rep(
+  n_sand_samples / nrow(sand_samples),
+  nrow(sand_samples)
+)
 # Prepare balancing variables: coordinates + biome code
 # lpm2 needs a matrix where each column is a balancing variable
 coords <- sf::st_coordinates(sand_samples)
@@ -89,7 +92,7 @@ balance_vars <- cbind(coords, biome = biome_numeric)
 sand_samples_idx <- BalancedSampling::lpm2(prob_sand, balance_vars)
 sand_samples_selected <- sand_samples[sand_samples_idx, ]
 nrow(sand_samples_selected)
-# 500
+# 100
 
 # Check spatial distribution of the selected samples
 if (interactive()) {
