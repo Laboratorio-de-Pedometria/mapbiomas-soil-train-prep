@@ -7,6 +7,9 @@ rm(list = ls())
 # Set MapBiomas Soil Collection
 collection <- "c3"
 
+# Define maximum depth for soil layers to be used in modeling
+max_depth <- 100
+
 # Install and load required packages
 if (!requireNamespace("ranger")) {
   install.packages("ranger")
@@ -21,16 +24,25 @@ source("src/00_helper_functions.r")
 file_path <- "data/13_soildata.txt"
 soildata <- data.table::fread(file_path, sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 54555
+# Layers: 54105
 # Events: 18870
 # Georeferenced events: 16360
 # Datasets: 265
-soildata[, geomorphon := as.character(geomorphon)]
 
 # DESIGN MATRIX
 
-# Depth
-soildata[, profundidade := profund_sup + (profund_inf - profund_sup) / 2, by = .I]
+# Convert categorical variables to character
+soildata[, geomorphon := as.character(geomorphon)]
+
+# Depth at the middle of the soil layer, then filter layers deeper than max_depth
+soildata[, profundidade := (profund_inf + profund_sup) / 2]
+soildata <- soildata[profundidade <= max_depth, ]
+summary(soildata[, profundidade])
+summary_soildata(soildata)
+# Layers: 50118
+# Events: 18845
+# Georeferenced events: 16343
+# Datasets: 265
 
 # Target variable: Proportion of coarse fragments (esqueleto)
 # Identify soil layers missing the proportion of coarse fragments
