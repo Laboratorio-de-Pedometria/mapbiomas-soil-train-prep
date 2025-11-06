@@ -183,12 +183,12 @@ rock_samples <- sf::st_as_sf(rock_samples)
 if (interactive()) {
   mapview::mapview(rock_samples)
 }
-# 12421
+# 12420
 
 # Intersect Brazilian biomes at the locations of the rocky soil pseudo-samples
 old_s2 <- sf::sf_use_s2()
 sf::sf_use_s2(FALSE)
-rock_samples <- sf::st_intersection(rock_samples, biome)
+rock_samples <- sf::st_intersection(rock_samples, biome[-7, ]) # Exclude "Sistema Costeiro" biome
 sf::sf_use_s2(old_s2)
 
 # Select a random subset of the pseudo-samples. Sampling is performed using a balanced sampling
@@ -205,7 +205,7 @@ biome_numeric <- as.numeric(as.factor(rock_samples$code_biome))
 # Balanced sampling
 rock_samples_idx <- BalancedSampling::lpm2(prob_rock, cbind(coords, biome = biome_numeric))
 rock_samples_selected <- rock_samples[rock_samples_idx, ]
-length(rock_samples_selected)
+nrow(rock_samples_selected)
 # 500
 rm(rock_samples_idx, prob_rock, biome_numeric, coords)
 
@@ -271,9 +271,9 @@ soildata <- data.table::rbindlist(
   use.names = TRUE, fill = TRUE
 )
 summary_soildata(soildata)
-# Layers: 64555
-# Events: 19870
-# Georeferenced events: 17360
+# Layers: 56118
+# Events: 19445
+# Georeferenced events: 16943
 # Datasets: 267
 # Save the merged soildata to a file
 file_path <- "data/15_soildata.txt"
