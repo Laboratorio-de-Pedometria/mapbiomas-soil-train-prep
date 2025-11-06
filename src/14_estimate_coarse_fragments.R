@@ -47,11 +47,11 @@ summary_soildata(soildata)
 # Target variable: Proportion of coarse fragments (esqueleto)
 # Identify soil layers missing the proportion of coarse fragments
 is_na_skeleton <- is.na(soildata[["esqueleto"]])
-sum(is_na_skeleton) # 7894 layers out of 54555
+sum(is_na_skeleton) # 7827 layers out of 50118
 
 # Identify soil layers with proportion of coarse fragments equal to 100%
 is_rock <- soildata[!is_na_skeleton, esqueleto == 1000]
-sum(is_rock) # 838 layers out of 54555
+sum(is_rock) # 756 layers out of 50118
 
 # Covariates
 
@@ -61,6 +61,7 @@ covars2drop <- c(
   # Target variable
   "esqueleto", "terrafina",
   # Identifiers and metadata
+  "dataset_id", "observacao_id",
   "dataset_titulo", "organizacao_nome", "dataset_licenca", "sisb_id", "ibge_id", "id", 
   "coord_precisao", "coord_fonte", "coord_datum", "pais_id", "municipio_id", "amostra_quanti",
   "amostra_area", "amostra_tipo", "camada_nome", "camada_id", "amostra_id", 
