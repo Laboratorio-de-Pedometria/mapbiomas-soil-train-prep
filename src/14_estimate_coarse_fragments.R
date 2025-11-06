@@ -203,7 +203,7 @@ print(covariates)
 #   bias-variance trade-off of the model.
 #   mtry <- c(2, 4, 8, 16) # 2024 and 2025
 # mtry <- c(16, 24, 32)
-mtry <- c(24, 32, 48)
+mtry <- c(24, 32, 48, 54)
 # max_depth. Previous tests have shown that increasing max_depth improves model more than
 #   increasing the number of trees. This parameter defines how much each individual tree is allowed
 #   to learn. The best results obtained in previous/inicial tests consistently were with max_depth
