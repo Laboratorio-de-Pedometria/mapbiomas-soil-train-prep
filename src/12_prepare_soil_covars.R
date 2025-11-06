@@ -13,7 +13,7 @@ source("src/00_helper_functions.r")
 # Read data produced in the previous processing script
 soildata <- data.table::fread("data/11_soildata.txt", sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 54555
+# Layers: 54105
 # Events: 18870
 # Georeferenced events: 16360
 # Datasets: 265
@@ -495,7 +495,7 @@ nrow(unique(
 ))
 # 16568
 summary_soildata(soildata)
-# Layers: 54555
+# Layers: 54105
 # Events: 18870
 # Georeferenced events: 16360
 # Datasets: 265
