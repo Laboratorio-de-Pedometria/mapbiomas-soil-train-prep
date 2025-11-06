@@ -493,7 +493,7 @@ summary(soildata[, silt_clay_ratio])
 nrow(unique(
   soildata[!is.na(coord_x) & !is.na(coord_y), .(dataset_id, observacao_id, coord_x, coord_y, data_ano)]
 ))
-# 16568
+# 16566
 summary_soildata(soildata)
 # Layers: 54105
 # Events: 18870
