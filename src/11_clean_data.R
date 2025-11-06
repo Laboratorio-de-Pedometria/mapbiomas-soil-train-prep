@@ -410,7 +410,7 @@ soildata[is_soil == FALSE, ctc := NA]
 soildata[is_soil == FALSE, dsi := NA]
 # Summary
 summary_soildata(soildata)
-# Layers: 54172
+# Layers: 53751
 # Events: 18870
 # Georeferenced events: 16360
 # Datasets: 265
@@ -439,7 +439,7 @@ soildata[, areia := round(areia)]
 # 1000 g/kg. Acceptable range is between 900 and 1100 g/kg.
 soildata[, psd_sum := argila + silte + areia]
 soildata[, psd_diff := abs(1000 - psd_sum)]
-# There are 433 layers where the sum of fine particle size fractions is only slightly different from
+# There are 427 layers where the sum of fine particle size fractions is only slightly different from
 # 1000 g/kg
 soildata[
   psd_diff <= 100 & psd_diff > 0 & !is.na(psd_sum),
@@ -508,7 +508,7 @@ soildata[, is_soil := NULL]
 soildata[, esqueleto := 1000 - terrafina]
 # Check esqueleto == NA & terrafina == NA
 soildata[is.na(esqueleto) & is.na(terrafina), .N]
-# There are 7894 layers with missing esqueleto: we will need to impute these values later on.
+# There are 7887 layers with missing esqueleto: we will need to impute these values later on.
 if (FALSE) {
   View(soildata[is.na(esqueleto) & is.na(terrafina), .N, by = camada_nome])
 }
