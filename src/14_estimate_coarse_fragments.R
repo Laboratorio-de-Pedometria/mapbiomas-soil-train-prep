@@ -302,7 +302,7 @@ hyper_best <- hyper_best[min_node_size == max(min_node_size), ]
 print(hyper_best)
 
 # Hard code the best hyperparameters for the model
-hyper_best <- data.frame(num_trees = 400, mtry = 48, min_node_size = 3, max_depth = 25)
+hyper_best <- data.frame(num_trees = 400, mtry = 54, min_node_size = 3, max_depth = 25)
 
 # Fit the best model
 t0 <- Sys.time()
