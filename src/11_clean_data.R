@@ -373,7 +373,7 @@ soildata[is_soil == FALSE, .N] # 333 layers
 # starting from profund_inf and name it "R".
 ctb0003 <- soildata[dataset_id == "ctb0003" & profund_inf < 20, ]
 ctb0003[, profund_sup := profund_inf]
-ctb0003[, profund_inf := profund_sup + (10 - profund_sup)]
+ctb0003[, profund_inf := profund_sup + 10]
 ctb0003[, camada_nome := "R"]
 ctb0003[, is_soil := FALSE]
 soildata <- rbind(soildata, ctb0003)
