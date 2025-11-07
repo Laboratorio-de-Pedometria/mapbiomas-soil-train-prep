@@ -320,6 +320,88 @@ soildata[, has_litter := NULL]
 soildata[, is_litter := NULL]
 summary(soildata[, .(profund_sup, profund_inf)])
 
+# MISSING LAYERS
+# Check for missing layers within each event (id)
+print(id_missing <- check_missing_layer(soildata))
+# There are 10073 complaints.
+if (FALSE) {
+  View(soildata[id %in% id_missing$id, .(id, camada_nome, profund_sup, profund_inf, argila, carbono)])
+}
+# 
+# National Forest Inventory datasets
+# Soil was collected at two depths only: 0-20 cm and 30-50 cm. We will add the missing layer
+# from 20-30 cm by interpolating the values of the existing layers.
+ifn_id <- c("ctb0053", "ctb0055", "ctb0056", "ctb0057", "ctb0058", "ctb0059", "ctb0060", "ctb0061")
+soildata_ifn <- soildata[dataset_id %in% ifn_id, ]
+colnames(soildata_ifn)
+cols_layers <- c(
+  "id", "camada_id", "amostra_id", "camada_nome", "profund_sup", "profund_inf",
+  "terrafina", "argila", "silte", "areia", "carbono", "ctc", "ph", "dsi", "ce", "esqueleto"
+)
+soildata_ifn_layer <- soildata_ifn[, ..cols_layers]
+soildata_ifn_layer <- add_missing_layer(soildata_ifn_layer)
+# Create "profund_mid" variable
+soildata_ifn_layer[, profund_mid := (profund_sup + profund_inf) / 2]
+# Fine earth fraction (terrafina)
+soildata_ifn_layer[,
+  terrafina := fill_empty_layer(y = terrafina, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+# Particle size distribution
+soildata_ifn_layer[,
+  argila := fill_empty_layer(y = argila, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+soildata_ifn_layer[,
+  silte := fill_empty_layer(y = silte, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+soildata_ifn_layer[,
+  areia := fill_empty_layer(y = areia, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+# Soil organic carbon
+soildata_ifn_layer[,
+  carbono := fill_empty_layer(y = carbono, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+# pH
+soildata_ifn_layer[,
+  ph := fill_empty_layer(y = ph, x = profund_mid, ylim = c(0, 14)),
+  by = id
+]
+# Cation exchange capacity
+soildata_ifn_layer[,
+  ctc := fill_empty_layer(y = ctc, x = profund_mid),
+  by = id
+]
+# Soil bulk density
+soildata_ifn_layer[,
+  dsi := fill_empty_layer(y = dsi, x = profund_mid),
+  by = id
+]
+if (FALSE) {
+  View(soildata_ifn_layer[
+    ,
+    .(
+      id, camada_nome, profund_sup, profund_inf,
+      argila, silte, areia, terrafina, carbono, ph, ctc, dsi
+    )
+  ])
+}
+# Merge with the rest of soildata_ifn
+id_idx <- which(cols_layers == "id")
+soildata_ifn <- merge(
+  unique(soildata_ifn[, !colnames(soildata_ifn) %in% cols_layers[-id_idx], with = FALSE]),
+  soildata_ifn_layer,
+  by = "id",
+  all.x = TRUE,
+  sort = FALSE
+)
+
+
+
+
 # MAXIMUM DEPTH
 # Filter out soil layers starting below the maximum depth. We will work only with data from layers
 # starting from the soil surface down to max_depth.
@@ -416,68 +498,93 @@ summary_soildata(soildata)
 # Georeferenced events: 16360
 # Datasets: 265
 
-# MISSING LAYERS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Replace original data with the data with missing layers filled
+soildata <- soildata[!dataset_id %in% ifn_id, ]
+soildata <- rbind(soildata, soildata_ifn)
 # Check for missing layers within each event (id)
 print(id_missing <- check_missing_layer(soildata))
-# There are 10073 complaints.
-if (FALSE) {
-  View(soildata[id %in% id_missing$id, .(id, camada_nome, profund_sup, profund_inf, argila, carbono)])
-}
-# Create "profund_mid" variable
-soildata[, profund_mid := (profund_sup + profund_inf) / 2]
+# There are 9194 complaints remaining.
 
-# National Forest Inventory datasets
-# Soil was collected at two depths only: 0-20 cm and 30-50 cm. We will add the missing layer
-# from 20-30 cm by interpolating the values of the existing layers.
-ifn_id <- c("ctb0053", "ctb0055", "ctb0056", "ctb0057", "ctb0058", "ctb0059", "ctb0060", "ctb0061")
-soildata_ifn <- soildata[dataset_id %in% ifn_id, ]
-soildata_ifn <- add_missing_layer(soildata_ifn)
+# Add missing layers for homogeneous soils
+# If the soil classification (taxon_sibcs) is Latossol, Latosol, Areia, Gleissol, Gleisol,
+# or Neossolo Quartzarênico, we will add the missing layers, as these soils are quite homogeneous
+# in the vertical profile.
+soildata_homogeneous <- soildata[
+  id %in% id_missing$id &
+    grepl("^(Latossol|Latosol|Areia|Gleissol|Gleisol|Neossolo Quartz)", taxon_sibcs,
+      ignore.case = TRUE
+    ),
+]
+soildata_homogeneous <- add_missing_layer(soildata_homogeneous)
 # Fine earth fraction (terrafina)
-soildata_ifn[,
+soildata_homogeneous[,
   terrafina := fill_empty_layer(y = terrafina, x = profund_mid, ylim = c(0, 1000)),
   by = id
 ]
 # Particle size distribution
-soildata_ifn[,
+soildata_homogeneous[,
   argila := fill_empty_layer(y = argila, x = profund_mid, ylim = c(0, 1000)),
   by = id
 ]
-soildata_ifn[,
+soildata_homogeneous[,
   silte := fill_empty_layer(y = silte, x = profund_mid, ylim = c(0, 1000)),
   by = id
 ]
-soildata_ifn[,
+soildata_homogeneous[,
   areia := fill_empty_layer(y = areia, x = profund_mid, ylim = c(0, 1000)),
   by = id
 ]
 # Soil organic carbon
-soildata_ifn[,
+soildata_homogeneous[,
   carbono := fill_empty_layer(y = carbono, x = profund_mid, ylim = c(0, 1000)),
   by = id
 ]
 # pH
-soildata_ifn[,
+soildata_homogeneous[,
   ph := fill_empty_layer(y = ph, x = profund_mid, ylim = c(0, 14)),
   by = id
 ]
 # Cation exchange capacity
-soildata_ifn[,
+soildata_homogeneous[,
   ctc := fill_empty_layer(y = ctc, x = profund_mid),
   by = id
 ]
 # Soil bulk density
-soildata_ifn[,
+soildata_homogeneous[,
   dsi := fill_empty_layer(y = dsi, x = profund_mid),
   by = id
 ]
-View(soildata_ifn[,
- .(id, camada_nome, profund_sup, profund_inf,
-  argila, silte, areia, terrafina, carbono, ph, ctc, dsi)]
-)
+if (FALSE) {
+  View(soildata_homogeneous[
+    ,
+    .(
+      id, camada_nome, profund_sup, profund_inf,
+      argila, silte, areia, terrafina, carbono, ph, ctc, dsi
+    )
+  ])
+}
 
+soildata_homogeneous[id == "ctb0022-L101", .(
+  id, camada_nome, profund_sup, profund_inf, profund_mid,
+  argila, silte, areia, terrafina, carbono, ph, ctc, dsi
+)]
 
-
-
+soildata_homogeneous[id == "ctb0022-L101", fill_empty_layer(y = argila, x = profund_mid, ylim = c(0, 1000)), by = id]
 
 
 
