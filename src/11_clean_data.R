@@ -486,14 +486,23 @@ soildata_smooth <- merge(
 )
 soildata_smooth[, profund_mid := NULL]
 # Replace original data with the data with missing layers filled
-soildata <- soildata[!id %in% soildata_smooth$id_idx, ]
+nrow(soildata)
+soildata <- soildata[!id %in% soildata_smooth$id, ]
+nrow(soildata)
 soildata <- rbind(soildata, soildata_smooth)
+nrow(soildata)
 rm(soildata_smooth_layer, soildata_smooth)
 summary_soildata(soildata)
-# Layers: 75817
+# Layers: 67228
 # Events: 18968
 # Georeferenced events: 16443
 # Datasets: 265
+
+# Check for missing layers within each event (id)
+print(id_missing <- check_missing_layer(soildata))
+# There are 6025 complaints remaining.
+
+
 
 
 
