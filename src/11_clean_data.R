@@ -398,6 +398,21 @@ soildata_ifn <- merge(
   all.x = TRUE,
   sort = FALSE
 )
+soildata_ifn[, profund_mid := NULL]
+# Replace original data with the data with missing layers filled
+soildata <- soildata[!dataset_id %in% ifn_id, ]
+soildata <- rbind(soildata, soildata_ifn)
+rm(soildata_ifn_layer, soildata_ifn)
+summary_soildata(soildata)
+# Layers: 61425
+# Events: 18968
+# Georeferenced events: 16443
+# Datasets: 265
+
+# Check for missing layers within each event (id)
+print(id_missing <- check_missing_layer(soildata))
+# There are 9194 complaints remaining.
+
 
 
 
@@ -513,12 +528,7 @@ summary_soildata(soildata)
 
 
 
-# Replace original data with the data with missing layers filled
-soildata <- soildata[!dataset_id %in% ifn_id, ]
-soildata <- rbind(soildata, soildata_ifn)
-# Check for missing layers within each event (id)
-print(id_missing <- check_missing_layer(soildata))
-# There are 9194 complaints remaining.
+
 
 # Add missing layers for homogeneous soils
 # If the soil classification (taxon_sibcs) is Latossol, Latosol, Areia, Gleissol, Gleisol,
