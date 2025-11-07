@@ -323,7 +323,7 @@ summary(soildata[, .(profund_sup, profund_inf)])
 # MISSING LAYERS
 # Check for missing layers within each event (id)
 print(id_missing <- check_missing_layer(soildata))
-# There are 10073 complaints.
+# There are 11969 complaints.
 if (FALSE) {
   View(soildata[id %in% id_missing$id, .(id, camada_nome, profund_sup, profund_inf, argila, carbono)])
 }
@@ -411,10 +411,89 @@ summary_soildata(soildata)
 
 # Check for missing layers within each event (id)
 print(id_missing <- check_missing_layer(soildata))
-# There are 9194 complaints remaining.
+# There are 11090 complaints remaining.
 
-
-
+# Add missing layers for homogeneous soils
+# If the soil classification (taxon_sibcs) is Latossol, Latosol, Areia, Gleissol, Gleisol,
+# or Neossolo Quartzarênico, we will add the missing layers, as these soils are quite homogeneous
+# in the vertical profile. We will use the same approach as for the IFN datasets, i.e., linear
+# interpolation of existing layers to fill in the missing layers.
+soildata_smooth <- soildata[
+  id %in% id_missing$id &
+    grepl("^(Latossol|Latosol|Areia|Gleissol|Gleisol|Neossolo Quartz)", taxon_sibcs,
+      ignore.case = TRUE
+    ),
+]
+soildata_smooth_layer <- soildata_smooth[, ..cols_layers]
+soildata_smooth_layer <- add_missing_layer(soildata_smooth_layer)
+# Create "profund_mid" variable
+soildata_smooth_layer[, profund_mid := (profund_sup + profund_inf) / 2]
+# Fine earth fraction (terrafina)
+soildata_smooth_layer[,
+  terrafina := fill_empty_layer(y = terrafina, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+# Particle size distribution
+soildata_smooth_layer[,
+  argila := fill_empty_layer(y = argila, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+soildata_smooth_layer[,
+  silte := fill_empty_layer(y = silte, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+soildata_smooth_layer[,
+  areia := fill_empty_layer(y = areia, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+# Soil organic carbon
+soildata_smooth_layer[,
+  carbono := fill_empty_layer(y = carbono, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+# pH
+soildata_smooth_layer[,
+  ph := fill_empty_layer(y = ph, x = profund_mid, ylim = c(0, 14)),
+  by = id
+]
+# Cation exchange capacity
+soildata_smooth_layer[,
+  ctc := fill_empty_layer(y = ctc, x = profund_mid),
+  by = id
+]
+# Soil bulk density
+soildata_smooth_layer[,
+  dsi := fill_empty_layer(y = dsi, x = profund_mid),
+  by = id
+]
+if (FALSE) {
+  View(soildata_smooth_layer[
+    ,
+    .(
+      id, camada_nome, profund_sup, profund_inf,
+      argila, silte, areia, terrafina, carbono, ph, ctc, dsi
+    )
+  ])
+}
+# Merge with the rest of soildata_smooth
+id_idx <- which(cols_layers == "id")
+soildata_smooth <- merge(
+  unique(soildata_smooth[, !colnames(soildata_smooth) %in% cols_layers[-id_idx], with = FALSE]),
+  soildata_smooth_layer,
+  by = "id",
+  all.x = TRUE,
+  sort = FALSE
+)
+soildata_smooth[, profund_mid := NULL]
+# Replace original data with the data with missing layers filled
+soildata <- soildata[!id %in% soildata_smooth$id_idx, ]
+soildata <- rbind(soildata, soildata_smooth)
+rm(soildata_smooth_layer, soildata_smooth)
+summary_soildata(soildata)
+# Layers: 75817
+# Events: 18968
+# Georeferenced events: 16443
+# Datasets: 265
 
 
 # MAXIMUM DEPTH
@@ -530,16 +609,7 @@ summary_soildata(soildata)
 
 
 
-# Add missing layers for homogeneous soils
-# If the soil classification (taxon_sibcs) is Latossol, Latosol, Areia, Gleissol, Gleisol,
-# or Neossolo Quartzarênico, we will add the missing layers, as these soils are quite homogeneous
-# in the vertical profile.
-soildata_homogeneous <- soildata[
-  id %in% id_missing$id &
-    grepl("^(Latossol|Latosol|Areia|Gleissol|Gleisol|Neossolo Quartz)", taxon_sibcs,
-      ignore.case = TRUE
-    ),
-]
+
 soildata_homogeneous <- add_missing_layer(soildata_homogeneous)
 # Fine earth fraction (terrafina)
 soildata_homogeneous[,
