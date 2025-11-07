@@ -354,13 +354,13 @@ check_missing_layer <- function(layer_data) {
 # necessary columns for event ID, depth top, depth bottom, and layer ID.
 add_missing_layer <- function(
     x, event.id = "id", depth.top = "profund_sup", depth.bottom = "profund_inf",
-    layer.id = "camada_id") {
+    layer.id = "camada_id", layer.name = "camada_nome") {
   # Ensure x is a data.table
   data.table::setDT(x)
 
   # Rename columns
-  old_names <- c(event.id, depth.top, depth.bottom, layer.id)
-  new_names <- c("event_id", "depth_top", "depth_bottom", "layer_id")
+  old_names <- c(event.id, depth.top, depth.bottom, layer.id, layer.name)
+  new_names <- c("event_id", "depth_top", "depth_bottom", "layer_id", "layer_name")
   data.table::setnames(x, old = old_names, new = new_names)
 
   # Check for each event_id if it is missing the top layer, i.e. min(depth_top) > 0
@@ -407,4 +407,80 @@ add_missing_layer <- function(
 
   # Return the result
   return(result)
+}
+# Spline function to fill empty layers #############################################################
+# This function fills missing values in a numeric vector using spline interpolation.
+# It takes a numeric vector 'y' with missing values (NA) and a corresponding numeric vector 'x'
+# representing the x-coordinates. The function applies several checks to determine if spline
+# interpolation is appropriate. If the conditions are met, it performs spline interpolation to
+# fill the missing values. Otherwise, it returns the original vector 'y' unchanged.
+# y: numeric vector with missing values (NA) to be filled
+# x: numeric vector representing the x-coordinates corresponding to 'y'
+# ylim: range of acceptable values for 'y'
+# Returns: numeric vector with missing values filled using spline interpolation, or the original
+#          vector 'y' if conditions are not met
+# Example usage: fill_empty_layer(c(1, NA, 3), c(1, 2, 3)) # returns c(1, 2, 3)
+# Note: The function includes several checks to ensure that spline interpolation is only applied
+# when appropriate, such as when there are enough non-missing values and no consecutive missing
+# values. It prints a message to the console indicating whether interpolation was performed.
+fill_empty_layer <- function(y, x, ylim) {
+  # Check if y is numeric
+  if (!is.numeric(y)) {
+    stop("y must be a numeric vector")
+  }
+  # Standard output message when conditions for interpolation are not met
+  no_interpolation_message <-
+    "NA values found. Conditions not met. Spline interpolation not applied. Returning original vector."
+  
+  # If no NA, return y
+  if (all(!is.na(y))) {
+    message("No NA values found. Returning original vector.")
+    return(y)
+  }
+
+  # If only one point, return it
+  if (length(y) == 1) {
+    message(no_interpolation_message)
+    return(y)
+  }
+  # If more NA than not NA, return y
+  if (sum(!is.na(y)) < sum(is.na(y))) {
+    message(no_interpolation_message)
+    return(y)
+  }
+  # If length(y) == 2, one NA, return y
+  if (length(y) == 2 & sum(is.na(y)) == 1) {
+    message(no_interpolation_message)
+    return(y)
+  }
+  # If y[1] is NA, return NA
+  if (is.na(y[1])) {
+    message(no_interpolation_message)
+    return(y)
+  }
+  # If all NA, return y
+  if (sum(!is.na(y)) == 0) {
+    message(no_interpolation_message)
+    return(y)
+  }
+  # If three points, two not NA, and y[3] is NA, return y
+  # This avoids extrapolation with only two points
+  if (length(y) == 3 & sum(!is.na(y)) == 2 & is.na(y[3])) {
+    message(no_interpolation_message)
+    return(y)
+  }
+  # If two consecutive points are NA, return y
+  if (sum(is.na(y)) > 1 & any(diff(is.na(y)) == 1)) {
+    message(no_interpolation_message)
+    return(y)
+  }
+  # Else, return spline
+  message("NA values found. Conditions met. Spline interpolation applied.")
+  out <- spline(y = y, x = x, xout = x, method = "natural")$y
+  # Correct values outside ylim if ylim is provided
+  if (!missing(ylim)) {
+    out[out < ylim[1]] <- ylim[1]
+    out[out > ylim[2]] <- ylim[2]
+  }
+  return(out)
 }
