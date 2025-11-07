@@ -44,6 +44,40 @@ summary_soildata(soildata)
 # Georeferenced events: 16343
 # Datasets: 265
 
+# MANNUAL CORRECTION OF ERRORS IN THE TARGET VARIABLE ##############################################
+# ctb0751
+# ctb0751-53 is classified as "LATOSSOLO VERMELHO ESCURO ÁLICO cascalhento A moderado textura muito
+# argilosa". The document reports values of coarse fragments as (%): 44 (A1), 22 (A3), 15 (B1),
+# 95 (B21), and 9 (B22). We think that the value of 95% is a typo, and should be 9%. We found
+# no evidence in the document of presence of such a high value of coarse fragments in this soil
+# profile. So we correct this value here. If esqueleto is 950 g/kg, then it should be 90 g/kg and
+# terrafina should be 910 g/kg.
+soildata[id == "ctb0751-53" & esqueleto == 950, `:=`(terrafina = 910, esqueleto = 90)]
+
+# EXPLORATORY DATA ANALYSIS #######################################################################
+if (FALSE) {
+  soildata_sf <- sf::st_as_sf(
+    soildata[profundidade >= 0 &
+    profundidade <= 10 &
+    !is.na(coord_datum) & esqueleto > 0 & esqueleto < 1000, .(id, coord_x, coord_y, esqueleto)],
+    coords = c("coord_x", "coord_y"),
+    crs = 4674,
+    remove = FALSE
+  )
+  nrow(soildata_sf) # 13296
+  mapview::mapview(soildata_sf, zcol = "esqueleto", layer.name = "Soil skeleton (dag/kg)")
+  # 00-10 cm: 3515 (11885)
+  # 10-20 cm: 2096 (4729)
+  # 20-30 cm: 1254 (3985)
+  # 30-40 cm: 2286 (4797)
+  # 40-50 cm: 1176 (3239)
+  # 50-60 cm: 1105 (2768)
+  # 60-70 cm: 1495 (3387)
+  # 70-80 cm: 1450 (2932)
+  # 80-90 cm: 784 (2110)
+  # 90-100 cm: 682 (1703)
+}
+
 # Target variable: Proportion of coarse fragments (esqueleto)
 # Identify soil layers missing the proportion of coarse fragments
 is_na_skeleton <- is.na(soildata[["esqueleto"]])
