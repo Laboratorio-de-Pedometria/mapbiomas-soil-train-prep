@@ -428,6 +428,14 @@ fill_empty_layer <- function(y, x, ylim) {
   if (!is.numeric(y)) {
     stop("y must be a numeric vector")
   }
+  # Check if x is numeric and has no missing values
+  if (!is.numeric(x)) {
+    stop("x must be a numeric vector")
+  }
+  if (any(is.na(x))) {
+    stop("x must not contain missing values")
+  }
+
   # Standard output message when conditions for interpolation are not met
   no_interpolation_message <-
     "NA values found. Conditions not met. Spline interpolation not applied. Returning original vector."
