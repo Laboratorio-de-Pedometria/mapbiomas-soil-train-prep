@@ -188,9 +188,11 @@ soildata_psd[, `:=`(argila_test = NULL, silte_test = NULL, areia_test = NULL, es
 soildata_psd[, `:=`(argila1p = NULL, silte1p = NULL, areia1p = NULL, esqueleto1p = NULL)]
 
 # Export PSD data for spatial modelling ############################################################
-ncol(soildata_psd) # Result: 11
-nrow(soildata_psd) # Result: 43855
-nrow(unique(soildata_psd[, "id"])) # Result: 14543
+ncol(soildata_psd) # Result: 11 columns (variables)
+nrow(soildata_psd) # Result: 43855 rows (layers)
+nrow(unique(soildata_psd[, "id"])) # Result: 14543 unique soil profiles
+length(unique(sub("-.*$", "", soildata_psd$id))) - 2 # Result: 193 unique datasets (excluding pseudo)
+
 # Destination folder
 folder_path <- "res/tab/"
 file_name <- "soildata_psd.csv"
