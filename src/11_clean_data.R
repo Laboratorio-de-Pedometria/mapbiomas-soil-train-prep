@@ -496,6 +496,9 @@ summary_soildata(soildata)
 # Datasets: 265
 
 
+
+
+
 # MAXIMUM DEPTH
 # Filter out soil layers starting below the maximum depth. We will work only with data from layers
 # starting from the soil surface down to max_depth.
@@ -606,75 +609,6 @@ summary_soildata(soildata)
 
 
 
-
-
-
-
-soildata_homogeneous <- add_missing_layer(soildata_homogeneous)
-# Fine earth fraction (terrafina)
-soildata_homogeneous[,
-  terrafina := fill_empty_layer(y = terrafina, x = profund_mid, ylim = c(0, 1000)),
-  by = id
-]
-# Particle size distribution
-soildata_homogeneous[,
-  argila := fill_empty_layer(y = argila, x = profund_mid, ylim = c(0, 1000)),
-  by = id
-]
-soildata_homogeneous[,
-  silte := fill_empty_layer(y = silte, x = profund_mid, ylim = c(0, 1000)),
-  by = id
-]
-soildata_homogeneous[,
-  areia := fill_empty_layer(y = areia, x = profund_mid, ylim = c(0, 1000)),
-  by = id
-]
-# Soil organic carbon
-soildata_homogeneous[,
-  carbono := fill_empty_layer(y = carbono, x = profund_mid, ylim = c(0, 1000)),
-  by = id
-]
-# pH
-soildata_homogeneous[,
-  ph := fill_empty_layer(y = ph, x = profund_mid, ylim = c(0, 14)),
-  by = id
-]
-# Cation exchange capacity
-soildata_homogeneous[,
-  ctc := fill_empty_layer(y = ctc, x = profund_mid),
-  by = id
-]
-# Soil bulk density
-soildata_homogeneous[,
-  dsi := fill_empty_layer(y = dsi, x = profund_mid),
-  by = id
-]
-if (FALSE) {
-  View(soildata_homogeneous[
-    ,
-    .(
-      id, camada_nome, profund_sup, profund_inf,
-      argila, silte, areia, terrafina, carbono, ph, ctc, dsi
-    )
-  ])
-}
-
-soildata_homogeneous[id == "ctb0022-L101", .(
-  id, camada_nome, profund_sup, profund_inf, profund_mid,
-  argila, silte, areia, terrafina, carbono, ph, ctc, dsi
-)]
-
-soildata_homogeneous[id == "ctb0022-L101", fill_empty_layer(y = argila, x = profund_mid, ylim = c(0, 1000)), by = id]
-
-
-
-
-# # If the soil classification (taxon_sibcs) is Latossolo, Neossolo Quartzarênico, or Gleissolo, we
-# # will add the missing layers, as these soils are quite homogeneous in the vertical profile.
-# unique(soildata[id %in% id_missing$id & grepl("Latossol|Quartz|Gleissol", taxon_sibcs), taxon_sibcs])
-# # Add missing layers for these events
-# soildata[id %in% id_missing$id & grepl("Latossol|Quartz|Gleissol", taxon_sibcs), ] <-
-#   add_missing_layer(soildata[id %in% id_missing$id & grepl("Latossol|Quartz|Gleissol", taxon_sibcs), ])
 
 # PARTICLE SIZE DISTRIBUTION
 # Round fine particle size fractions to avoid small numerical differences
