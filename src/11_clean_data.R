@@ -62,44 +62,12 @@ soildata[, camada_nome := gsub(" ", "", camada_nome)]
 # Remove "'" from layer names (camada_nome)
 soildata[, camada_nome := gsub("'", "", camada_nome)]
 # Convert starting "ll" and "ii" to Roman letters in layer names (camada_nome)
-soildata[, camada_nome := sub("^ll", "II", camada_nome)]
-soildata[, camada_nome := sub("^ii", "II", camada_nome)]
-# bw -> Bw
-soildata[, camada_nome := sub("^bw", "Bw", camada_nome)]
-# O-2O -> 0-20
-soildata[, camada_nome := sub("^O-2O", "0-20", camada_nome)]
-# 3O-5O -> 30-50
-soildata[, camada_nome := sub("^3O-5O", "30-50", camada_nome)]
-# 3O-2O -> 30-20
-soildata[, camada_nome := sub("^3O-2O", "30-20", camada_nome)]
 # Replace empty layer names (camada_nome) with "profund_sup-profund_inf"
 soildata[camada_nome == "", camada_nome := paste0(profund_sup, "-", profund_inf)]
-# B21CN -> B21cn
-soildata[, camada_nome := sub("^B21CN", "B21cn", camada_nome)]
-# Bcn21 -> B21cn
-soildata[, camada_nome := sub("^Bcn21", "B21cn", camada_nome)]
-# B2TPL -> B2tpl
-soildata[, camada_nome := sub("^B2TPL", "B2tpl", camada_nome)]
-# B31PL -> B31pl
-soildata[, camada_nome := sub("^B31PL", "B31pl", camada_nome)]
-# B3PL -> B3pl
-soildata[, camada_nome := sub("^B3PL", "B3pl", camada_nome)]
 # pl -> f
 soildata[, camada_nome := gsub("pl", "f", camada_nome, ignore.case = FALSE)]
 # cn -> c
 soildata[, camada_nome := gsub("cn", "c", camada_nome, ignore.case = FALSE)]
-# 0-20cm
-soildata[, camada_nome := gsub("0-20cm", "0-20", camada_nome, ignore.case = FALSE)]
-# 20-40cm
-soildata[, camada_nome := gsub("20-40cm", "20-40", camada_nome, ignore.case = FALSE)]
-# 40-60cm
-soildata[, camada_nome := gsub("40-60cm", "40-60", camada_nome, ignore.case = FALSE)]
-# o -> O
-soildata[, camada_nome := gsub("^o$", "O", camada_nome, ignore.case = FALSE)]
-# bHS -> Bhs
-soildata[, camada_nome := gsub("^bHS", "bhs", camada_nome, ignore.case = FALSE)]
-# T -> t
-soildata[, camada_nome := gsub("T", "t", camada_nome, ignore.case = FALSE)]
 # IIC -> 2C
 soildata[, camada_nome := gsub("^IIC", "2C", camada_nome, ignore.case = FALSE)]
 # IIB -> 2B
@@ -327,17 +295,18 @@ print(id_missing <- check_missing_layer(soildata))
 if (FALSE) {
   View(soildata[id %in% id_missing$id, .(id, camada_nome, profund_sup, profund_inf, argila, carbono)])
 }
-# 
-# National Forest Inventory datasets
-# Soil was collected at two depths only: 0-20 cm and 30-50 cm. We will add the missing layer
-# from 20-30 cm by interpolating the values of the existing layers.
-ifn_id <- c("ctb0053", "ctb0055", "ctb0056", "ctb0057", "ctb0058", "ctb0059", "ctb0060", "ctb0061")
-soildata_ifn <- soildata[dataset_id %in% ifn_id, ]
+# Set of columns to work with for filling missing layers
 colnames(soildata_ifn)
 cols_layers <- c(
   "id", "camada_id", "amostra_id", "camada_nome", "profund_sup", "profund_inf",
   "terrafina", "argila", "silte", "areia", "carbono", "ctc", "ph", "dsi", "ce", "esqueleto"
 )
+
+# National Forest Inventory datasets
+# Soil was collected at two depths only: 0-20 cm and 30-50 cm. We will add the missing layer
+# from 20-30 cm by interpolating the values of the existing layers.
+ifn_id <- c("ctb0053", "ctb0055", "ctb0056", "ctb0057", "ctb0058", "ctb0059", "ctb0060", "ctb0061")
+soildata_ifn <- soildata[dataset_id %in% ifn_id, ]
 soildata_ifn_layer <- soildata_ifn[, ..cols_layers]
 soildata_ifn_layer <- add_missing_layer(soildata_ifn_layer)
 # Create "profund_mid" variable
@@ -413,7 +382,110 @@ summary_soildata(soildata)
 print(id_missing <- check_missing_layer(soildata))
 # There are 11090 complaints remaining.
 
+# Add missing layers for soils with abrupt textural change with depth
+if (interactive()) {
+  View(soildata[
+    id %in% id_missing$id &
+      (
+        # grepl("^(Argis|Podz)", taxon_sibcs, ignore.case = TRUE) & # This was removed after checking
+        grepl("^(Planos|Solonetz)", taxon_sibcs, ignore.case = TRUE) |
+          grepl("abrúpt|abrupt", taxon_sibcs, ignore.case = TRUE)
+      ),
+    .(id, camada_nome, profund_sup, profund_inf, argila, silte, areia, carbono, dsi, taxon_sibcs)
+  ])
+}
+# 311 layers
+# These include Planossolos ("Planos"), Solonetz-Solodizados ("Solonetz"), and soils classified
+# as abrupto or abrúptico ("abrúp" or "abrupt") in lower taxonmic levels.
+soildata_abrupt <- soildata[
+  id %in% id_missing$id &
+    (
+      grepl("^(Planos|Solonetz)", taxon_sibcs, ignore.case = TRUE) |
+        grepl("abrúpt|abrupt", taxon_sibcs, ignore.case = TRUE)
+    ),
+]
+soildata_abrupt_layer <- soildata_abrupt[, ..cols_layers]
+soildata_abrupt_layer <- add_missing_layer(soildata_abrupt_layer)
+# Create "profund_mid" variable
+soildata_abrupt_layer[, profund_mid := (profund_sup + profund_inf) / 2]
+# Fine earth fraction (terrafina): downward propagation of upper layer values + leading NA
+soildata_abrupt_layer[,
+  terrafina := fill_empty_layer(y = terrafina, propagate.leading = TRUE),
+  by = id
+]
+# Particle size distribution: downward propagation of upper layer values + leading NA
+soildata_abrupt_layer[,
+  argila := fill_empty_layer(y = argila, propagate.leading = TRUE),
+  by = id
+]
+soildata_abrupt_layer[,
+  silte := fill_empty_layer(y = silte, propagate.leading = TRUE),
+  by = id
+]
+soildata_abrupt_layer[,
+  areia := fill_empty_layer(y = areia, propagate.leading = TRUE),
+  by = id
+]
+# Soil organic carbon: spline interpolation
+soildata_abrupt_layer[,
+  carbono := fill_empty_layer(y = carbono, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+# pH: spline interpolation
+soildata_abrupt_layer[,
+  ph := fill_empty_layer(y = ph, x = profund_mid, ylim = c(0, 14)),
+  by = id
+]
+# Cation exchange capacity: downward propagation of upper layer values + leading NA
+soildata_abrupt_layer[,
+  ctc := fill_empty_layer(y = ctc, propagate.leading = TRUE),
+  by = id
+]
+# Soil bulk density: spline interpolation
+soildata_abrupt_layer[,
+  dsi := fill_empty_layer(y = dsi, x = profund_mid),
+  by = id
+]
+if (interactive()) {
+  View(soildata_abrupt_layer[
+    ,
+    .(
+      id, camada_nome, profund_sup, profund_inf,
+      argila, silte, areia, terrafina, carbono, ph, ctc, dsi
+    )
+  ])
+}
+# Merge with the rest of soildata_abrupt
+id_idx <- which(cols_layers == "id")
+soildata_abrupt <- merge(
+  unique(soildata_abrupt[, !colnames(soildata_abrupt) %in% cols_layers[-id_idx], with = FALSE]),
+  soildata_abrupt_layer,
+  by = "id",
+  all.x = TRUE,
+  sort = FALSE
+)
+soildata_abrupt[, profund_mid := NULL]
+# Replace original data with the data with missing layers filled
+soildata <- soildata[!id %in% soildata_abrupt$id, ]
+soildata <- rbind(soildata, soildata_abrupt)
+rm(soildata_abrupt_layer, soildata_abrupt)
+summary_soildata(soildata)
+# Layers: 61609
+# Events: 18968
+# Georeferenced events: 16443
+# Datasets: 265
+
 # Add missing layers for homogeneous soils
+if (interactive()) {
+  View(soildata[
+    id %in% id_missing$id &
+      grepl("^(Latossol|Latosol|Areia|Gleissol|Gleisol|Neossolo Quartz)", taxon_sibcs,
+        ignore.case = TRUE
+      ),
+    .(id, camada_nome, profund_sup, profund_inf, argila, silte, areia, carbono, ctc, dsi, taxon_sibcs)
+  ])
+}
+# 8589 layers
 # If the soil classification (taxon_sibcs) is Latossol, Latosol, Areia, Gleissol, Gleisol,
 # or Neossolo Quartzarênico, we will add the missing layers, as these soils are quite homogeneous
 # in the vertical profile. We will use the same approach as for the IFN datasets, i.e., linear
@@ -486,11 +558,8 @@ soildata_smooth <- merge(
 )
 soildata_smooth[, profund_mid := NULL]
 # Replace original data with the data with missing layers filled
-nrow(soildata)
 soildata <- soildata[!id %in% soildata_smooth$id, ]
-nrow(soildata)
 soildata <- rbind(soildata, soildata_smooth)
-nrow(soildata)
 rm(soildata_smooth_layer, soildata_smooth)
 summary_soildata(soildata)
 # Layers: 67228
@@ -506,7 +575,7 @@ print(id_missing <- check_missing_layer(soildata))
 
 
 
-
+View(soildata[id %in% id_missing$id, .N, by = taxon_sibcs])
 
 # MAXIMUM DEPTH
 # Filter out soil layers starting below the maximum depth. We will work only with data from layers
