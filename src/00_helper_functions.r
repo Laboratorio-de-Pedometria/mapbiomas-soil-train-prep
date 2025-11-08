@@ -408,84 +408,108 @@ add_missing_layer <- function(
   # Return the result
   return(result)
 }
-# Spline function to fill empty layers #############################################################
-# This function fills missing values in a numeric vector using spline interpolation.
-# It takes a numeric vector 'y' with missing values (NA) and a corresponding numeric vector 'x'
-# representing the x-coordinates. The function applies several checks to determine if spline
-# interpolation is appropriate. If the conditions are met, it performs spline interpolation to
-# fill the missing values. Otherwise, it returns the original vector 'y' unchanged.
-# y: numeric vector with missing values (NA) to be filled
-# x: numeric vector representing the x-coordinates corresponding to 'y'
-# ylim: range of acceptable values for 'y'
-# Returns: numeric vector with missing values filled using spline interpolation, or the original
-#          vector 'y' if conditions are not met
-# Example usage: fill_empty_layer(c(1, NA, 3), c(1, 2, 3)) # returns c(1, 2, 3)
-# Note: The function includes several checks to ensure that spline interpolation is only applied
-# when appropriate, such as when there are enough non-missing values and no consecutive missing
-# values. It prints a message to the console indicating whether interpolation was performed.
-fill_empty_layer <- function(y, x, ylim) {
-  # Check if y is numeric
-  if (!is.numeric(y)) {
-    stop("y must be a numeric vector")
-  }
-  # Check if x is numeric and has no missing values
-  if (!is.numeric(x)) {
-    stop("x must be a numeric vector")
-  }
-  if (any(is.na(x))) {
-    stop("x must not contain missing values")
+# Unified gap-filling function #####################################################################
+# fill_empty_layer()
+# Purpose:
+#   Fill internal missing values (NA) in short 1‑D soil property profiles using one of two strategies:
+#   1. Propagation (default when x is NULL): forward-fill (last observation carried forward) gaps,
+#      optionally filling leading and/or trailing NA runs.
+#   2. Conservative natural spline interpolation (when x is supplied): interpolate single,
+#      isolated internal NA positions only if a set of safety conditions is satisfied.
+#
+# Method selection:
+#   - If 'x' is NULL or missing  -> propagation mode.
+#   - If 'x' is provided (same length as y, numeric, no NA) -> spline mode.
+#
+# Arguments:
+#   y : numeric vector (may contain NA). Returned length always equals length(y).
+#   x : (optional) numeric vector of same length as y. Presence switches to spline mode.
+#   ylim : optional length-2 numeric vector c(min,max) to clamp spline output (ignored in propagation).
+#   propagate.leading  : logical, fill leading NA run with first non-NA (propagation mode only).
+#   propagate.trailing : logical, fill trailing NA run with last non-NA (propagation mode only).
+#
+# Propagation details:
+#   - Internal and trailing gaps are filled by repeating the previous non-missing value.
+#   - Leading gap filled only if propagate.leading = TRUE.
+#   - Trailing gap retained as NA if propagate.trailing = FALSE.
+#
+# Spline safety checks (any failure -> original y returned unmodified):
+#   - At least one NA and at least as many non-NA as NA.
+#   - No leading NA.
+#   - No case of length 2 with a single NA.
+#   - No pattern length 3 with last value NA and only two non-NA values.
+#   - No runs of consecutive NAs (only isolated single NA allowed; multiple consecutive NA rejected).
+#
+# Returns:
+#   Numeric vector with NA values filled (by propagation or spline) or original y if not fillable.
+#
+# Messages:
+#   Emits concise messages indicating chosen mode and whether filling was applied or skipped.
+#
+# Examples:
+#   # Propagation (x omitted):
+#   fill_empty_layer(c(2, NA, NA, 5)) # -> c(2, 2, 2, 5)
+#   fill_empty_layer(c(NA, 3, NA, 4), propagate.leading = TRUE)
+#   # Spline (x provided):
+#   fill_empty_layer(y = c(2, NA, 4), x = c(5, 15, 25))
+#   # Spline rejected (consecutive NAs) -> original returned:
+#   fill_empty_layer(y = c(2, NA, NA, 5), x = c(5, 15, 25, 35))
+fill_empty_layer <- function(
+  y,
+  x = NULL,
+  ylim,
+  propagate.leading = FALSE,
+  propagate.trailing = TRUE
+) {
+  if (!is.numeric(y)) stop("y must be numeric")
+
+  use_spline <- !is.null(x)
+
+  if (!use_spline) {
+    # PROPAGATION MODE
+    if (length(y) == 0L || all(is.na(y))) {
+      message("Propagation: empty or all NA. Returning original.")
+      return(y)
+    }
+    good <- which(!is.na(y))
+    if (length(good) == 0L) {
+      message("Propagation: no non-NA values. Returning original.")
+      return(y)
+    }
+    if (propagate.leading && good[1] > 1) {
+      y[1:(good[1] - 1)] <- y[good[1]]
+    }
+    for (i in seq_along(good)) {
+      from <- good[i]
+      to <- if (i < length(good)) good[i + 1] - 1L else length(y)
+      if (to >= from + 1L) y[(from + 1L):to] <- y[from]
+    }
+    if (!propagate.trailing) {
+      last_good <- good[length(good)]
+      if (last_good < length(y)) y[(last_good + 1L):length(y)] <- NA_real_
+    }
+    message("Propagation applied.")
+    return(y)
   }
 
-  # Standard output message when conditions for interpolation are not met
-  no_interpolation_message <-
-    "NA values found. Conditions not met. Spline interpolation not applied. Returning original vector."
-  
-  # If no NA, return y
-  if (all(!is.na(y))) {
-    message("No NA values found. Returning original vector.")
-    return(y)
-  }
+  # SPLINE MODE
+  if (!is.numeric(x)) stop("x must be numeric when provided")
+  if (length(x) != length(y)) stop("x and y must have same length")
+  if (any(is.na(x))) stop("x must not contain NA")
 
-  # If only one point, return it
-  if (length(y) == 1) {
-    message(no_interpolation_message)
-    return(y)
-  }
-  # If more NA than not NA, return y
-  if (sum(!is.na(y)) < sum(is.na(y))) {
-    message(no_interpolation_message)
-    return(y)
-  }
-  # If length(y) == 2, one NA, return y
-  if (length(y) == 2 & sum(is.na(y)) == 1) {
-    message(no_interpolation_message)
-    return(y)
-  }
-  # If y[1] is NA, return NA
-  if (is.na(y[1])) {
-    message(no_interpolation_message)
-    return(y)
-  }
-  # If all NA, return y
-  if (sum(!is.na(y)) == 0) {
-    message(no_interpolation_message)
-    return(y)
-  }
-  # If three points, two not NA, and y[3] is NA, return y
-  # This avoids extrapolation with only two points
-  if (length(y) == 3 & sum(!is.na(y)) == 2 & is.na(y[3])) {
-    message(no_interpolation_message)
-    return(y)
-  }
-  # If two consecutive points are NA, return y
-  if (sum(is.na(y)) > 1 & any(diff(is.na(y)) == 1)) {
-    message(no_interpolation_message)
-    return(y)
-  }
-  # Else, return spline
-  message("NA values found. Conditions met. Spline interpolation applied.")
+  no_interp <- "Spline conditions not met. Returning original vector."
+
+  if (all(!is.na(y))) { message("No NA values. Returning original."); return(y) }
+  if (length(y) == 1L) { message(no_interp); return(y) }
+  if (sum(!is.na(y)) < sum(is.na(y))) { message(no_interp); return(y) }
+  if (length(y) == 2L && sum(is.na(y)) == 1L) { message(no_interp); return(y) }
+  if (is.na(y[1])) { message(no_interp); return(y) }
+  if (sum(!is.na(y)) == 0L) { message(no_interp); return(y) }
+  if (length(y) == 3L && sum(!is.na(y)) == 2L && is.na(y[3])) { message(no_interp); return(y) }
+  if (sum(is.na(y)) > 1L && any(diff(is.na(y)) == 1)) { message(no_interp); return(y) }
+
+  message("Spline conditions met. Interpolating.")
   out <- spline(y = y, x = x, xout = x, method = "natural")$y
-  # Correct values outside ylim if ylim is provided
   if (!missing(ylim)) {
     out[out < ylim[1]] <- ylim[1]
     out[out > ylim[2]] <- ylim[2]
