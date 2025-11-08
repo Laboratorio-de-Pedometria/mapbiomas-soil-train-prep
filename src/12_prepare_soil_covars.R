@@ -13,9 +13,9 @@ source("src/00_helper_functions.r")
 # Read data produced in the previous processing script
 soildata <- data.table::fread("data/11_soildata.txt", sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 54105
-# Events: 18870
-# Georeferenced events: 16360
+# Layers: 66581
+# Events: 18887
+# Georeferenced events: 16370
 # Datasets: 265
 
 # Dataset-wise covariates ##########################################################################
@@ -134,6 +134,8 @@ soildata[, .N, by = has_rockiness]
 soildata[, .N, by = estado_id]
 # Rio de Janeiro -> RJ
 soildata[grepl("Rio de Janeiro", estado_id), estado_id := "RJ"]
+# "" -> NA_character_
+soildata[estado_id == "", estado_id := NA_character_]
 soildata[, .N, by = estado_id]
 
 # COARSE EVENT
@@ -199,12 +201,12 @@ soildata[, ORDER := sibcs[, 1]]
 soildata[, SUBORDER := sibcs[, 2]]
 soildata[ORDER == "NA", ORDER := NA_character_]
 soildata[SUBORDER == "NA", SUBORDER := NA_character_]
-soildata[ORDER == "PVA", ORDER := "ARGISSOLO"] # Copied to SoilData-integration
+soildata[ORDER == "PVA", ORDER := "ARGISSOLO"]
 soildata[ORDER == "PVA", SUBORDER := NA_character_] # Correct a typo
 soildata[ORDER == "CA", ORDER := "CAMBISSOLO"] # Correct a typo
 soildata[ORDER == "CA", SUBORDER := NA_character_] # Correct a typo
 soildata[SUBORDER == "A", SUBORDER := NA_character_] # Correct a typo
-soildata[SUBORDER == "QUARTZARENICORTICO", SUBORDER := "QUARTZARENICO"] # Copied to SoilData-integration
+soildata[SUBORDER == "QUARTZARENICORTICO", SUBORDER := "QUARTZARENICO"]
 # AREIA
 soildata[ORDER == "AREIA", SUBORDER := "QUARTZARENICO"]
 soildata[ORDER == "AREIA", ORDER := "NEOSSOLO"]
@@ -212,41 +214,28 @@ soildata[ORDER == "AREIA", ORDER := "NEOSSOLO"]
 soildata[ORDER == "AREIAS", SUBORDER := "QUARTZARENICO"]
 soildata[ORDER == "AREIAS", ORDER := "NEOSSOLO"]
 # BRUNIZEN
-soildata[ORDER == "BRUNIZEN", ORDER := "BRUNIZEM"] # Copied to SoilData-integration
+soildata[ORDER == "BRUNIZEN", ORDER := "BRUNIZEM"]
 # CAMBISOL
 soildata[ORDER == "CAMBISOL", ORDER := "CAMBISSOLO"]
-# CHENOSSOLO
-soildata[ORDER == "CHENOSSOLO", ORDER := "CHERNOSSOLO"] # Copied to SoilData-integration
+# CAMBISSOLICO
+soildata[ORDER == "CAMBISSOLICO", ORDER := "CAMBISSOLO"]
 # CHERNOSSOLOS
 soildata[ORDER == "CHERNOSSOLOS", ORDER := "CHERNOSSOLO"]
 # CONCRECIONARIO
 soildata[ORDER == "CONCRECIONARIO", SUBORDER := "PETRICO"]
 soildata[ORDER == "CONCRECIONARIO", ORDER := "PLINTOSSOLO"]
-# CONCRECIONERIO
-soildata[ORDER == "CONCRECIONERIO", SUBORDER := "PETRICO"] # Copied to SoilData-integration
-soildata[ORDER == "CONCRECIONERIO", ORDER := "PLINTOSSOLO"] # Copied to SoilData-integration
 # GLEI
 soildata[ORDER == "GLEI", ORDER := "GLEISSOLO"]
-# GLEIOSSOLO
-soildata[ORDER == "GLEIOSSOLO", ORDER := "GLEISSOLO"] # Copied to SoilData-integration
 # GLEY
-soildata[ORDER == "GLEY", ORDER := "GLEISSOLO"] # Copied to SoilData-integration
+soildata[ORDER == "GLEY", ORDER := "GLEISSOLO"]
 # LATERITA
 soildata[ORDER == "LATERITA", ORDER := "PLINTOSSOLO"]
-# LATERIRA
-soildata[ORDER == "LATERIRA", ORDER := "PLINTOSSOLO"] # Copied to SoilData-integration
-# LATERICO
-soildata[ORDER == "LATERICO", ORDER := "PLINTOSSOLO"] # Copied to SoilData-integration
 # LATERITICO
 soildata[ORDER == "LATERITICO", ORDER := "PLINTOSSOLO"]
-# LATERIA
-soildata[ORDER == "LATERIA", ORDER := "PLINTOSSOLO"] # Copied to SoilData-integration
 # LATOSOL
 soildata[ORDER == "LATOSOL", ORDER := "LATOSSOLO"]
 # LATOSSOL
 soildata[ORDER == "LATOSSOL", ORDER := "LATOSSOLO"]
-# LATOSOLO
-soildata[ORDER == "LATOSOLO", ORDER := "LATOSSOLO"] # Copied to SoilData-integration
 # LATOSSOLOS
 soildata[ORDER == "LATOSSOLOS", ORDER := "LATOSSOLO"]
 # LBRA
@@ -263,40 +252,20 @@ soildata[SUBORDER == "LITOLICO", SUBORDER := "LITOLICO"]
 soildata[SUBORDER == "LITOLICO", ORDER := "NEOSSOLO"]
 # LRD
 soildata[ORDER == "LRD", ORDER := "LATOSSOLO"]
-# NEO0SSOLO
-soildata[ORDER == "NEO0SSOLO", ORDER := "NEOSSOLO"] # Copied to SoilData-integration
 # NEOSSOLOS
 soildata[ORDER == "NEOSSOLOS", ORDER := "NEOSSOLO"]
-# NEOSSOLOQUARTZARENICO
-soildata[ORDER == "NEOSSOLOQUARTZARENICO", SUBORDER := "QUARTZARENICO"] # Copied to SoilData-integration
-soildata[ORDER == "NEOSSOLOQUARTZARENICO", ORDER := "NEOSSOLO"] # Copied to SoilData-integration
 # NITOSSOLOS
 soildata[ORDER == "NITOSSOLOS", ORDER := "NITOSSOLO"]
 # PLANOSOL
 soildata[ORDER == "PLANOSOL", ORDER := "PLANOSSOLO"]
 # PLANOSSOL
 soildata[ORDER == "PLANOSSOL", ORDER := "PLANOSSOLO"]
-# PLANOSSONLO
-soildata[ORDER == "PLANOSSONLO", ORDER := "PLANOSSOLO"] # Copied to SoilData-integration
-# PLITOSSOLO
-soildata[ORDER == "PLITOSSOLO", ORDER := "PLINTOSSOLO"] # Copied to SoilData-integration
-# PLINNTOSSOLO
-soildata[ORDER == "PLINNTOSSOLO", ORDER := "PLINTOSSOLO"] # Copied to SoilData-integration
-# PODOZOLICO
-soildata[ORDER == "PODOZOLICO", SUBORDER := NA_character_] # Copied to SoilData-integration
-soildata[ORDER == "PODOZOLICO", ORDER := "ARGISSOLO"]
 # PODZOLICO
 soildata[ORDER == "PODZOLICO", SUBORDER := NA_character_]
 soildata[ORDER == "PODZOLICO", ORDER := "ARGISSOLO"]
 # PODZOLICOS
 soildata[ORDER == "PODZOLICOS", SUBORDER := NA_character_]
 soildata[ORDER == "PODZOLICOS", ORDER := "ARGISSOLO"]
-# POZOLICO
-soildata[ORDER == "POZOLICO", SUBORDER := NA_character_] # Copied to SoilData-integration
-soildata[ORDER == "POZOLICO", ORDER := "ARGISSOLO"] # Copied to SoilData-integration
-# PODZOUCO
-soildata[ORDER == "PODZOUCO", SUBORDER := NA_character_] # Copied to SoilData-integration
-soildata[ORDER == "PODZOUCO", ORDER := "ARGISSOLO"] # Copied to SoilData-integration
 # PVE
 soildata[ORDER == "PVE", ORDER := "ARGISSOLO"]
 # PODZOL
@@ -315,8 +284,6 @@ soildata[ORDER == "SOLOS", SUBORDER := NA_character_]
 soildata[ORDER == "SOLOS", ORDER := NA_character_]
 # VERTISOL
 soildata[ORDER == "VERTISOL", ORDER := "VERTISSOLO"]
-# VERTISOLO
-soildata[ORDER == "VERTISOLO", ORDER := "VERTISSOLO"] # Copied to SoilData-integration
 # COM
 soildata[SUBORDER == "COM", SUBORDER := NA_character_]
 # NÃO
@@ -330,14 +297,14 @@ soildata[SUBORDER == "VARIAÇÃO", SUBORDER := NA_character_]
 # VERMELHO-AMARELADO
 soildata[SUBORDER == "VERMELHO-AMARELADO", SUBORDER := "VERMELHO-AMARELO"]
 # VERMELHO-AMARELDISTROFICO
-soildata[SUBORDER == "VERMELHO-AMARELDISTROFICO", SUBORDER := "VERMELHO-AMARELO"] # Copied to SoilData-integration
+soildata[SUBORDER == "VERMELHO-AMARELDISTROFICO", SUBORDER := "VERMELHO-AMARELO"]
 # VERMELHO-ESCURO
 soildata[SUBORDER == "VERMELHO-ESCURO", SUBORDER := "VERMELHO"]
 # AFLORAMENTO
 soildata[ORDER == "AFLORAMENTO", ORDER := NA_character_]
-# If categories in ORDER and SUBORDER have less than 15 observations, replace its values with NA
-soildata[, ORDER := ifelse(.N < 15, NA_character_, ORDER), by = ORDER]
-soildata[, SUBORDER := ifelse(.N < 15, NA_character_, SUBORDER), by = SUBORDER]
+# If categories in ORDER and SUBORDER have less than 30 observations, replace its values with NA
+soildata[, ORDER := ifelse(.N < 30, NA_character_, ORDER), by = ORDER]
+soildata[, SUBORDER := ifelse(.N < 30, NA_character_, SUBORDER), by = SUBORDER]
 soildata[, .N, by = ORDER][order(ORDER)]
 soildata[, .N, by = SUBORDER][order(SUBORDER)]
 
