@@ -411,11 +411,11 @@ add_missing_layer <- function(
 # Unified gap-filling function #####################################################################
 # fill_empty_layer()
 # Purpose:
-#   Fill internal missing values (NA) in short 1‑D soil property profiles using one of two strategies:
-#   1. Propagation (default when x is NULL): forward-fill (last observation carried forward) gaps,
+#   Fill missing values (NA) in short 1‑D soil property profiles using one of two strategies:
+#   1. Propagation (default when x is NULL): forward-fill (last observation carried forward),
 #      optionally filling leading and/or trailing NA runs.
-#   2. Conservative natural spline interpolation (when x is supplied): interpolate single,
-#      isolated internal NA positions only if a set of safety conditions is satisfied.
+#   2. Conservative natural spline interpolation (when x is supplied): interpolate multiple
+#      isolated internal NA values only when safety conditions are satisfied.
 #
 # Method selection:
 #   - If 'x' is NULL or missing  -> propagation mode.
@@ -423,37 +423,62 @@ add_missing_layer <- function(
 #
 # Arguments:
 #   y : numeric vector (may contain NA). Returned length always equals length(y).
-#   x : (optional) numeric vector of same length as y. Presence switches to spline mode.
+#   x : (optional) numeric vector of same length as y (e.g., depth midpoints). Triggers spline mode.
 #   ylim : optional length-2 numeric vector c(min,max) to clamp spline output (ignored in propagation).
-#   propagate.leading  : logical, fill leading NA run with first non-NA (propagation mode only).
-#   propagate.trailing : logical, fill trailing NA run with last non-NA (propagation mode only).
+#   propagate.leading  : logical; fill leading NA run with first non-NA (propagation mode only).
+#   propagate.trailing : logical; fill trailing NA run with last non-NA (propagation mode only).
 #
-# Propagation details:
-#   - Internal and trailing gaps are filled by repeating the previous non-missing value.
-#   - Leading gap filled only if propagate.leading = TRUE.
-#   - Trailing gap retained as NA if propagate.trailing = FALSE.
+# Propagation mode details:
+#   - Each internal NA is replaced by the previous observed value (forward fill).
+#   - Leading NAs filled only if propagate.leading = TRUE; otherwise kept as NA.
+#   - Trailing NAs filled only if propagate.trailing = TRUE; otherwise kept as NA.
+#   - Does NOT average or look ahead; strictly carries previous value forward.
 #
-# Spline safety checks (any failure -> original y returned unmodified):
-#   - At least one NA and at least as many non-NA as NA.
-#   - No leading NA.
-#   - No case of length 2 with a single NA.
-#   - No pattern length 3 with last value NA and only two non-NA values.
-#   - No runs of consecutive NAs (only isolated single NA allowed; multiple consecutive NA rejected).
+# Spline mode safety checks (must all pass; any failure -> original y returned):
+#   - At least one NA present.
+#   - Non-NA count ≥ NA count.
+#   - First element not NA (avoids extrapolation at top).
+#   - Not length 2 with a single NA (unstable fit).
+#   - Not pattern length 3 where last element is NA and only two non-NAs (avoids extrapolation).
+#   - No consecutive NA runs (only isolated NAs allowed; e.g., [2, NA, 5, NA, 8] is OK,
+#     but [2, NA, NA, 5] is rejected).
 #
 # Returns:
-#   Numeric vector with NA values filled (by propagation or spline) or original y if not fillable.
+#   Numeric vector with gaps filled (propagation or spline) or original y if conditions fail.
 #
 # Messages:
-#   Emits concise messages indicating chosen mode and whether filling was applied or skipped.
+#   Concise messages indicating chosen mode and whether filling was applied or skipped.
 #
 # Examples:
-#   # Propagation (x omitted):
-#   fill_empty_layer(c(2, NA, NA, 5)) # -> c(2, 2, 2, 5)
+#   # --- Propagation mode (x omitted) ---
+#   # Forward fill internal gaps; keep leading/trailing NA by default
+#   fill_empty_layer(c(2, NA, NA, 5))
+#   # [1] 2 2 2 5
+#
+#   fill_empty_layer(c(NA, 3, NA, 4))
+#   # [1] NA  3  3  4  (leading NA not filled by default)
+#
 #   fill_empty_layer(c(NA, 3, NA, 4), propagate.leading = TRUE)
-#   # Spline (x provided):
-#   fill_empty_layer(y = c(2, NA, 4), x = c(5, 15, 25))
-#   # Spline rejected (consecutive NAs) -> original returned:
+#   # [1] 3 3 3 4
+#
+#   fill_empty_layer(c(2, NA, 5, NA), propagate.trailing = FALSE)
+#   # [1]  2  2  5 NA  (trailing NA kept)
+#
+#   # --- Spline mode (x provided) ---
+#   # Interpolate isolated NAs using depth as x-axis
+#   fill_empty_layer(y = c(14.5, NA, 5.3), x = c(7.5, 22.5, 35))
+#   # Interpolates the middle value using natural spline
+#
+#   # Multiple isolated NAs allowed if non-NA ≥ NA
+#   fill_empty_layer(y = c(14.5, NA, 5.3, NA, 3.8), x = c(7.5, 22.5, 35, 45, 52.5))
+#   # Interpolates both NAs
+#
+#   # Consecutive NAs rejected (returns original)
 #   fill_empty_layer(y = c(2, NA, NA, 5), x = c(5, 15, 25, 35))
+#   # "Spline conditions not met. Returning original vector."
+#
+#   # Clamp output to valid range (e.g., clay content 0–100%)
+#   fill_empty_layer(y = c(45, NA, 15), x = c(5, 15, 25), ylim = c(0, 100))
 fill_empty_layer <- function(
   y,
   x = NULL,
@@ -506,10 +531,15 @@ fill_empty_layer <- function(
   if (is.na(y[1])) { message(no_interp); return(y) }
   if (sum(!is.na(y)) == 0L) { message(no_interp); return(y) }
   if (length(y) == 3L && sum(!is.na(y)) == 2L && is.na(y[3])) { message(no_interp); return(y) }
-  if (sum(is.na(y)) > 1L && any(diff(is.na(y)) == 1)) { message(no_interp); return(y) }
+  # Allow multiple isolated NAs; reject any consecutive NA runs
+  na_runs <- rle(is.na(y))
+  if (any(na_runs$values & na_runs$lengths > 1L)) { message(no_interp); return(y) }
 
   message("Spline conditions met. Interpolating.")
-  out <- spline(y = y, x = x, xout = x, method = "natural")$y
+  # Fit on observed pairs; evaluate on full x
+  x_clean <- x[!is.na(y)]
+  y_clean <- y[!is.na(y)]
+  out <- spline(x = x_clean, y = y_clean, xout = x, method = "natural")$y
   if (!missing(ylim)) {
     out[out < ylim[1]] <- ylim[1]
     out[out > ylim[2]] <- ylim[2]
