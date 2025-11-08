@@ -391,19 +391,19 @@ if (interactive()) {
       (
         # grepl("^(Argis|Podz)", taxon_sibcs, ignore.case = TRUE) & # This was removed after checking
         grepl("^(Planos|Solonetz)", taxon_sibcs, ignore.case = TRUE) |
-          grepl("abrúpt|abrupt", taxon_sibcs, ignore.case = TRUE)
+          grepl("abrúpt|abrupt|planos", taxon_sibcs, ignore.case = TRUE)
       ),
-    .(id, camada_nome, profund_sup, profund_inf, argila, silte, areia, carbono, dsi, taxon_sibcs)
+    .(id, camada_nome, profund_sup, profund_inf, terrafina, argila, silte, areia, carbono, dsi, taxon_sibcs)
   ])
 }
-# 311 layers
+# 321 layers
 # These include Planossolos ("Planos"), Solonetz-Solodizados ("Solonetz"), and soils classified
 # as abrupto or abrúptico ("abrúp" or "abrupt") in lower taxonmic levels.
 soildata_abrupt <- soildata[
   id %in% id_missing$id &
     (
       grepl("^(Planos|Solonetz)", taxon_sibcs, ignore.case = TRUE) |
-        grepl("abrúpt|abrupt", taxon_sibcs, ignore.case = TRUE)
+        grepl("abrúpt|abrupt|planos", taxon_sibcs, ignore.case = TRUE)
     ),
 ]
 soildata_abrupt_layer <- soildata_abrupt[, ..cols_layers]
@@ -472,123 +472,189 @@ soildata <- soildata[!id %in% soildata_abrupt$id, ]
 soildata <- rbind(soildata, soildata_abrupt)
 rm(soildata_abrupt_layer, soildata_abrupt)
 summary_soildata(soildata)
-# Layers: 61621
-# Events: 18968
-# Georeferenced events: 16443
-# Datasets: 265
-
-# Add missing layers for homogeneous soils
-if (interactive()) {
-  View(soildata[
-    id %in% id_missing$id &
-      grepl("^(Latossol|Latosol|Areia|Gleissol|Gleisol|Neossolo Quartz)", taxon_sibcs,
-        ignore.case = TRUE
-      ),
-    .(id, camada_nome, profund_sup, profund_inf, argila, silte, areia, carbono, ctc, dsi, taxon_sibcs)
-  ])
-}
-# 8589 layers
-# If the soil classification (taxon_sibcs) is Latossol, Latosol, Areia, Gleissol, Gleisol,
-# or Neossolo Quartzarênico, we will add the missing layers, as these soils are quite homogeneous
-# in the vertical profile. We will use the same approach as for the IFN datasets, i.e., linear
-# interpolation of existing layers to fill in the missing layers.
-soildata_smooth <- soildata[
-  id %in% id_missing$id &
-    grepl("^(Latossol|Latosol|Areia|Gleissol|Gleisol|Neossolo Quartz)", taxon_sibcs,
-      ignore.case = TRUE
-    ),
-]
-soildata_smooth_layer <- soildata_smooth[, ..cols_layers]
-soildata_smooth_layer <- add_missing_layer(soildata_smooth_layer)
-# Create "profund_mid" variable
-soildata_smooth_layer[, profund_mid := (profund_sup + profund_inf) / 2]
-# Fine earth fraction (terrafina)
-soildata_smooth_layer[,
-  terrafina := fill_empty_layer(y = terrafina, x = profund_mid, ylim = c(0, 1000)),
-  by = id
-]
-# Particle size distribution
-soildata_smooth_layer[,
-  argila := fill_empty_layer(y = argila, x = profund_mid, ylim = c(0, 1000)),
-  by = id
-]
-soildata_smooth_layer[,
-  silte := fill_empty_layer(y = silte, x = profund_mid, ylim = c(0, 1000)),
-  by = id
-]
-soildata_smooth_layer[,
-  areia := fill_empty_layer(y = areia, x = profund_mid, ylim = c(0, 1000)),
-  by = id
-]
-# Soil organic carbon
-soildata_smooth_layer[,
-  carbono := fill_empty_layer(y = carbono, x = profund_mid, ylim = c(0, 1000)),
-  by = id
-]
-# pH
-soildata_smooth_layer[,
-  ph := fill_empty_layer(y = ph, x = profund_mid, ylim = c(0, 14)),
-  by = id
-]
-# Cation exchange capacity
-soildata_smooth_layer[,
-  ctc := fill_empty_layer(y = ctc, x = profund_mid),
-  by = id
-]
-# Soil bulk density
-soildata_smooth_layer[,
-  dsi := fill_empty_layer(y = dsi, x = profund_mid),
-  by = id
-]
-if (FALSE) {
-  View(soildata_smooth_layer[
-    ,
-    .(
-      id, camada_nome, profund_sup, profund_inf,
-      argila, silte, areia, terrafina, carbono, ph, ctc, dsi
-    )
-  ])
-}
-# Merge with the rest of soildata_smooth
-id_idx <- which(cols_layers == "id")
-soildata_smooth <- merge(
-  unique(soildata_smooth[, !colnames(soildata_smooth) %in% cols_layers[-id_idx], with = FALSE]),
-  soildata_smooth_layer,
-  by = "id",
-  all.x = TRUE,
-  sort = FALSE
-)
-soildata_smooth[, profund_mid := NULL]
-# Replace original data with the data with missing layers filled
-soildata <- soildata[!id %in% soildata_smooth$id, ]
-soildata <- rbind(soildata, soildata_smooth)
-rm(soildata_smooth_layer, soildata_smooth)
-summary_soildata(soildata)
-# Layers: 67228
+# Layers: 61626
 # Events: 18968
 # Georeferenced events: 16443
 # Datasets: 265
 
 # Check for missing layers within each event (id)
 print(id_missing <- check_missing_layer(soildata))
-# There are 6025 complaints remaining.
+# There are 109783 complaints remaining.
 
+# Add missing layers for soils with concretions or lithoplainic horizons
+if (interactive()) {
+  View(soildata[
+    id %in% id_missing$id & grepl("concrec|litopl", taxon_sibcs, ignore.case = TRUE),
+    .(id, camada_nome, profund_sup, profund_inf, terrafina, argila, silte, areia, carbono, ctc, dsi, taxon_sibcs)
+  ])
+}
+# 196 layers
+# These include soils classified as having concretions ("concrec") or lithoplainic horizons
+# ("litopl") in lower taxonmic levels.
+soildata_concrec <- soildata[
+  id %in% id_missing$id & grepl("concrec|litopl", taxon_sibcs, ignore.case = TRUE),
+]
+soildata_concrec_layer <- soildata_concrec[, ..cols_layers]
+soildata_concrec_layer <- add_missing_layer(soildata_concrec_layer)
+# Create "profund_mid" variable
+soildata_concrec_layer[, profund_mid := (profund_sup + profund_inf) / 2]
+# Fine earth fraction (terrafina): we will not fill missing values for these soils
+# Particle size distribution: spline interpolation
+soildata_concrec_layer[,
+  argila := fill_empty_layer(y = argila, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+soildata_concrec_layer[,
+  silte := fill_empty_layer(y = silte, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+soildata_concrec_layer[,
+  areia := fill_empty_layer(y = areia, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+# Soil organic carbon: spline interpolation
+soildata_concrec_layer[,
+  carbono := fill_empty_layer(y = carbono, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+# pH: spline interpolation
+soildata_concrec_layer[,
+  ph := fill_empty_layer(y = ph, x = profund_mid, ylim = c(0, 14)),
+  by = id
+]
+# Cation exchange capacity: spline interpolation
+soildata_concrec_layer[,
+  ctc := fill_empty_layer(y = ctc, x = profund_mid),
+  by = id
+]
+# Soil bulk density: spline interpolation
+soildata_concrec_layer[,
+  dsi := fill_empty_layer(y = dsi, x = profund_mid),
+  by = id
+]
+if (interactive()) {
+  View(soildata_concrec_layer[
+    ,
+    .(
+      id, camada_nome, profund_sup, profund_inf, terrafina,
+      argila, silte, areia, terrafina, carbono, ph, ctc, dsi
+    )
+  ])
+}
+# Merge with the rest of soildata_concrec
+id_idx <- which(cols_layers == "id")
+soildata_concrec <- merge(
+  unique(soildata_concrec[, !colnames(soildata_concrec) %in% cols_layers[-id_idx], with = FALSE]),
+  soildata_concrec_layer,
+  by = "id",
+  all.x = TRUE,
+  sort = FALSE
+)
+soildata_concrec[, profund_mid := NULL]
+# Replace original data with the data with missing layers filled
+soildata <- soildata[!id %in% soildata_concrec$id, ]
+soildata <- rbind(soildata, soildata_concrec)
+rm(soildata_concrec_layer, soildata_concrec)
+summary_soildata(soildata)
+# Layers: 61739
+# Events: 18968
+# Georeferenced events: 16443
+# Datasets: 265
 
+# Add missing layers for all other soils
+if (interactive()) {
+  View(soildata[
+    id %in% id_missing$id,
+    .(id, camada_nome, profund_sup, profund_inf, argila, silte, areia, carbono, ctc, dsi, taxon_sibcs)
+  ])
+}
+# 18010 layers
+soildata_remaining <- soildata[id %in% id_missing$id, ]
+soildata_remaining_layer <- soildata_remaining[, ..cols_layers]
+soildata_remaining_layer <- add_missing_layer(soildata_remaining_layer)
+# Create "profund_mid" variable
+soildata_remaining_layer[, profund_mid := (profund_sup + profund_inf) / 2]
+# Fine earth fraction (terrafina)
+soildata_remaining_layer[,
+  terrafina := fill_empty_layer(y = terrafina, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+# Particle size distribution
+soildata_remaining_layer[,
+  argila := fill_empty_layer(y = argila, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+soildata_remaining_layer[,
+  silte := fill_empty_layer(y = silte, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+soildata_remaining_layer[,
+  areia := fill_empty_layer(y = areia, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+# Soil organic carbon
+soildata_remaining_layer[,
+  carbono := fill_empty_layer(y = carbono, x = profund_mid, ylim = c(0, 1000)),
+  by = id
+]
+# pH
+soildata_remaining_layer[,
+  ph := fill_empty_layer(y = ph, x = profund_mid, ylim = c(0, 14)),
+  by = id
+]
+# Cation exchange capacity
+soildata_remaining_layer[,
+  ctc := fill_empty_layer(y = ctc, x = profund_mid),
+  by = id
+]
+# Soil bulk density
+soildata_remaining_layer[,
+  dsi := fill_empty_layer(y = dsi, x = profund_mid),
+  by = id
+]
+if (interactive()) {
+  View(soildata_remaining_layer[
+    ,
+    .(
+      id, camada_nome, profund_sup, profund_inf, terrafina,
+      argila, silte, areia, terrafina, carbono, ph, ctc, dsi
+    )
+  ])
+}
+# Merge with the rest of soildata_remaining
+id_idx <- which(cols_layers == "id")
+soildata_remaining <- merge(
+  unique(soildata_remaining[, !colnames(soildata_remaining) %in% cols_layers[-id_idx], with = FALSE]),
+  soildata_remaining_layer,
+  by = "id",
+  all.x = TRUE,
+  sort = FALSE
+)
+soildata_remaining[, profund_mid := NULL]
+# Replace original data with the data with missing layers filled
+soildata <- soildata[!id %in% soildata_remaining$id, ]
+soildata <- rbind(soildata, soildata_remaining)
+rm(soildata_remaining_layer, soildata_remaining)
+summary_soildata(soildata)
+# Layers: 73290
+# Events: 18968
+# Georeferenced events: 16443
+# Datasets: 265
 
-
-
-View(soildata[id %in% id_missing$id, .N, by = taxon_sibcs])
+# Check for missing layers within each event (id)
+print(id_missing <- check_missing_layer(soildata))
+# There are 1204 complaints remaining.
 
 # MAXIMUM DEPTH
 # Filter out soil layers starting below the maximum depth. We will work only with data from layers
 # starting from the soil surface down to max_depth.
 nrow(soildata[profund_sup > max_depth, ])
-# 6836 layers with profund_sup > max_depth
+# 7053 layers with profund_sup > max_depth
 soildata <- soildata[profund_sup >= 0 & profund_sup <= max_depth, ]
 summary_soildata(soildata)
-# Layers: 53638
-# Events: 18870
-# Georeferenced events: 16360
+# Layers: 66165
+# Events: 18894
+# Georeferenced events: 16374
 # Datasets: 265
 
 # SOIL/NON-SOIL LAYERS
@@ -615,7 +681,7 @@ soildata[
   grepl("^CR|RCr$", camada_nome, ignore.case = FALSE) & (is.na(argila) | is.na(carbono)),
   is_soil := FALSE
 ]
-soildata[is_soil == FALSE, .N] # 328 layers
+soildata[is_soil == FALSE, .N] # 327 layers
 # - We may also find designations such as 2C/R, 2C/R, 2C/R, 2RC, 2RC, 2RC, C/CR, and C/R. These
 #   designations indicate that the layer is a transition between a soil horizon and the bedrock. We
 #   will consider these layers as non-soil layers when they lack data on carbon or clay content.
@@ -661,6 +727,7 @@ soildata[, multiple_endpoints := NULL]
 soildata[, max_profund_inf := NULL]
 # Force the values of the soil properties for non-soil layers
 soildata[is_soil == FALSE, terrafina := 0]
+soildata[is_soil == FALSE, esqueleto := 1000]
 soildata[is_soil == FALSE, argila := 0]
 soildata[is_soil == FALSE, silte := 0]
 soildata[is_soil == FALSE, areia := 0]
@@ -670,25 +737,10 @@ soildata[is_soil == FALSE, ctc := NA]
 soildata[is_soil == FALSE, dsi := NA]
 # Summary
 summary_soildata(soildata)
-# Layers: 53751
-# Events: 18870
-# Georeferenced events: 16360
+# Layers: 66278
+# Events: 18894
+# Georeferenced events: 16374
 # Datasets: 265
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # PARTICLE SIZE DISTRIBUTION
 # Round fine particle size fractions to avoid small numerical differences
@@ -700,12 +752,12 @@ soildata[, areia := round(areia)]
 # 1000 g/kg. Acceptable range is between 900 and 1100 g/kg.
 soildata[, psd_sum := argila + silte + areia]
 soildata[, psd_diff := abs(1000 - psd_sum)]
-# There are 427 layers where the sum of fine particle size fractions is only slightly different from
-# 1000 g/kg
 soildata[
   psd_diff <= 100 & psd_diff > 0 & !is.na(psd_sum),
   .(id, camada_nome, argila, silte, areia, psd_sum, psd_diff)
 ]
+# There are 2497 layers where the sum of fine particle size fractions is only slightly different
+# from 1000 g/kg
 psd_sum_fail <- soildata[
   psd_diff > 100 & is_soil == TRUE,
   .(id, camada_nome, argila, silte, areia, psd_sum, psd_diff)
@@ -717,6 +769,14 @@ if (nrow(psd_sum_fail) > 0) {
   )
 } else {
   message("All layers have particle size fractions summing to approximately 1000 g/kg.\nYou can proceed.")
+}
+# There are 8 layers where the sum of fine particle size fractions is grossly different from
+# 1000 g/kg. Layers with gross errors in particle size fractions come from issues in the original
+# data sources + filling of missing layers and will need to be checked later on:
+# ctb0635-PERFIL-DF-27, ctb0635-PERFIL-DF-43, ctb0683-3, ctb0717-38, tb0769-51-EXTRA, and
+# ctb0815-E55. We will drop the entire event for now.
+if (nrow(psd_sum_fail) > 0) {
+  soildata <- soildata[!id %in% psd_sum_fail$id, ]
 }
 # Standardize fine particle size fractions by rescaling them to sum to 1000 g/kg.
 soildata[, argila := round((argila / psd_sum) * 1000)]
@@ -739,17 +799,17 @@ if (soildata[terrafina > 1000, .N] > 0) {
 }
 
 # Check for layers is_soil == TRUE and terrafina == 0: these are inconsistent cases.
-if (soildata[is_soil == TRUE & terrafina == 0, .N] > 0) {
-  print(soildata[
-    is_soil == TRUE & terrafina == 0,
-    .(id, camada_nome, profund_sup, profund_inf, argila, terrafina)
-  ])
+terrafina_fail <- soildata[is_soil == TRUE & terrafina == 0]
+if (nrow(terrafina_fail) > 0) {
+  print(terrafina_fail[, .(id, camada_nome, profund_sup, profund_inf, argila, terrafina, is_soil)])
   stop(
     "Layers with is_soil == TRUE and terrafina == 0 found: please check the sources\n"
   )
 } else {
   message("All layers have consistent values of terrafina.\nYou can proceed.")
 }
+# We found one case only: ctb0033-RO2568. We will drop this event for now.
+soildata <- soildata[!id %in% terrafina_fail$id, ]
 # Check if layers is_soil != TRUE and terrafina > 0: these are inconsistent cases.
 if (soildata[is_soil == FALSE & terrafina > 0, .N] > 0) {
   print(soildata[
@@ -765,16 +825,18 @@ if (soildata[is_soil == FALSE & terrafina > 0, .N] > 0) {
 soildata[, is_soil := NULL]
 
 # COARSE FRAGMENTS
-# Create new variable
+# Update esqueleto based on terrafina
 soildata[, esqueleto := 1000 - terrafina]
+summary(soildata[, .(esqueleto, terrafina)])
+
 # Check esqueleto == NA & terrafina == NA
 soildata[is.na(esqueleto) & is.na(terrafina), .N]
-# There are 7887 layers with missing esqueleto: we will need to impute these values later on.
+# There are 9693 layers with missing esqueleto: we will need to impute these values later on.
 if (FALSE) {
   View(soildata[is.na(esqueleto) & is.na(terrafina), .N, by = camada_nome])
 }
 # Average of esqueleto by camada_nome
-if (FALSE) {
+if (interactive()) {
   View(soildata[,
     .(mean_esqueleto = mean(esqueleto, na.rm = TRUE)),
     by = camada_nome
@@ -810,9 +872,9 @@ soildata[, new_profund_sup := NULL]
 soildata[, new_profund_inf := NULL]
 rm(soildata_rock)
 summary_soildata(soildata)
-# Layers: 54105
-# Events: 18870
-# Georeferenced events: 16360
+# Layers: 66581
+# Events: 18887
+# Georeferenced events: 16370
 # Datasets: 265
 
 # Clean events #####################################################################################
@@ -826,7 +888,7 @@ soildata[dataset_id == "ctb0023" & is.na(data_ano), data_ano := 1979]
 soildata_events <- soildata[!is.na(coord_x) & !is.na(coord_y) & !is.na(data_ano), id[1],
   by = c("dataset_id", "observacao_id", "coord_x", "coord_y", "data_ano")
 ]
-nrow(soildata_events) # 15438 events with complete spatial and temporal coordinates
+nrow(soildata_events) # 15452 events with complete spatial and temporal coordinates
 test_columns <- c("coord_x", "coord_y", "data_ano")
 duplo <- duplicated(soildata_events[, ..test_columns])
 if (sum(duplo) > 0) {
@@ -838,8 +900,8 @@ if (sum(duplo) > 0) {
 
 # Write data to disk ###############################################################################
 summary_soildata(soildata)
-# Layers: 54105
-# Events: 18870
-# Georeferenced events: 16360
+# Layers: 66581
+# Events: 18887
+# Georeferenced events: 16370
 # Datasets: 265
 data.table::fwrite(soildata, "data/11_soildata.txt", sep = "\t")
