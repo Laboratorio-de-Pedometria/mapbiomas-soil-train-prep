@@ -203,8 +203,8 @@ soildata[
   by = id
 ]
 soildata[, has_litter := any(is_litter == TRUE), by = id]
-soildata[is_litter == TRUE, .N] # 246 layers
-soildata[has_litter == TRUE, .N, by = id] # 246 events had litter layers
+soildata[is_litter == TRUE, .N] # 235 layers
+soildata[has_litter == TRUE, .N, by = id] # 235 events had litter layers
 soildata[, .N, by = is_litter]
 # View litter layers
 if (FALSE) {
@@ -225,7 +225,7 @@ soildata <- soildata[is.na(is_litter), ]
 soildata[, is_litter := NULL]
 soildata[, camada_id := 1:.N, by = id]
 summary_soildata(soildata)
-# Layers: 60562
+# Layers: 60573
 # Events: 18969
 # Georeferenced events: 16443
 # Datasets: 265
@@ -235,8 +235,8 @@ soildata[
   is_litter := TRUE,
   by = id
 ]
-soildata[is_litter == TRUE, .N] # 16 layers
-soildata[has_litter == TRUE, .N, by = id] # 240 events now had litter layers
+soildata[is_litter == TRUE, .N] # 15 layers
+soildata[has_litter == TRUE, .N, by = id] # 229 events now had litter layers
 soildata[, .N, by = is_litter]
 # View examples of litter layers
 if (FALSE) {
@@ -250,7 +250,7 @@ soildata <- soildata[is.na(is_litter), ]
 soildata[, is_litter := NULL]
 soildata[, camada_id := 1:.N, by = id]
 summary_soildata(soildata)
-# Layers: 60546
+# Layers: 60558
 # Events: 18968
 # Georeferenced events: 16443
 # Datasets: 265
@@ -261,10 +261,10 @@ soildata[
   by = id
 ]
 soildata[is_litter == TRUE, .N] # 0 layers
-soildata[has_litter == TRUE, .N, by = id] # 239 events had litter layers... this means that we
+soildata[has_litter == TRUE, .N, by = id] # 228 events had litter layers... this means that we
 # lost some complete events when removing litter layers. We will deal with this later. ATTENTION!
 summary_soildata(soildata)
-# Layers: 60546
+# Layers: 60558
 # Events: 18968
 # Georeferenced events: 16443
 # Datasets: 265
@@ -291,12 +291,14 @@ summary(soildata[, .(profund_sup, profund_inf)])
 # MISSING LAYERS
 # Check for missing layers within each event (id)
 print(id_missing <- check_missing_layer(soildata))
-# There are 11969 complaints.
-if (FALSE) {
-  View(soildata[id %in% id_missing$id, .(id, camada_nome, profund_sup, profund_inf, argila, carbono)])
+# There are 11970 complaints.
+if (interactive()) {
+  View(soildata[
+    id %in% id_missing$id,
+    .(id, camada_nome, profund_sup, profund_inf, argila, carbono)
+  ])
 }
 # Set of columns to work with for filling missing layers
-colnames(soildata_ifn)
 cols_layers <- c(
   "id", "camada_id", "amostra_id", "camada_nome", "profund_sup", "profund_inf",
   "terrafina", "argila", "silte", "areia", "carbono", "ctc", "ph", "dsi", "ce", "esqueleto"
@@ -349,7 +351,7 @@ soildata_ifn_layer[,
   dsi := fill_empty_layer(y = dsi, x = profund_mid),
   by = id
 ]
-if (FALSE) {
+if (interactive()) {
   View(soildata_ifn_layer[
     ,
     .(
@@ -373,14 +375,14 @@ soildata <- soildata[!dataset_id %in% ifn_id, ]
 soildata <- rbind(soildata, soildata_ifn)
 rm(soildata_ifn_layer, soildata_ifn)
 summary_soildata(soildata)
-# Layers: 61425
+# Layers: 61437
 # Events: 18968
 # Georeferenced events: 16443
 # Datasets: 265
 
 # Check for missing layers within each event (id)
 print(id_missing <- check_missing_layer(soildata))
-# There are 11090 complaints remaining.
+# There are 11091 complaints remaining.
 
 # Add missing layers for soils with abrupt textural change with depth
 if (interactive()) {
@@ -470,7 +472,7 @@ soildata <- soildata[!id %in% soildata_abrupt$id, ]
 soildata <- rbind(soildata, soildata_abrupt)
 rm(soildata_abrupt_layer, soildata_abrupt)
 summary_soildata(soildata)
-# Layers: 61609
+# Layers: 61621
 # Events: 18968
 # Georeferenced events: 16443
 # Datasets: 265
