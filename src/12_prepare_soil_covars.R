@@ -321,6 +321,7 @@ soildata[SUBORDER == "PETRICO", STONESOL := "TRUE"]
 soildata[SUBORDER == "REGOLITICO", STONESOL := "TRUE"]
 soildata[SUBORDER == "QUARTZARENICO", STONESOL := "FALSE"]
 soildata[SUBORDER == "HAPLICO", STONESOL := "FALSE"]
+soildata[is.na(STONESOL), STONESOL := "UNKNOWN"]
 soildata[, .N, by = STONESOL]
 
 # LAYER-WISE COVARIATES ###########################################################################
@@ -344,6 +345,7 @@ soildata[
   grepl("camada|cam.|CAM|Secçã|AREIA|Sombrico|SUPERF|C.SUPE.", camada_nome, ignore.case = TRUE),
   STONY := "UNKNOWN"
 ]
+soildata[, .N, by = STONY]
 if (FALSE) {
   View(soildata[, .N, by = .(STONY, camada_nome)][order(camada_nome)])
 }
@@ -357,6 +359,7 @@ soildata[carbono < 80, ORGANIC := "FALSE"]
 soildata[carbono >= 80, ORGANIC := "TRUE"]
 soildata[grepl("o", camada_nome, ignore.case = TRUE), ORGANIC := "TRUE"]
 soildata[grepl("H", camada_nome, ignore.case = FALSE), ORGANIC := "TRUE"]
+soildata[is.na(ORGANIC), ORGANIC := "UNKNOWN"]
 soildata[, .N, by = ORGANIC]
 if (FALSE) {
   View(soildata[, .N, by = .(ORGANIC, camada_nome)][order(camada_nome)])
@@ -369,6 +372,7 @@ soildata[camada_nome != "???", AHRZN := "FALSE"]
 soildata[grepl("A", camada_nome, ignore.case = FALSE), AHRZN := "TRUE"]
 unique(soildata[AHRZN == "TRUE", camada_nome])
 unique(soildata[AHRZN == "FALSE", camada_nome])
+soildata[is.na(AHRZN), AHRZN := "UNKNOWN"]
 soildata[, .N, by = AHRZN]
 
 # BHRZN
@@ -378,22 +382,28 @@ soildata[camada_nome != "???", BHRZN := "FALSE"]
 soildata[grepl("B", camada_nome, ignore.case = FALSE), BHRZN := "TRUE"]
 unique(soildata[BHRZN == "TRUE", camada_nome])
 unique(soildata[BHRZN == "FALSE", camada_nome])
+soildata[is.na(BHRZN), BHRZN := "UNKNOWN"]
 soildata[, .N, by = BHRZN]
 
 # DENSIC
 # Dense horizon (bivariate)
-soildata[grepl("tg", camada_nome), DENSIC := TRUE]
-soildata[grepl("v", camada_nome), DENSIC := TRUE]
-soildata[grepl("n", camada_nome), DENSIC := TRUE]
-soildata[is.na(DENSIC), DENSIC := FALSE]
-soildata[camada_nome == "???", DENSIC := NA]
+soildata[, DENSIC := NA_character_]
+soildata[grepl("tg", camada_nome), DENSIC := "TRUE"]
+soildata[grepl("v", camada_nome), DENSIC := "TRUE"]
+soildata[grepl("n", camada_nome), DENSIC := "TRUE"]
+# Has letters but not tg, v, or n
+soildata[grepl("[a-zA-Z]", camada_nome) & is.na(DENSIC), DENSIC := "FALSE"]
+soildata[is.na(DENSIC), DENSIC := "UNKNOWN"]
 soildata[, .N, by = DENSIC]
 
 # EHRZN
 # E horizon (bivariate)
 soildata[, EHRZN := NA_character_]
-soildata[camada_nome != "???", EHRZN := "FALSE"]
-soildata[grepl("E", camada_nome, ignore.case = FALSE), EHRZN := "TRUE"]
+# soildata[camada_nome != "???", EHRZN := "FALSE"]
+soildata[grepl("E|A2", camada_nome, ignore.case = FALSE), EHRZN := "TRUE"]
+# If has letters but not E or A2, set EHRZN to FALSE
+soildata[grepl("[a-zA-Z]", camada_nome) & is.na(EHRZN), EHRZN := "FALSE"]
+soildata[is.na(EHRZN), EHRZN := "UNKNOWN"]
 unique(soildata[EHRZN == "TRUE", camada_nome])
 unique(soildata[EHRZN == "FALSE", camada_nome])
 soildata[, .N, by = EHRZN]
@@ -401,15 +411,18 @@ soildata[, .N, by = EHRZN]
 # CHRZN
 # C horizon (bivariate)
 soildata[, CHRZN := NA_character_]
-soildata[camada_nome != "???", CHRZN := "FALSE"]
-soildata[grepl("C", camada_nome, ignore.case = FALSE), CHRZN := "TRUE"]
+soildata[grepl("C", camada_nome, ignore.case = FALSE) &
+  !grepl("Cam", camada_nome, ignore.case = TRUE), CHRZN := "TRUE"]
+# If has letters but not C, set CHRZN to FALSE
+soildata[grepl("[a-zA-Z]", camada_nome) & is.na(CHRZN), CHRZN := "FALSE"]
+soildata[is.na(CHRZN), CHRZN := "UNKNOWN"]
 unique(soildata[CHRZN == "TRUE", camada_nome])
 unique(soildata[CHRZN == "FALSE", camada_nome])
 soildata[, .N, by = CHRZN]
 
 # GLEY
 # Gleyed horizon (bivariate)
-soildata[, GLEY := NA_character_]
+soildata[, GLEY := "UNKNOWN"]
 # If has letters in camada_nome, set GLEY to FALSE
 soildata[grepl("[a-zA-Z]", camada_nome), GLEY := "FALSE"]
 # If has g, set GLEY to TRUE
@@ -460,10 +473,10 @@ summary(soildata[, silt_clay_ratio])
 nrow(unique(
   soildata[!is.na(coord_x) & !is.na(coord_y), .(dataset_id, observacao_id, coord_x, coord_y, data_ano)]
 ))
-# 16566
+# 16580
 summary_soildata(soildata)
-# Layers: 54105
-# Events: 18870
-# Georeferenced events: 16360
+# Layers: 66581
+# Events: 18887
+# Georeferenced events: 16370
 # Datasets: 265
 data.table::fwrite(soildata, "data/12_soildata.txt", sep = "\t")
