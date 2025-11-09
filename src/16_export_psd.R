@@ -15,10 +15,13 @@ source("src/00_helper_functions.r")
 file_path <- "data/15_soildata.txt"
 soildata <- data.table::fread(file_path, sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 56118
-# Events: 19445
-# Georeferenced events: 16943
+# Layers: 72468
+# Events: 19882
+# Georeferenced events: 17366
 # Datasets: 267
+
+# Fine earth content (this should be done right after randomForest predictions)
+soildata[is.na(terrafina), terrafina := 1000 - esqueleto]
 
 # ROCK LAYERS EXPANSION ############################################################################
 # Compute thickness of each soil layer
@@ -57,9 +60,9 @@ print(rockdata_expanded[, .(id, camada_nome, profund_sup, profund_inf, espessura
 soildata <- soildata[is.na(esqueleto) | esqueleto < 1000, ]
 soildata <- rbind(soildata, rockdata_expanded)
 summary_soildata(soildata)
-# Layers: 58266
-# Events: 19445
-# Georeferenced events: 16943
+# Layers: 74610
+# Events: 19882
+# Georeferenced events: 17366
 # Datasets: 267
 
 # PARTICLE SIZE DISTRIBUTION #######################################################################
@@ -73,15 +76,17 @@ soildata_psd <- soildata[
   .(id, coord_x, coord_y, profund_sup, profund_inf, esqueleto, argila, silte, areia)
 ]
 summary_soildata(soildata_psd)
-# Layers: 43855
-# Events: 14543
-# Georeferenced events: 14543
+# Layers: 57363
+# Events: 14940
+# Georeferenced events: 14940
 
 # Compute the depth as the midpoint of the depth interval and drop the depth interval columns.
 soildata_psd[, profundidade := (profund_inf + profund_sup) / 2, by = .I]
 soildata_psd[, `:=`(profund_sup = NULL, profund_inf = NULL)]
 # Check depth range
 summary(soildata_psd$profundidade)
+x11()
+hist(soildata_psd$profundidade, breaks = 30, main = "Soil layer depth distribution", xlab = "Depth (cm)")
 
 # Drop rows with depth (profundidade) > 100
 soildata_psd <- soildata_psd[profundidade <= 100, ]
