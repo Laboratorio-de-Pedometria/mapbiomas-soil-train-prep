@@ -15,6 +15,10 @@ if (!requireNamespace("BalancedSampling")) {
   requireNamespace("BalancedSampling")
 }
 
+# Number of pseudo-samples to select
+n_sand_samples <- 500
+n_rock_samples <- 500
+
 # Download Brazilian biome boundaries
 # Check if the file already exists to avoid re-downloading
 if (!file.exists("data/brazil_biomes.geojson")) {
@@ -35,9 +39,9 @@ print(biome)
 file_path <- "data/14_soildata.txt"
 soildata <- data.table::fread(file_path, sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 50118
-# Events: 18845
-# Georeferenced events: 16343
+# Layers: 62468
+# Events: 18882
+# Georeferenced events: 16366
 # Datasets: 265
 
 # EXTERNAL DATA - BEACH, DUNE, AND SANDY SPOT PSEUDO-SAMPLES #######################################
@@ -76,7 +80,6 @@ sf::sf_use_s2(old_s2)
 # approach using 1) the coordinates and 2) the biome as strata. We will use a balanced sampling
 # approach to ensure that the samples are well distributed in space and in biome.
 set.seed(1984)
-n_sand_samples <- 100
 # Use length() for sfc objects (geometry sets)
 prob_sand <- rep(
   n_sand_samples / nrow(sand_samples),
@@ -195,7 +198,6 @@ sf::sf_use_s2(old_s2)
 # approach using 1) the coordinates and 2) the biome as strata. We will use a balanced sampling
 # approach to ensure that the samples are well distributed in space and in biome.
 set.seed(1984)
-n_rock_samples <- 500
 # Use length() for sfc objects (geometry sets)
 prob_rock <- rep(n_rock_samples / nrow(rock_samples), nrow(rock_samples))
 # Prepare balancing variables: coordinates + biome code
@@ -271,9 +273,9 @@ soildata <- data.table::rbindlist(
   use.names = TRUE, fill = TRUE
 )
 summary_soildata(soildata)
-# Layers: 56118
-# Events: 19445
-# Georeferenced events: 16943
+# Layers: 72468
+# Events: 19882
+# Georeferenced events: 17366
 # Datasets: 267
 # Save the merged soildata to a file
 file_path <- "data/15_soildata.txt"
