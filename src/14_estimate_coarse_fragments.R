@@ -92,7 +92,7 @@ file_path <- paste0("res/fig/", collection, "_skeleton_histogram_before_imputati
 png(file_path, width = 480 * 3, height = 480 * 3, res = 72 * 3)
 par(mar = c(5, 4, 2, 2) + 0.1)
 hist(soildata[, esqueleto],
-  xlab = "Proportion of coarse fragments (g/kg)",
+  xlab = "Coarse fragments in the whole soil (g/kg)",
   ylab = paste0("Absolute frequency (n = ", length(na.exclude(soildata[, esqueleto])), ")"),
   main = "", col = "gray", border = "gray",
   breaks = seq(0, 1000, by = 50)
