@@ -91,9 +91,9 @@ hist(soildata_psd$profundidade, breaks = 30, main = "Soil layer depth distributi
 # Drop rows with depth (profundidade) > 100
 soildata_psd <- soildata_psd[profundidade <= 100, ]
 summary_soildata(soildata_psd)
-# Layers: 43855
-# Events: 14543
-# Georeferenced events: 14543
+# Layers: 57363
+# Events: 14940
+# Georeferenced events: 14940
 
 # Rename "coord_x" and "coord_y" to "longitude" and "latitude" respectively
 data.table::setnames(soildata_psd, old = c("coord_x", "coord_y"), new = c("longitude", "latitude"))
@@ -194,8 +194,8 @@ soildata_psd[, `:=`(argila1p = NULL, silte1p = NULL, areia1p = NULL, esqueleto1p
 
 # Export PSD data for spatial modelling ############################################################
 ncol(soildata_psd) # Result: 11 columns (variables)
-nrow(soildata_psd) # Result: 43855 rows (layers)
-nrow(unique(soildata_psd[, "id"])) # Result: 14543 unique soil profiles
+nrow(soildata_psd) # Result: 57363 rows (layers)
+nrow(unique(soildata_psd[, "id"])) # Result: 14940 unique soil profiles
 length(unique(sub("-.*$", "", soildata_psd$id))) - 2 # Result: 193 unique datasets (excluding pseudo)
 
 # Destination folder
