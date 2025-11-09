@@ -24,9 +24,9 @@ source("src/00_helper_functions.r")
 file_path <- "data/13_soildata.txt"
 soildata <- data.table::fread(file_path, sep = "\t", na.strings = c("", "NA", "NaN"))
 summary_soildata(soildata)
-# Layers: 54105
-# Events: 18870
-# Georeferenced events: 16360
+# Layers: 66581
+# Events: 18887
+# Georeferenced events: 16370
 # Datasets: 265
 
 # DESIGN MATRIX
@@ -39,9 +39,9 @@ soildata[, profundidade := (profund_inf + profund_sup) / 2]
 soildata <- soildata[profundidade <= max_depth, ]
 summary(soildata[, profundidade])
 summary_soildata(soildata)
-# Layers: 50118
-# Events: 18845
-# Georeferenced events: 16343
+# Layers: 62468
+# Events: 18882
+# Georeferenced events: 16366
 # Datasets: 265
 
 # MANNUAL CORRECTION OF ERRORS IN THE TARGET VARIABLE ##############################################
@@ -57,35 +57,48 @@ soildata[id == "ctb0751-53" & esqueleto == 950, `:=`(terrafina = 910, esqueleto 
 # EXPLORATORY DATA ANALYSIS #######################################################################
 if (FALSE) {
   soildata_sf <- sf::st_as_sf(
-    soildata[profundidade >= 0 &
-    profundidade <= 10 &
+    soildata[profundidade >= 90 &
+    profundidade <= 100 &
     !is.na(coord_datum) & esqueleto > 0 & esqueleto < 1000, .(id, coord_x, coord_y, esqueleto)],
     coords = c("coord_x", "coord_y"),
     crs = 4674,
     remove = FALSE
   )
-  nrow(soildata_sf) # 13296
+  nrow(soildata_sf)
   mapview::mapview(soildata_sf, zcol = "esqueleto", layer.name = "Soil skeleton (dag/kg)")
-  # 00-10 cm: 3515 (11885)
-  # 10-20 cm: 2096 (4729)
-  # 20-30 cm: 1254 (3985)
-  # 30-40 cm: 2286 (4797)
-  # 40-50 cm: 1176 (3239)
-  # 50-60 cm: 1105 (2768)
-  # 60-70 cm: 1495 (3387)
-  # 70-80 cm: 1450 (2932)
-  # 80-90 cm: 784 (2110)
-  # 90-100 cm: 682 (1703)
+  # 00-10 cm: 3579
+  # 10-20 cm: 2806
+  # 20-30 cm: 2773
+  # 30-40 cm: 2738
+  # 40-50 cm: 2167
+  # 50-60 cm: 2462
+  # 60-70 cm: 1776
+  # 70-80 cm: 1757
+  # 80-90 cm: 1496
+  # 90-100 cm: 1578
 }
 
 # Target variable: Proportion of coarse fragments (esqueleto)
 # Identify soil layers missing the proportion of coarse fragments
 is_na_skeleton <- is.na(soildata[["esqueleto"]])
-sum(is_na_skeleton) # 7827 layers out of 50118
+sum(is_na_skeleton) # 9623 layers out of 62468
 
 # Identify soil layers with proportion of coarse fragments equal to 100%
 is_rock <- soildata[!is_na_skeleton, esqueleto == 1000]
-sum(is_rock) # 756 layers out of 50118
+sum(is_rock) # 762 layers out of 62468
+
+# Plot distribution of the target variable
+file_path <- paste0("res/fig/", collection, "_skeleton_histogram_before_imputation.png")
+png(file_path, width = 480 * 3, height = 480 * 3, res = 72 * 3)
+par(mar = c(5, 4, 2, 2) + 0.1)
+hist(soildata[, esqueleto],
+  xlab = "Proportion of coarse fragments (g/kg)",
+  ylab = paste0("Absolute frequency (n = ", length(na.exclude(soildata[, esqueleto])), ")"),
+  main = "", col = "gray", border = "gray"
+)
+grid(nx = FALSE, ny = NULL, col = "gray")
+rug(soildata[!is_na_skeleton, esqueleto])
+dev.off()
 
 # Covariates
 
@@ -453,7 +466,7 @@ file_path <- paste0("res/fig/", collection, "_skeleton_histogram.png")
 png(file_path, width = 480 * 3, height = 480 * 3, res = 72 * 3)
 par(mar = c(5, 4, 2, 2) + 0.1)
 hist(soildata[, esqueleto],
-  xlab = "Proportion of coarse fragments (dag/kg)",
+  xlab = "Proportion of coarse fragments (g/kg)",
   ylab = paste0("Absolute frequency (n = ", length(soildata[, esqueleto]), ")"),
   main = "", col = "gray", border = "gray"
 )
