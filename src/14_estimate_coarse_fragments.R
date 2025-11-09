@@ -37,7 +37,6 @@ soildata[, geomorphon := as.character(geomorphon)]
 # Depth at the middle of the soil layer, then filter layers deeper than max_depth
 soildata[, profundidade := (profund_inf + profund_sup) / 2]
 soildata <- soildata[profundidade <= max_depth, ]
-soildata[, topsoil := ifelse(profund_sup < 20, "TRUE", "FALSE")]
 summary(soildata[, profundidade])
 summary_soildata(soildata)
 # Layers: 62468
@@ -45,8 +44,22 @@ summary_soildata(soildata)
 # Georeferenced events: 16366
 # Datasets: 265
 
+# Identify topsoil layers
+# We noticed that many soil layers with observed skeleton content = 0 g/kg had predicted values
+# much higher than 0 g/kg. The layers with the largest errors were mostly from topsoil. So we
+# decided to create a flag to identify topsoil layers as covariate.
+soildata[, topsoil := ifelse(profund_sup < 20, TRUE, FALSE)]
+soildata[, .N, by = topsoil]
+
 # Identify rock layers
+# We included a few (762) rock layers (skeleton = 1000 g/kg) in the dataset to help the model learn
+# high values of skeleton content. However, as the samples for which we will predict skeleton
+# content are soil layers, we need to identify rock layers here to avoid predicting them later
+# when they should not. It is not clear however, how important this samples of rock layers are for
+# the model learning.
 soildata[, is_rock := ifelse(esqueleto == 1000, TRUE, FALSE)]
+soildata[is.na(is_rock), is_rock := FALSE] # samples to be predicted
+soildata[, .N, by = is_rock]
 
 # MANNUAL CORRECTION OF ERRORS IN THE TARGET VARIABLE ##############################################
 # ctb0751
@@ -87,9 +100,9 @@ if (FALSE) {
 is_na_skeleton <- is.na(soildata[["esqueleto"]])
 sum(is_na_skeleton) # 9623 layers out of 62468
 
-# Identify soil layers with proportion of coarse fragments equal to 100%
-is_rock <- soildata[!is_na_skeleton, esqueleto == 1000]
-sum(is_rock) # 762 layers out of 62468
+# # Identify soil layers with proportion of coarse fragments equal to 100%
+# is_rock <- soildata[!is_na_skeleton, esqueleto == 1000]
+# sum(is_rock) # 762 layers out of 62468
 
 # Plot distribution of the target variable
 file_path <- paste0("res/fig/", collection, "_skeleton_histogram_before_imputation.png")
