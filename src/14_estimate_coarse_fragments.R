@@ -94,7 +94,8 @@ par(mar = c(5, 4, 2, 2) + 0.1)
 hist(soildata[, esqueleto],
   xlab = "Proportion of coarse fragments (g/kg)",
   ylab = paste0("Absolute frequency (n = ", length(na.exclude(soildata[, esqueleto])), ")"),
-  main = "", col = "gray", border = "gray"
+  main = "", col = "gray", border = "gray",
+  breaks = seq(0, 1000, by = 50)
 )
 grid(nx = FALSE, ny = NULL, col = "gray")
 rug(soildata[!is_na_skeleton, esqueleto])
@@ -468,7 +469,8 @@ par(mar = c(5, 4, 2, 2) + 0.1)
 hist(soildata[, esqueleto],
   xlab = "Proportion of coarse fragments (g/kg)",
   ylab = paste0("Absolute frequency (n = ", length(soildata[, esqueleto]), ")"),
-  main = "", col = "gray", border = "gray"
+  main = "", col = "gray", border = "gray",
+  breaks = seq(0, 1000, by = 50)
 )
 grid(nx = FALSE, ny = NULL, col = "gray")
 rug(soildata[!is_na_skeleton, esqueleto])
