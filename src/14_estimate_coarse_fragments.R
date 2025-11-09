@@ -494,6 +494,28 @@ if (FALSE) {
   print(tree_model)
   rm(tmp, tree_model)
 }
+# It is evident from the decision tree that high errors are associated with:
+# - Layers that have low skeleton content in the lower and upper soil layers, that is, isolated
+#   layers that have large amounts of coarse fragments in between layers with low amounts of coarse
+#   fragments.
+# - Layers that are A horizons
+# - Layers that are in Brazilian states with high presence of Plintossolos and Neossolos Litólicos
+#   (CE,DF,GO,MA,MG,RN,RO,SC,TO)
+# - Layers that are expected to have coarse fragments as indicated by the morphological description
+#   (e.g. STONY=TRUE, f, c, r, and u suffixes), as this suffixes do not specify the amount of coarse
+#   fragments present in the layer and can vary largely.
+# Decision tree structure:
+#  1) root 2281 128117000  -53.73959  
+#    2) coarse_lower_minf< 141 601  34010140 -112.50080  
+#      4) coarse_upper_minf< 80.5 144   7262678 -184.93750 *
+#      5) coarse_upper_minf>=80.5 457  25753800  -89.67615  
+#       10) AHRZN=TRUE 224  11706810 -165.38390  
+#         20) estado_id_mia=CE,DF,GO,MA,MG,RN,RO,SC,TO 77   4612424 -274.76620 *
+#         21) estado_id_mia=AC,AL,AM,AP,BA,ES,MS,MT,PA,PB,PE,PI,PR,RJ,RR,RS,SE,SP 147   5690558 -108.08840 *
+#       11) AHRZN=FALSE 233  11528790  -16.89270 *
+#    3) coarse_lower_minf>=141 1680  91289270  -32.71845  
+#      6) STONY=TRUE 226  13805750 -122.33630 *
+#      7) STONY=FALSE,UNKNOWN 1454  75386310  -18.78886 *
 
 # Explore layers with large errors spatially
 if (FALSE) {
