@@ -228,5 +228,6 @@ if (write_out) {
 # Using the API results in a more laborious process, as we need to chunk the data to avoid
 # exceeding the 10 MB payload limit per request. Thus, we upload the data mannually using the
 # GEE web interface.
+# URL: https://code.earthengine.google.com/
 # Location: projects/mapbiomas-workspace/SOLOS/AMOSTRAS/ORIGINAIS/collection3/
 # Asset name: the same as the CSV file name without the .csv extension
