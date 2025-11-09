@@ -37,12 +37,16 @@ soildata[, geomorphon := as.character(geomorphon)]
 # Depth at the middle of the soil layer, then filter layers deeper than max_depth
 soildata[, profundidade := (profund_inf + profund_sup) / 2]
 soildata <- soildata[profundidade <= max_depth, ]
+soildata[, topsoil := ifelse(profund_sup < 20, "TRUE", "FALSE")]
 summary(soildata[, profundidade])
 summary_soildata(soildata)
 # Layers: 62468
 # Events: 18882
 # Georeferenced events: 16366
 # Datasets: 265
+
+# Identify rock layers
+soildata[, is_rock := ifelse(esqueleto == 1000, TRUE, FALSE)]
 
 # MANNUAL CORRECTION OF ERRORS IN THE TARGET VARIABLE ##############################################
 # ctb0751
@@ -111,8 +115,10 @@ covars2drop <- c(
   # Identifiers and metadata
   "dataset_id", "observacao_id",
   "dataset_titulo", "organizacao_nome", "dataset_licenca", "sisb_id", "ibge_id", "id", 
-  "coord_precisao", "coord_fonte", "coord_datum", "pais_id", "municipio_id", "amostra_quanti",
-  "amostra_area", "amostra_tipo", "camada_nome", "camada_id", "amostra_id", 
+  "coord_precisao", "coord_fonte", "coord_datum",
+  "pais_id", "municipio_id",
+  "amostra_quanti",
+  "amostra_area", "amostra_tipo", "camada_nome", "camada_id", "amostra_id",
   # Redundant covariates
   "coord_x", "coord_y",  "data_ano", "taxon_sibcs", "taxon_st", "taxon_wrb", "profund_sup",
   "profund_inf", "ano_fonte", "pedregosidade", "rochosidade",
@@ -240,6 +246,7 @@ covariates <- data.table::as.data.table(
   )
 )
 print(covariates)
+ncol(covariates) # 276 covariates after feature selection
 
 # MODELING #########################################################################################
 
@@ -251,7 +258,8 @@ print(covariates)
 #   bias-variance trade-off of the model.
 #   mtry <- c(2, 4, 8, 16) # 2024 and 2025
 # mtry <- c(16, 24, 32)
-mtry <- c(24, 32, 48, 54)
+# mtry <- c(24, 32, 48)
+mtry <- c(32, 48, 54)
 # max_depth. Previous tests have shown that increasing max_depth improves model more than
 #   increasing the number of trees. This parameter defines how much each individual tree is allowed
 #   to learn. The best results obtained in previous/inicial tests consistently were with max_depth
@@ -350,7 +358,7 @@ hyper_best <- hyper_best[min_node_size == max(min_node_size), ]
 print(hyper_best)
 
 # Hard code the best hyperparameters for the model
-hyper_best <- data.frame(num_trees = 400, mtry = 54, min_node_size = 3, max_depth = 25)
+hyper_best <- data.frame(num_trees = 400, mtry = 54, min_node_size = 2, max_depth = 25)
 
 # Fit the best model
 t0 <- Sys.time()
@@ -369,13 +377,13 @@ skeleton_model <- ranger::ranger(
 )
 Sys.time() - t0
 print(skeleton_model)
-# OOB prediction error (MSE): 4198.282
-# R squared (OOB): 0.8512358
+# OOB prediction error (MSE): 2899.257
+# R squared (OOB): 0.8798463
 
 # Proportion of correctly classified rock layers (esqueleto == 1000)
 # Tolerance of 0, 5, and 10%
-round(sum(round(skeleton_model$predictions[is_rock] / 10) == 100) / sum(is_rock) * 100) # 92%
-round(sum(round(skeleton_model$predictions[is_rock] / 10) >= 95) / sum(is_rock) * 100) # 98%
+round(sum(round(skeleton_model$predictions[is_rock] / 10) == 100) / sum(is_rock) * 100) # 94%
+round(sum(round(skeleton_model$predictions[is_rock] / 10) >= 95) / sum(is_rock) * 100) # 100%
 round(sum(round(skeleton_model$predictions[is_rock] / 10) >= 90) / sum(is_rock) * 100) # 100%
 
 # Compute regression model statistics and write to disk
@@ -387,7 +395,7 @@ file_path <- paste0("res/tab/", collection, "_skeleton_ranger_model_statistics.t
 data.table::fwrite(skeleton_model_stats, file_path, sep = "\t")
 print(round(skeleton_model_stats, 2))
 #             me   mae     mse  rmse  mec slope
-# predicted 1.59 24.14 4271.46 65.36 0.65  1.03
+# predicted 0.86 17.37 2941.04 54.23 0.74  1.03
 
 # Write model parameters to disk
 file_path <- paste0("res/tab/", collection, "_skeleton_ranger_model_parameters.txt")
@@ -414,7 +422,7 @@ if (any(soildata[!is_na_skeleton, abs_error] >= abs_error_tolerance)) {
 } else {
   print(paste0("All absolute errors are below ", abs_error_tolerance, " %."))
 }
-# 2691 layers with absolute error >= 100 %
+# 2270 layers with absolute error >= 100 g/kg
 
 # Figure: Variable importance
 variable_importance_threshold <- 0.02
@@ -444,8 +452,8 @@ plot(
   y = soildata[!is_na_skeleton, esqueleto], x = skeleton_model$predictions,
   panel.first = grid(),
   pch = 21, bg = color_palette[as.numeric(color_class)],
-  ylab = "Observed proportion of coarse fragments (dag/kg)",
-  xlab = "Fitted proportion of coarse fragments (dag/kg)"
+  ylab = "Observed coarse fragments (g/kg)",
+  xlab = "Fitted coarse fragments (g/kg)"
 )
 abline(0, 1)
 legend("topleft",
@@ -455,19 +463,45 @@ legend("topleft",
 )
 dev.off()
 
+# covariates[!is_na_skeleton, pred := skeleton_model$predictions]
+# covariates[!is_na_skeleton, obs := soildata[!is_na_skeleton, esqueleto]] 
+# tree_model <- rpart::rpart(pred ~ . - obs, data = covariates[!is_na_skeleton & obs == 0 & pred > 100, ])
+# x11()
+# plot(tree_model)
+# text(tree_model, use.n = TRUE)
+# print(tree_model)
+
+# tmp <- covariates[!is_na_skeleton, .(res = abs(pred - obs), profundidade)]
+# x11()
+# plot(profundidade ~ res, data = tmp, ylim = c(100, 0))
+# grid()
+
+# soildata[!is_na_skeleton, pred := round(skeleton_model$predictions)]
+# tmp_sf <- soildata[
+#   esqueleto == 0 & pred > 100,
+#   .(id, camada_id, camada_nome, profundidade, esqueleto, pred, carbono, ORDER, SUBORDER, coord_x, coord_y, dist2rock)
+# ]
+# tmp_sf <- sf::st_as_sf(
+#   tmp_sf[is.na(coord_x) == FALSE & is.na(coord_y) == FALSE, ],
+#   coords = c("coord_x", "coord_y"),
+#   crs = 4674,
+#   remove = FALSE
+# )
+# mapview::mapview(tmp_sf, zcol = "pred", layer.name = "Predicted soil skeleton (dag/kg)")
+
 # Predict soil skeleton
 skeleton_digits <- 0
 tmp <- predict(skeleton_model, data = covariates[is_na_skeleton, ])
 soildata[is_na_skeleton, esqueleto := round(tmp$predictions, skeleton_digits)]
-nrow(unique(soildata[, "id"])) # Result: 18845
-nrow(soildata) # Result: 50118
+nrow(unique(soildata[, "id"])) # Result: 18882
+nrow(soildata) # Result: 62468
 
 # Figure. Distribution of soil skeleton data
-file_path <- paste0("res/fig/", collection, "_skeleton_histogram.png")
+file_path <- paste0("res/fig/", collection, "_skeleton_histogram_after_imputation.png")
 png(file_path, width = 480 * 3, height = 480 * 3, res = 72 * 3)
 par(mar = c(5, 4, 2, 2) + 0.1)
 hist(soildata[, esqueleto],
-  xlab = "Proportion of coarse fragments (g/kg)",
+  xlab = "Coarse fragments in the whole soil (g/kg)",
   ylab = paste0("Absolute frequency (n = ", length(soildata[, esqueleto]), ")"),
   main = "", col = "gray", border = "gray",
   breaks = seq(0, 1000, by = 50)
