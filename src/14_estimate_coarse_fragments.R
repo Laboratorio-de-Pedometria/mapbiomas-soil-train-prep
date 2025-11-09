@@ -477,21 +477,26 @@ legend("topleft",
 )
 dev.off()
 
-# covariates[!is_na_skeleton, pred := skeleton_model$predictions]
-# covariates[!is_na_skeleton, obs := soildata[!is_na_skeleton, esqueleto]] 
-# tree_model <- rpart::rpart(pred ~ . - obs, data = covariates[!is_na_skeleton & obs == 0 & pred > 100, ])
-# x11()
-# plot(tree_model)
-# text(tree_model, use.n = TRUE)
-# print(tree_model)
-
-# tmp <- covariates[!is_na_skeleton, .(res = abs(pred - obs), profundidade)]
-# x11()
-# plot(profundidade ~ res, data = tmp, ylim = c(100, 0))
-# grid()
-
+# Explore decision tree to understand model behavior
+# Compute the prediction error. Next, fit a decision tree to predict the prediction error using the
+# covariates. This may help understand in which conditions the model produces larger errors.
 if (FALSE) {
-  # Explore layers with large errors spatially
+  tmp <- covariates[!is_na_skeleton, ]
+  tmp[, pred := skeleton_model$predictions]
+  tmp[, obs := soildata[!is_na_skeleton, esqueleto]]
+  tmp[, error := round(pred - obs)]
+  tmp[, pred := NULL]
+  tmp[, obs := NULL]
+  tree_model <- rpart::rpart(error ~ ., data = tmp[abs(error) >= abs_error_tolerance, ])
+  x11()
+  plot(tree_model)
+  text(tree_model, use.n = TRUE)
+  print(tree_model)
+  rm(tmp, tree_model)
+}
+
+# Explore layers with large errors spatially
+if (FALSE) {
   tmp_sf <- soildata[
     !is_na_skeleton & abs_error >= abs_error_tolerance,
     .(id, camada_id, camada_nome, profundidade, esqueleto,
@@ -550,16 +555,16 @@ tmp <- soildata[
     !is.na(profund_sup) & !is.na(profund_inf)
 ]
 summary_soildata(tmp)
-# Layers: 43060
-# Events: 16146
-# Georeferenced events: 13943
+# Layers: 53260
+# Events: 16140
+# Georeferenced events: 13940
 # Datasets: 241
 
 # Write data to disk ###############################################################################
 soildata[, abs_error := NULL]
 summary_soildata(soildata)
-# Layers: 50118
-# Events: 18845
-# Georeferenced events: 16343
+# Layers: 62468
+# Events: 18882
+# Georeferenced events: 16366
 # Datasets: 265
 data.table::fwrite(soildata, "data/14_soildata.txt", sep = "\t")
