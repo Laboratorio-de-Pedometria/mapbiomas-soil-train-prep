@@ -490,18 +490,31 @@ dev.off()
 # plot(profundidade ~ res, data = tmp, ylim = c(100, 0))
 # grid()
 
-# soildata[!is_na_skeleton, pred := round(skeleton_model$predictions)]
-# tmp_sf <- soildata[
-#   esqueleto == 0 & pred > 100,
-#   .(id, camada_id, camada_nome, profundidade, esqueleto, pred, carbono, ORDER, SUBORDER, coord_x, coord_y, dist2rock)
-# ]
-# tmp_sf <- sf::st_as_sf(
-#   tmp_sf[is.na(coord_x) == FALSE & is.na(coord_y) == FALSE, ],
-#   coords = c("coord_x", "coord_y"),
-#   crs = 4674,
-#   remove = FALSE
-# )
-# mapview::mapview(tmp_sf, zcol = "pred", layer.name = "Predicted soil skeleton (dag/kg)")
+if (FALSE) {
+  # Explore layers with large errors spatially
+  tmp_sf <- soildata[
+    !is_na_skeleton & abs_error >= abs_error_tolerance,
+    .(id, camada_id, camada_nome, profundidade, esqueleto,
+      carbono, ORDER, SUBORDER, coord_x, coord_y, dist2rock
+    )
+  ]
+  tmp_sf$prediction <- round(skeleton_model$predictions[!is_na_skeleton][
+    soildata[!is_na_skeleton, abs_error] >= abs_error_tolerance
+  ])
+  tmp_sf$prediction_error <- tmp_sf$prediction - tmp_sf$esqueleto
+  tmp_sf <- sf::st_as_sf(
+    tmp_sf[is.na(coord_x) == FALSE & is.na(coord_y) == FALSE, ],
+    coords = c("coord_x", "coord_y"),
+    crs = 4674,
+    remove = FALSE
+  )
+  mapview::mapview(tmp_sf,
+    zcol = "prediction_error",
+    col.regions = rev(RColorBrewer::brewer.pal(9, "RdBu")),
+    layer.name = "Prediction error in soil skeleton (g/kg)"
+  )
+  rm(tmp_sf)
+}
 
 # Predict soil skeleton
 skeleton_digits <- 0
