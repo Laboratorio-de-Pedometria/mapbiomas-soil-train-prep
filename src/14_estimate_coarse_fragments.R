@@ -572,17 +572,20 @@ legend("topright",
 )
 dev.off()
 
-# Dataset for PSD modelling
-tmp <- soildata[
+# Check current dataset for PSD modelling
+# Dataset must containg soil layers with complete texture and coarse fragments as well as depth
+# information and georeferencing
+tmp_trainning <- soildata[
   !is.na(esqueleto) &
-    !is.na(argila) & !is.na(areia) & !is.na(silte) &
-    !is.na(profund_sup) & !is.na(profund_inf)
+    !is.na(argila) & !is.na(areia) & !is.na(silte) & !is.na(esqueleto) &
+    !is.na(profund_sup) & !is.na(profund_inf) &
+    !is.na(coord_x) & !is.na(coord_y)
 ]
-summary_soildata(tmp)
-# Layers: 53260
-# Events: 16140
+summary_soildata(tmp_trainning)
+# Layers: 45759
+# Events: 13940
 # Georeferenced events: 13940
-# Datasets: 241
+# Datasets: 193
 
 # Write data to disk ###############################################################################
 soildata[, abs_error := NULL]
