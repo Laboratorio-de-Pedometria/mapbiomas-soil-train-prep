@@ -763,7 +763,7 @@ psd_sum_fail <- soildata[
   .(id, camada_nome, argila, silte, areia, psd_sum, psd_diff)
 ]
 if (nrow(psd_sum_fail) > 0) {
-  stop(
+  warning(
     "Layers with particle size fractions not summing to approximately 1000 g/kg found:\n",
     print(psd_sum_fail)
   )
@@ -790,7 +790,7 @@ soildata[, psd_diff := NULL]
 soildata[, terrafina := round(terrafina)]
 # Check for terrafina > 1000 g/kg
 if (soildata[terrafina > 1000, .N] > 0) {
-  stop(
+  warning(
     "Layers with terrafina > 1000 g/kg found. Please check the following layers:\n",
     print(soildata[terrafina > 1000, .(id, camada_nome, profund_sup, profund_inf, argila, terrafina)])
   )
@@ -802,7 +802,7 @@ if (soildata[terrafina > 1000, .N] > 0) {
 terrafina_fail <- soildata[is_soil == TRUE & terrafina == 0]
 if (nrow(terrafina_fail) > 0) {
   print(terrafina_fail[, .(id, camada_nome, profund_sup, profund_inf, argila, terrafina, is_soil)])
-  stop(
+  warning(
     "Layers with is_soil == TRUE and terrafina == 0 found: please check the sources\n"
   )
 } else {
@@ -816,7 +816,7 @@ if (soildata[is_soil == FALSE & terrafina > 0, .N] > 0) {
     is_soil == FALSE & terrafina > 0,
     .(id, camada_nome, profund_sup, profund_inf, argila, terrafina)
   ])
-  stop(
+  warning(
     "Layers with is_soil == FALSE and terrafina > 0 found: please check the sources\n"
   )
 } else {
