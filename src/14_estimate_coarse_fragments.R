@@ -547,8 +547,10 @@ if (FALSE) {
 skeleton_digits <- 0
 tmp <- predict(skeleton_model, data = covariates[is_na_skeleton, ])
 soildata[is_na_skeleton, esqueleto := round(tmp$predictions, skeleton_digits)]
+soildata[is_na_skeleton, terrafina := 1000 - esqueleto]
 nrow(unique(soildata[, "id"])) # Result: 18882
 nrow(soildata) # Result: 62468
+summary(soildata[, .(esqueleto, terrafina)])
 
 # Figure. Distribution of soil skeleton data
 file_path <- paste0("res/fig/", collection, "_skeleton_histogram_after_imputation.png")
