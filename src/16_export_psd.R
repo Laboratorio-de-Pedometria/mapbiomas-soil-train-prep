@@ -20,9 +20,6 @@ summary_soildata(soildata)
 # Georeferenced events: 17366
 # Datasets: 267
 
-# Fine earth content (this should be done right after randomForest predictions)
-soildata[is.na(terrafina), terrafina := 1000 - esqueleto]
-
 # ROCK LAYERS EXPANSION ############################################################################
 # Compute thickness of each soil layer
 soildata[, espessura := profund_inf - profund_sup]
