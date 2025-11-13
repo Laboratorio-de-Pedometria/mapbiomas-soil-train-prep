@@ -109,9 +109,9 @@ sand_samples_selected <- data.table::as.data.table(sf::st_coordinates(sand_sampl
 data.table::setnames(sand_samples_selected, old = c("X", "Y"), new = c("coord_x", "coord_y"))
 # Add columns to match the structure of "soildata"
 sand_samples_selected[, `:=`(
-  dataset_id = "pseudo-sand",
+  dataset_id = "sand-pseudo",
   observacao_id = .I,
-  id = paste0("pseudo-sand-", .I),
+  id = paste0("sand-pseudo-", .I),
   dataset_titulo = "Pseudo-samples from beaches, dunes, and sandy spots",
   organizacao_nome = "MapBiomas",
   dataset_licenca = "CC-BY 4.0",
@@ -226,10 +226,10 @@ data.table::setnames(rock_samples_selected, old = c("X", "Y"), new = c("coord_x"
 
 # Add columns to match the structure of "soildata"
 rock_samples_selected[, `:=`(
-  dataset_id = "pseudo-rock",
+  dataset_id = "rock-pseudo",
   observacao_id = .I,
-  id = paste0("pseudo-rock-", .I),
-  dataset_titulo = "Pseudo-samples from rock outcrops",
+  id = paste0("rock-pseudo-", .I),
+  dataset_titulo = "Pseudo-samples from rocky outcrops",
   organizacao_nome = "MapBiomas",
   dataset_licenca = "CC-BY 4.0",
   coord_precisao = 30,
