@@ -237,7 +237,7 @@ soildata_psd[, `:=`(argila1p = NULL, silte1p = NULL, areia1p = NULL, esqueleto1p
 ncol(soildata_psd) # Result: 11 columns (variables)
 nrow(soildata_psd) # Result: 60261 rows (layers)
 nrow(unique(soildata_psd[, "id"])) # Result: 15573 unique soil profiles
-length(unique(sub("-.*$", "", soildata_psd$id))) # Result: 193 unique datasets (excluding pseudo)
+length(unique(sub("-.*$", "", soildata_psd$id))) - 3 # Result: 193 unique datasets (excluding pseudo and copy)
 
 # Destination folder
 folder_path <- "res/tab/"
