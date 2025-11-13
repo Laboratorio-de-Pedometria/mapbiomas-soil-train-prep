@@ -44,6 +44,8 @@ soildata_psd <- data.table::fread(paste0(folder_path, last_file), na.strings = c
 soildata_psd[, id := sub("-pseudo", "pseudo", id)]
 # rock-pseudo -> rockpseudo
 soildata_psd[, id := sub("-pseudo", "pseudo", id)]
+# clay-copy -> claycopy
+soildata_psd[, id := sub("-copy", "copy", id)]
 # dataset_id <- id before the first dash
 soildata_psd[, dataset_id := sub("-.*", "", id)]
 # observacao_id <- id after the first dash
@@ -53,9 +55,9 @@ soildata_psd[, coord_y := latitude]
 # longitude -> coord_x
 soildata_psd[, coord_x := longitude]
 summary_soildata(soildata_psd)
-# Layers: 48900
-# Events: 14948
-# Georeferenced events: 14948
+# Layers: 60261
+# Events: 15573
+# Georeferenced events: 15573
 # Datasets: 196
 
 # Figure 1. Frequency distribution of particle size components #####################################
