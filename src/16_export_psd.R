@@ -83,7 +83,10 @@ soildata_psd[, `:=`(profund_sup = NULL, profund_inf = NULL)]
 # Check depth range
 summary(soildata_psd$profundidade)
 x11()
-hist(soildata_psd$profundidade, breaks = 30, main = "Soil layer depth distribution", xlab = "Depth (cm)")
+hist(soildata_psd$profundidade,
+  breaks = 10,
+  main = "Soil layer depth distribution", xlab = "Depth (cm)"
+)
 
 # Drop rows with depth (profundidade) > 100
 soildata_psd <- soildata_psd[profundidade <= 100, ]
@@ -92,6 +95,47 @@ summary_soildata(soildata_psd)
 # Events: 14940
 # Georeferenced events: 14940
 
+# DATA REPLICATION ################################################################################
+# During spatial modelling, we notived that the clay content (argila) was smoothed, resulting in the
+# underestimation of clay content in soils with high clay content. One possible reason for this is
+# the fact that we are using the clay content (argila) as the denominator in the additive log ratio
+# transformation. Another possible reason is the low number of soil profiles with high clay content,
+# resulting in a skewed distribution. To mitigate this issue, we dupplicate soil layers from soil
+# profiles that meet the following criteria:
+# a minimum clay content (argila) of 600 g/kg throughout the profile,
+# a maximum depth (profundidade) of at least 70 cm,
+# and at least 3 layers in the profile.
+x11()
+hist(soildata_psd[, argila],
+  breaks = 50, main = "Clay content distribution", xlab = "Clay content (g/kg)"
+)
+rug(soildata_psd[, argila])
+
+# Compute min clay content (argila) per soil profile (id)
+soildata_psd[, min_argila := min(argila), by = id]
+soildata_psd[, max_profundidade := max(profundidade), by = id]
+soildata_psd[, n := .N, by = id]
+tmp_sf <- soildata_psd[min_argila > 600 & max_profundidade >= 70 & n >= 3, ]
+length(unique(tmp_sf$id)) # 633 soil profiles to be duplicated
+nrow(tmp_sf) # 2898 layers to be duplicated
+if (interactive()) {
+  mapview::mapview(sf::st_as_sf(
+    tmp_sf,
+    coords = c("coord_x", "coord_y"),
+    crs = sf::st_crs(4326),
+    remove = FALSE
+  ), zcol = "argila", legend = TRUE, layer.name = "Clay content (g/kg)")
+}
+# Append the prefix "clay-copy-" to the duplicated layers' id
+tmp_sf[, id := paste0("clay-copy-", id)]
+soildata_psd <- rbind(soildata_psd, tmp_sf)
+soildata_psd[, `:=`(min_argila = NULL, max_profundidade = NULL, n = NULL)]
+summary_soildata(soildata_psd)
+# Layers: 60261
+# Events: 15573
+# Georeferenced events: 15573
+
+# DATA CLEANING ###################################################################################
 # Rename "coord_x" and "coord_y" to "longitude" and "latitude" respectively
 data.table::setnames(soildata_psd, old = c("coord_x", "coord_y"), new = c("longitude", "latitude"))
 
@@ -191,9 +235,9 @@ soildata_psd[, `:=`(argila1p = NULL, silte1p = NULL, areia1p = NULL, esqueleto1p
 
 # Export PSD data for spatial modelling ############################################################
 ncol(soildata_psd) # Result: 11 columns (variables)
-nrow(soildata_psd) # Result: 57363 rows (layers)
-nrow(unique(soildata_psd[, "id"])) # Result: 14940 unique soil profiles
-length(unique(sub("-.*$", "", soildata_psd$id))) - 2 # Result: 193 unique datasets (excluding pseudo)
+nrow(soildata_psd) # Result: 60261 rows (layers)
+nrow(unique(soildata_psd[, "id"])) # Result: 15573 unique soil profiles
+length(unique(sub("-.*$", "", soildata_psd$id))) # Result: 193 unique datasets (excluding pseudo)
 
 # Destination folder
 folder_path <- "res/tab/"
