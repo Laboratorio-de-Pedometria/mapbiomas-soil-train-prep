@@ -390,8 +390,8 @@ skeleton_model <- ranger::ranger(
 )
 Sys.time() - t0
 print(skeleton_model)
-# OOB prediction error (MSE): 2880.94
-# R squared (OOB): 0.8806054
+# OOB prediction error (MSE): 2880.802
+# R squared (OOB): 0.8806111
 
 # Proportion of correctly classified rock layers (esqueleto == 1000)
 # Tolerance of 0, 5, and 10%
@@ -409,7 +409,7 @@ file_path <- paste0("res/tab/", collection, "_skeleton_ranger_model_statistics.t
 data.table::fwrite(skeleton_model_stats, file_path, sep = "\t")
 print(round(skeleton_model_stats, 2))
 #             me   mae     mse  rmse  mec slope
-# predicted 0.84 17.35 2922.54 54.06 0.74  1.03
+# predicted 0.84 17.35 2922.4 54.06 0.74  1.03
 
 # Write model parameters to disk
 file_path <- paste0("res/tab/", collection, "_skeleton_ranger_model_parameters.txt")
@@ -436,7 +436,7 @@ if (any(soildata[!is_na_skeleton, abs_error] >= abs_error_tolerance)) {
 } else {
   print(paste0("All absolute errors are below ", abs_error_tolerance, " %."))
 }
-# 2282 layers with absolute error >= 100 g/kg
+# 2281 layers with absolute error >= 100 g/kg
 
 # Figure: Variable importance
 variable_importance_threshold <- 0.02
@@ -535,10 +535,8 @@ if (FALSE) {
     crs = 4674,
     remove = FALSE
   )
-  mapview::mapview(tmp_sf,
-    zcol = "prediction_error",
-    col.regions = rev(RColorBrewer::brewer.pal(9, "RdBu")),
-    layer.name = "Prediction error in soil skeleton (g/kg)"
+  mapview::mapview(tmp_sf["prediction_error"],  
+    col.regions = rev(RColorBrewer::brewer.pal(9, "RdBu"))
   )
   rm(tmp_sf)
 }
