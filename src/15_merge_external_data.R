@@ -95,7 +95,7 @@ balance_vars <- cbind(coords, biome = biome_numeric)
 sand_samples_idx <- BalancedSampling::lpm2(prob_sand, balance_vars)
 sand_samples_selected <- sand_samples[sand_samples_idx, ]
 nrow(sand_samples_selected)
-# 100
+# 500
 
 # Check spatial distribution of the selected samples
 if (interactive()) {
@@ -109,10 +109,10 @@ sand_samples_selected <- data.table::as.data.table(sf::st_coordinates(sand_sampl
 data.table::setnames(sand_samples_selected, old = c("X", "Y"), new = c("coord_x", "coord_y"))
 # Add columns to match the structure of "soildata"
 sand_samples_selected[, `:=`(
-  dataset_id = "sand-pseudo",
+  dataset_id = "pseudo-sand",
   observacao_id = .I,
-  id = paste0("sand-pseudo-", .I),
-  dataset_titulo = "Pseudo-sample from beach, dune, and sandy spot",
+  id = paste0("pseudo-sand-", .I),
+  dataset_titulo = "Pseudo-samples from beaches, dunes, and sandy spots",
   organizacao_nome = "MapBiomas",
   dataset_licenca = "CC-BY 4.0",
   coord_precisao = 30,
@@ -226,10 +226,10 @@ data.table::setnames(rock_samples_selected, old = c("X", "Y"), new = c("coord_x"
 
 # Add columns to match the structure of "soildata"
 rock_samples_selected[, `:=`(
-  dataset_id = "rock-pseudo",
+  dataset_id = "pseudo-rock",
   observacao_id = .I,
-  id = paste0("rock-pseudo-", .I),
-  dataset_titulo = "Pseudo-sample from rocky outcrop",
+  id = paste0("pseudo-rock-", .I),
+  dataset_titulo = "Pseudo-samples from rock outcrops",
   organizacao_nome = "MapBiomas",
   dataset_licenca = "CC-BY 4.0",
   coord_precisao = 30,
