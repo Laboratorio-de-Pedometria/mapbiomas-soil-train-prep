@@ -102,9 +102,9 @@ summary_soildata(soildata_psd)
 # transformation. Another possible reason is the low number of soil profiles with high clay content,
 # resulting in a skewed distribution. To mitigate this issue, we dupplicate soil layers from soil
 # profiles that meet the following criteria:
-# a minimum clay content (argila) of 600 g/kg throughout the profile,
-# a maximum depth (profundidade) of at least 70 cm,
-# and at least 3 layers in the profile.
+# - a minimum clay content (argila) of 600 g/kg throughout the profile,
+# - a maximum depth (profundidade) of at least 50 cm,
+# - and at least 2 layers in the profile.
 x11()
 hist(soildata_psd[, argila],
   breaks = 50, main = "Clay content distribution", xlab = "Clay content (g/kg)"
@@ -115,25 +115,25 @@ rug(soildata_psd[, argila])
 soildata_psd[, min_argila := min(argila), by = id]
 soildata_psd[, max_profundidade := max(profundidade), by = id]
 soildata_psd[, n := .N, by = id]
-tmp_sf <- soildata_psd[min_argila > 600 & max_profundidade >= 70 & n >= 3, ]
-length(unique(tmp_sf$id)) # 633 soil profiles to be duplicated
-nrow(tmp_sf) # 2898 layers to be duplicated
+tmp_sf <- soildata_psd[min_argila > 600 & max_profundidade >= 50 & n >= 2, ]
+length(unique(tmp_sf$id)) # 855 soil profiles to be duplicated
+nrow(tmp_sf) # 3564 layers to be duplicated
 if (interactive()) {
   mapview::mapview(sf::st_as_sf(
     tmp_sf,
     coords = c("coord_x", "coord_y"),
     crs = sf::st_crs(4326),
     remove = FALSE
-  ), zcol = "argila", legend = TRUE, layer.name = "Clay content (g/kg)")
+  ), zcol = "argila", legend = TRUE)
 }
 # Append the prefix "clay-copy-" to the duplicated layers' id
 tmp_sf[, id := paste0("clay-copy-", id)]
 soildata_psd <- rbind(soildata_psd, tmp_sf)
 soildata_psd[, `:=`(min_argila = NULL, max_profundidade = NULL, n = NULL)]
 summary_soildata(soildata_psd)
-# Layers: 60261
-# Events: 15573
-# Georeferenced events: 15573
+# Layers: 60927
+# Events: 15795
+# Georeferenced events: 15795
 
 # DATA CLEANING ###################################################################################
 # Rename "coord_x" and "coord_y" to "longitude" and "latitude" respectively
@@ -235,8 +235,8 @@ soildata_psd[, `:=`(argila1p = NULL, silte1p = NULL, areia1p = NULL, esqueleto1p
 
 # Export PSD data for spatial modelling ############################################################
 ncol(soildata_psd) # Result: 11 columns (variables)
-nrow(soildata_psd) # Result: 60261 rows (layers)
-nrow(unique(soildata_psd[, "id"])) # Result: 15573 unique soil profiles
+nrow(soildata_psd) # Result: 60927 rows (layers)
+nrow(unique(soildata_psd[, "id"])) # Result: 15795 unique soil profiles
 length(unique(sub("-.*$", "", soildata_psd$id))) - 3 # Result: 193 unique datasets (excluding pseudo and copy)
 
 # Destination folder
