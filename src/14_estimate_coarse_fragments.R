@@ -294,82 +294,82 @@ min_node_size <- c(2, 3)
 hyperparameters <- expand.grid(num_trees, mtry, min_node_size, max_depth)
 colnames(hyperparameters) <- c("num_trees", "mtry", "min_node_size", "max_depth")
 print(hyperparameters)
-
-# Fit ranger model testing different hyperparameters
-t0 <- Sys.time()
-hyper_results <- data.table::data.table()
-for (i in 1:nrow(hyperparameters)) {
-  print(hyperparameters[i, ])
-  set.seed(1984)
-  model <- ranger::ranger(
-    y = soildata[!is_na_skeleton, esqueleto],
-    x = covariates[!is_na_skeleton, ],
-    num.trees = hyperparameters$num_trees[i],
-    mtry = hyperparameters$mtry[i],
-    min.node.size = hyperparameters$min_node_size[i],
-    max.depth = hyperparameters$max_depth[i],
-    replace = TRUE,
-    verbose = TRUE,
-    num.threads = parallel::detectCores() - 1
-  )
-  observed <- soildata[!is_na_skeleton, esqueleto]
-  predicted <- model$predictions
-  error <- observed - predicted
-  residual <- mean(observed) - observed
-  me <- mean(error)
-  mae <- mean(abs(error))
-  mse <- mean(error^2)
-  rmse <- sqrt(mse)
-  nse <- 1 - mse / mean(residual^2)
-  slope <- coef(lm(observed ~ predicted))[2]
-  hyper_results <- rbind(hyper_results, data.table::data.table(
-    num_trees = hyperparameters$num_trees[i],
-    mtry = hyperparameters$mtry[i],
-    min_node_size = hyperparameters$min_node_size[i],
-    max_depth = hyperparameters$max_depth[i],
-    me = me,
-    mae = mae,
-    rmse = rmse,
-    nse = nse,
-    slope = slope
-  ))
-}
-Sys.time() - t0
-
-# Export the results to a TXT file
-file_path <- paste0("res/tab/", collection, "_skeleton_ranger_hyperparameter_tunning.txt")
-data.table::fwrite(hyper_results, file_path, sep = "\t")
 if (FALSE) {
-  # Read the results from disk
-  hyper_results <- data.table::fread(file_path, sep = "\t")
+  # Fit ranger model testing different hyperparameters
+  t0 <- Sys.time()
+  hyper_results <- data.table::data.table()
+  for (i in 1:nrow(hyperparameters)) {
+    print(hyperparameters[i, ])
+    set.seed(1984)
+    model <- ranger::ranger(
+      y = soildata[!is_na_skeleton, esqueleto],
+      x = covariates[!is_na_skeleton, ],
+      num.trees = hyperparameters$num_trees[i],
+      mtry = hyperparameters$mtry[i],
+      min.node.size = hyperparameters$min_node_size[i],
+      max.depth = hyperparameters$max_depth[i],
+      replace = TRUE,
+      verbose = TRUE,
+      num.threads = parallel::detectCores() - 1
+    )
+    observed <- soildata[!is_na_skeleton, esqueleto]
+    predicted <- model$predictions
+    error <- observed - predicted
+    residual <- mean(observed) - observed
+    me <- mean(error)
+    mae <- mean(abs(error))
+    mse <- mean(error^2)
+    rmse <- sqrt(mse)
+    nse <- 1 - mse / mean(residual^2)
+    slope <- coef(lm(observed ~ predicted))[2]
+    hyper_results <- rbind(hyper_results, data.table::data.table(
+      num_trees = hyperparameters$num_trees[i],
+      mtry = hyperparameters$mtry[i],
+      min_node_size = hyperparameters$min_node_size[i],
+      max_depth = hyperparameters$max_depth[i],
+      me = me,
+      mae = mae,
+      rmse = rmse,
+      nse = nse,
+      slope = slope
+    ))
+  }
+  Sys.time() - t0
+
+  # Export the results to a TXT file
+  file_path <- paste0("res/tab/", collection, "_skeleton_ranger_hyperparameter_tunning.txt")
+  data.table::fwrite(hyper_results, file_path, sep = "\t")
+  if (FALSE) {
+    # Read the results from disk
+    hyper_results <- data.table::fread(file_path, sep = "\t")
+  }
+
+  # Assess results
+  # What is the Spearman correlation between hyperparameters and model performance metrics?
+  correlation <- round(cor(hyper_results, method = "spearman"), 2)
+  file_path <- paste0("res/tab/", collection, "_skeleton_ranger_hyperparameter_correlation.txt")
+  data.table::fwrite(correlation, file_path, sep = "\t")
+  print(correlation[1:4, 5:9])
+
+  # Sort the results by RMSE
+  hyper_results <- hyper_results[order(rmse)]
+
+  # Select the best hyperparameters
+  # Among smallest `rmse`, select the hyperparameters with the smallest `num_trees`.
+  # Then select the hyperparameters with the largest `nse`.
+  # Then select the hyperparameters with the smallest `max_depth`.
+  # Then select the hyperparameters with the smallest `mtry`.
+  # Then select the hyperparameters with the largest `min_node_size`.
+  digits <- 2
+  hyper_best <- round(hyper_results, digits)
+  hyper_best <- hyper_best[rmse == min(rmse), ]
+  hyper_best <- hyper_best[nse == max(nse), ]
+  hyper_best <- hyper_best[num_trees == min(num_trees), ]
+  hyper_best <- hyper_best[max_depth == min(max_depth), ]
+  hyper_best <- hyper_best[mtry == min(mtry), ]
+  hyper_best <- hyper_best[min_node_size == max(min_node_size), ]
+  print(hyper_best)
 }
-
-# Assess results
-# What is the Spearman correlation between hyperparameters and model performance metrics?
-correlation <- round(cor(hyper_results, method = "spearman"), 2)
-file_path <- paste0("res/tab/", collection, "_skeleton_ranger_hyperparameter_correlation.txt")
-data.table::fwrite(correlation, file_path, sep = "\t")
-print(correlation[1:4, 5:9])
-
-# Sort the results by RMSE
-hyper_results <- hyper_results[order(rmse)]
-
-# Select the best hyperparameters
-# Among smallest `rmse`, select the hyperparameters with the smallest `num_trees`.
-# Then select the hyperparameters with the largest `nse`.
-# Then select the hyperparameters with the smallest `max_depth`.
-# Then select the hyperparameters with the smallest `mtry`.
-# Then select the hyperparameters with the largest `min_node_size`.
-digits <- 2
-hyper_best <- round(hyper_results, digits)
-hyper_best <- hyper_best[rmse == min(rmse), ]
-hyper_best <- hyper_best[nse == max(nse), ]
-hyper_best <- hyper_best[num_trees == min(num_trees), ]
-hyper_best <- hyper_best[max_depth == min(max_depth), ]
-hyper_best <- hyper_best[mtry == min(mtry), ]
-hyper_best <- hyper_best[min_node_size == max(min_node_size), ]
-print(hyper_best)
-
 # Hard code the best hyperparameters for the model
 hyper_best <- data.frame(num_trees = 400, mtry = 54, min_node_size = 2, max_depth = 25)
 
