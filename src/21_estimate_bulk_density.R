@@ -193,3 +193,17 @@ covariates <- data.table::as.data.table(
 )
 print(covariates)
 ncol(covariates) # 273 covariates after feature selection
+
+# MODELING #########################################################################################
+
+# Prepare grid of hyperparameters
+# mtry
+mtry <- c(2, 4, 8, 16)
+# max.depth
+max_depth <- c(10, 20, 30, 40)
+# num.trees
+num_trees <- c(100, 200, 400, 800)
+# min.node.size
+min_node_size <- c(1, 2, 4, 8)
+hyperparameters <- expand.grid(num_trees, mtry, min_node_size, max_depth)
+colnames(hyperparameters) <- c("num_trees", "mtry", "min_node_size", "max_depth")
