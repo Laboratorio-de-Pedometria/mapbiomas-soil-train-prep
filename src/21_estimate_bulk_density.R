@@ -182,3 +182,14 @@ if (nrow(high_correlation) > 0) {
 #  [9] "clay_30_60cm"  "clay_60_100cm" "roughness"     "sand_05_15cm" 
 # [13] "sand_15_30cm"  "sand_30_60cm"  "sand_60_100cm" "slope"        
 # [17] "soc_60_100cm" 
+
+# Missing value imputation
+# Use the missingness-in-attributes (MIA) approach with +/- Inf, with the indicator for missingness
+# (mask) to impute missing values in the covariates
+covariates <- data.table::as.data.table(
+  imputation(soildata[, ..covars_names],
+    method = "mia", na.replacement = list(cont = Inf, cat = "unknown"), na.indicator = TRUE
+  )
+)
+print(covariates)
+ncol(covariates) # 273 covariates after feature selection
