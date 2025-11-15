@@ -1,7 +1,7 @@
 # title: MapBiomas Soil
 # subtitle: 14. Estimate coarse fragments
 # author: Alessandro Samuel-Rosa and Taciara Zborowski Horst
-# data: 2025 CC-BY
+# data: 2025
 rm(list = ls())
 
 # Set MapBiomas Soil Collection
