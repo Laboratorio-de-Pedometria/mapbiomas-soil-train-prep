@@ -352,3 +352,12 @@ print(dsi_model)
 # OOB prediction error (MSE): 0.01215107 
 # R squared (OOB): 0.8342622
 
+# Compute regression model statistics and write to disk
+dsi_model_stats <- error_statistics(soildata[!is_na_dsi, dsi], dsi_model$predictions)
+data.table::fwrite(
+  dsi_model_stats, paste0("res/tab/", collection, "_bulk_density_model_statistics.txt"),
+  sep = "\t"
+)
+print(round(dsi_model_stats, 2))
+#           me  mae  mse rmse  mec slope
+# predicted  0 0.07 0.01 0.11 0.83  1.06
