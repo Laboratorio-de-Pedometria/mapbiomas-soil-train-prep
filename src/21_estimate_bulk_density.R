@@ -371,3 +371,38 @@ if (FALSE) {
   dsi_model <- data.table::fread(file_path, sep = "\t")
   print(dsi_model)
 }
+
+# Check absolute error
+abs_error_tolerance <- 1
+soildata[!is_na_dsi, abs_error := abs(soildata[!is_na_dsi, dsi] - dsi_model$predictions)]
+if (any(soildata[!is_na_dsi, abs_error] >= abs_error_tolerance)) {
+  print(soildata[
+    abs_error >= abs_error_tolerance,
+    .(id, camada_id, camada_nome, dsi, dsi_upper, dsi_lower, abs_error)
+  ])
+} else {
+  print(paste0("All absolute errors are below ", abs_error_tolerance, " g/dm^3."))
+}
+# 01 layers with absolute error >= 100 g/kg
+#                   id camada_id camada_nome   dsi dsi_upper dsi_lower abs_error
+#               <char>     <int>      <char> <num>     <num>     <num>     <num>
+# 1: ctb0793-PERFIL-01         3         Bt1  2.44      0.98      1.14   1.40367
+
+# Figure: Variable importance
+# Plot only those with relative importance >= 0.03
+variable_importance_threshold <- 0.02
+dsi_model_variable <- sort(dsi_model$variable.importance)
+dsi_model_variable <- round(dsi_model_variable / max(dsi_model_variable), 4)
+dev.off()
+file_path <- paste0("res/fig/", collection, "_bulk_density_variable_importance.png")
+png(file_path, width = 480 * 3, height = 480 * 4, res = 72 * 3)
+par(mar = c(4, 6, 1, 1) + 0.1)
+barplot(dsi_model_variable[dsi_model_variable >= variable_importance_threshold],
+  horiz = TRUE, las = 1,
+  col = "gray", border = "gray",
+  xlab = paste("Relative importance >=", variable_importance_threshold), cex.names = 0.5
+)
+grid(nx = NULL, ny = FALSE, col = "gray")
+dev.off()
+# Which variables have importance below the threshold?
+names(dsi_model_variable[dsi_model_variable < variable_importance_threshold])
