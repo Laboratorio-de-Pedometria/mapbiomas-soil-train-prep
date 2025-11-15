@@ -240,3 +240,45 @@ min_bucket <- c(1) # Collection 3
 hyperparameters <- expand.grid(num_trees, mtry, min_node_size, max_depth, min_bucket)
 colnames(hyperparameters) <- c("num_trees", "mtry", "min_node_size", "max_depth", "min_bucket")
 
+# Fit ranger model testing different hyperparameters
+t0 <- Sys.time()
+hyper_results <- data.table::data.table()
+for (i in 1:nrow(hyperparameters)) {
+  print(hyperparameters[i, ])
+  set.seed(1984)
+  model <- ranger::ranger(
+    y = soildata[!is_na_dsi, dsi],
+    x = covariates[!is_na_dsi, ],
+    num.trees = hyperparameters$num_trees[i],
+    mtry = hyperparameters$mtry[i],
+    min.node.size = hyperparameters$min_node_size[i],
+    max.depth = hyperparameters$max_depth[i],
+    min.bucket = hyperparameters$min_bucket[i],
+    replace = TRUE,
+    verbose = TRUE,
+    num.threads = parallel::detectCores() - 1
+  )
+  observed <- soildata[!is_na_dsi, dsi]
+  predicted <- model$predictions
+  error <- observed - predicted
+  residual <- mean(observed) - observed
+  me <- mean(error)
+  mae <- mean(abs(error))
+  mse <- mean(error^2)
+  rmse <- sqrt(mse)
+  nse <- 1 - mse / mean(residual^2)
+  slope <- coef(lm(observed ~ predicted))[2]
+  hyper_results <- rbind(hyper_results, data.table::data.table(
+    num_trees = hyperparameters$num_trees[i],
+    mtry = hyperparameters$mtry[i],
+    min_node_size = hyperparameters$min_node_size[i],
+    max_depth = hyperparameters$max_depth[i],
+    min_bucket = hyperparameters$min_bucket[i],
+    me = me,
+    mae = mae,
+    rmse = rmse,
+    nse = nse,
+    slope = slope
+  ))
+}
+Sys.time() - t0
