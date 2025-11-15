@@ -282,3 +282,73 @@ for (i in 1:nrow(hyperparameters)) {
   ))
 }
 Sys.time() - t0
+# Time difference of 58.98823 mins
+
+# Export the results to a TXT file
+file_path <- paste0("res/tab/", collection, "_bulk_density_hyperparameter_tunning.txt")
+data.table::fwrite(hyper_results, file_path, sep = "\t")
+if (FALSE) {
+  # Read the results from disk.
+  hyper_results <- data.table::fread(file_path, sep = "\t")
+}
+
+# Assess results
+# What is the Spearman correlation between hyperparameters and model performance metrics?
+correlation <- round(cor(hyper_results, method = "spearman"), 2)
+file_path <- paste0("res/tab/", collection, "_bulk_density_hyperparameter_correlation.txt")
+data.table::fwrite(correlation, file_path, sep = "\t")
+print(correlation[1:4, 6:10])
+#                  me   mae  rmse   nse slope
+# num_trees      0.03 -0.09 -0.11  0.11  0.09
+# mtry           0.40 -0.61 -0.66  0.66 -0.60
+# min_node_size -0.16  0.10  0.12 -0.12  0.10
+# max_depth      0.64 -0.61 -0.56  0.56 -0.61
+
+# Sort the results by RMSE
+hyper_results <- hyper_results[order(rmse)]
+
+# Select the best hyperparameters
+# Among smallest `rmse`, select the hyperparameters with the smallest `num_trees`.
+# Then select the hyperparameters with the largest `nse`.
+# Then select the hyperparameters with the smallest `max_depth`.
+# Then select the hyperparameters with the smallest `mtry`.
+# Then select the hyperparameters with the largest `min_node_size`.
+digits <- 2
+hyper_best <- round(hyper_results, digits)
+hyper_best <- hyper_best[rmse == min(rmse), ]
+hyper_best <- hyper_best[nse == max(nse), ]
+hyper_best <- hyper_best[num_trees == min(num_trees), ]
+hyper_best <- hyper_best[max_depth == min(max_depth), ]
+hyper_best <- hyper_best[mtry == min(mtry), ]
+hyper_best <- hyper_best[min_node_size == max(min_node_size), ]
+print(hyper_best[, -"min_bucket"])
+#    num_trees  mtry min_node_size max_depth    me   mae  rmse   nse slope
+#        <num> <num>         <num>     <num> <num> <num> <num> <num> <num>
+# 1:       200    24             2        20     0  0.07  0.11  0.84  1.06
+
+# Hard code the best hyperparameters for the model
+hyper_best <- data.frame(
+  num_trees = 200, mtry = 24, min_node_size = 2, max_depth = 20, min_bucket = 1
+)
+
+# Fit the best model
+t0 <- Sys.time()
+set.seed(2001)
+dsi_model <- ranger::ranger(
+  y = soildata[!is_na_dsi, dsi],
+  x = covariates[!is_na_dsi, ],
+  num.trees = hyper_best$num_trees,  
+  mtry = hyper_best$mtry,
+  min.node.size = hyper_best$min_node_size,
+  max.depth = hyper_best$max_depth,
+  min.bucket = hyper_best$min_bucket,
+  importance = "impurity",
+  replace = TRUE,
+  verbose = TRUE,
+  num.threads = parallel::detectCores() - 1
+)
+Sys.time() - t0
+print(dsi_model)
+# OOB prediction error (MSE): 0.01215107 
+# R squared (OOB): 0.8342622
+
