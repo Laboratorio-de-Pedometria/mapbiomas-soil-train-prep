@@ -197,13 +197,46 @@ ncol(covariates) # 273 covariates after feature selection
 # MODELING #########################################################################################
 
 # Prepare grid of hyperparameters
-# mtry
-mtry <- c(2, 4, 8, 16)
-# max.depth
-max_depth <- c(10, 20, 30, 40)
-# num.trees
-num_trees <- c(100, 200, 400, 800)
-# min.node.size
-min_node_size <- c(1, 2, 4, 8)
-hyperparameters <- expand.grid(num_trees, mtry, min_node_size, max_depth)
-colnames(hyperparameters) <- c("num_trees", "mtry", "min_node_size", "max_depth")
+# mtry. This is the number of variables to possibly split at in each node. The parameter controls
+# the trade-off between variance and bias. A lower mtry increases the variance and reduces the bias,
+# while a higher mtry reduces the variance and increases the bias. The default value in ranger is
+# the square root of the number of predictors for regression tasks. In Collection 2, we tested the
+# following values: 2, 4, 8, and 16, with 16 being the overall best choice. In Collection 3, the
+# default ranger value would be sqrt(273) ≈ 16.5. Therefore, we will drop the two lowermost values
+# and add 24 and 32 to better cover the range of possible values.
+# mtry <- c(2, 4, 8, 16) # Collection 2, with 16 being the best
+mtry <- c(8, 16, 24, 32)  # Collection 3
+# max.depth. This parameter limits the maximum depth of the trees. Deeper trees can capture more
+# complex patterns but may lead to overfitting. Shallower trees are less likely to overfit but may
+# underfit the data. In Collection 2, we tested the following values: 10, 20, 30, and 40, with 20
+# being the overall best choice. We will keep the same values for Collection 3.
+# max_depth <- c(10, 20, 30, 40) # Collection 2, with 20 being the best
+max_depth <- c(10, 20, 30, 40) # Collection 3
+# num.trees. This parameter defines the number of trees to grow in the forest. A higher number of
+# trees can improve model performance but also increases computational cost. In Collection 2, we
+# tested the following values: 100, 200, 400, and 800, with 400 being the overall best choice. We
+# will drop the lowest value and add 600 to better cover the range of possible values.
+# num_trees <- c(100, 200, 400, 800) # Collection 2, with 400 being the best
+num_trees <- c(200, 400, 600, 800) # Collection 3
+# min.node.size. This parameter sets the minimum size of nodes to be considered for splitting. It
+# controls the complexity of the model by determining how many samples must be present in a node
+# for it to be split further. A smaller min.node.size allows for more splits, leading to a more
+# complex model that may capture intricate patterns in the data but also risks overfitting. A larger
+# min.node.size results in fewer splits, producing a simpler model that may generalize better but
+# could underfit the data. In Collection 2, we tested the following values: 1, 2, 4, and 8, with 1
+# being the overall best choice. This is the default value for classification tasks in ranger, while
+# for regression tasks the default is 5. We will drop "1", adding "6" to better cover the range of
+# possible values.
+# min_node_size <- c(1, 2, 4, 8) # Collection 2, with 1 being the best
+min_node_size <- c(2, 4, 6, 8) # Collection 3
+# min.bucket. This parameter sets the minimum size of terminal nodes (leaves) in the trees. It
+# determines how many samples must be present in a leaf node. A smaller min.bucket allows for more
+# detailed splits, leading to a more complex model that may capture intricate patterns in the data
+# but also risks overfitting. A larger min.bucket results in fewer splits, producing a simpler model
+# that may generalize better but could underfit the data. In Collection 2, we used the default value
+# of 1. We will keep the same value for Collection 3.
+# min_bucket <- c(1) # Collection 2, with 1 being the default
+min_bucket <- c(1) # Collection 3
+hyperparameters <- expand.grid(num_trees, mtry, min_node_size, max_depth, min_bucket)
+colnames(hyperparameters) <- c("num_trees", "mtry", "min_node_size", "max_depth", "min_bucket")
+
