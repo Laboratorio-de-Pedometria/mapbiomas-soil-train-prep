@@ -361,3 +361,13 @@ data.table::fwrite(
 print(round(dsi_model_stats, 2))
 #           me  mae  mse rmse  mec slope
 # predicted  0 0.07 0.01 0.11 0.83  1.06
+
+# Write model parameters to disk
+file_path <- paste0("res/tab/", collection, "_bulk_density_model_parameters.txt")
+write.table(capture.output(print(dsi_model))[6:15], file = file_path, sep = "\t", row.names = FALSE)
+if (FALSE) {
+  # Read the model parameters from disk
+  file_path <- paste0("res/tab/", collection, "_bulk_density_model_parameters.txt")
+  dsi_model <- data.table::fread(file_path, sep = "\t")
+  print(dsi_model)
+}
