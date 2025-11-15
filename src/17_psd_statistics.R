@@ -1,7 +1,7 @@
 # title: MapBiomas Soil
 # subtitle: 17. PSD statistics
 # author: Alessandro Samuel-Rosa and Taciara Zborowski Horst
-# date: 2025 CC-BY
+# date: 2025
 rm(list = ls())
 
 # Set MapBiomas Soil Collection
