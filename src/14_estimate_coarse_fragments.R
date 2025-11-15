@@ -456,6 +456,7 @@ dev.off()
 names(skeleton_model_variable[skeleton_model_variable < variable_importance_threshold])
 
 # Figure: Plot fitted versus observed values
+# Set color of points as a function of the absolute error, that is, abs(y - x).
 color_breaks <- seq(0, abs_error_tolerance, length.out = 5)
 color_class <- cut(soildata[!is_na_skeleton, abs_error], breaks = color_breaks, include.lowest = TRUE)
 color_palette <- RColorBrewer::brewer.pal(length(color_breaks) - 1, "Purples")
