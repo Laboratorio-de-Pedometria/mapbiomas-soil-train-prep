@@ -20,6 +20,16 @@ summary_soildata(soildata)
 # Georeferenced events: 16366
 # Datasets: 265
 
+# Check possible inconsistencies in soil bulk density values
+soildata[dsi > 2.4, .(id, camada_nome, profund_sup, profund_inf, dsi)]
+# Correct outliers (THIS HAS ALSO BEEN DONE IN THE SOURCE SPREADSHEET)
+soildata[id == "ctb0793-PERFIL-01", dsi := ifelse(dsi == 2.44, 1.07, dsi)]
+soildata[id == "ctb0811-50" & profund_sup == 40, dsi := ifelse(dsi == 2.5, 1.69, dsi)]
+soildata[id == "ctb0811-50" & profund_sup == 80, dsi := ifelse(dsi == 2.5, 1.63, dsi)]
+soildata[id == "ctb0811-2", dsi := ifelse(dsi == 0.34, 1.64, dsi)]
+# Check again
+soildata[dsi > 2.4, .(id, camada_nome, profund_sup, profund_inf, dsi)]
+
 # DESIGN MATRIX FOR BULK DENSITY ESTIMATION ########################################################
 # Check data type
 print(soildata)
@@ -299,10 +309,10 @@ file_path <- paste0("res/tab/", collection, "_bulk_density_hyperparameter_correl
 data.table::fwrite(correlation, file_path, sep = "\t")
 print(correlation[1:4, 6:10])
 #                  me   mae  rmse   nse slope
-# num_trees      0.03 -0.09 -0.11  0.11  0.09
-# mtry           0.40 -0.61 -0.66  0.66 -0.60
-# min_node_size -0.16  0.10  0.12 -0.12  0.10
-# max_depth      0.64 -0.61 -0.56  0.56 -0.61
+# num_trees      0.11 -0.09 -0.11  0.11  0.09
+# mtry           0.38 -0.61 -0.66  0.66 -0.61
+# min_node_size -0.01  0.11  0.13 -0.13  0.10
+# max_depth      0.62 -0.61 -0.56  0.56 -0.61
 
 # Sort the results by RMSE
 hyper_results <- hyper_results[order(rmse)]
@@ -324,11 +334,11 @@ hyper_best <- hyper_best[min_node_size == max(min_node_size), ]
 print(hyper_best[, -"min_bucket"])
 #    num_trees  mtry min_node_size max_depth    me   mae  rmse   nse slope
 #        <num> <num>         <num>     <num> <num> <num> <num> <num> <num>
-# 1:       200    24             2        20     0  0.07  0.11  0.84  1.06
+# 1:       200    24             8        20     0  0.07  0.11  0.84  1.07
 
 # Hard code the best hyperparameters for the model
 hyper_best <- data.frame(
-  num_trees = 200, mtry = 24, min_node_size = 2, max_depth = 20, min_bucket = 1
+  num_trees = 200, mtry = 24, min_node_size = 8, max_depth = 20, min_bucket = 1
 )
 
 # Fit the best model
@@ -349,8 +359,8 @@ dsi_model <- ranger::ranger(
 )
 Sys.time() - t0
 print(dsi_model)
-# OOB prediction error (MSE): 0.01215107 
-# R squared (OOB): 0.8342622
+# OOB prediction error (MSE): 0.01192191 
+# R squared (OOB): 0.8367749
 
 # Compute regression model statistics and write to disk
 dsi_model_stats <- error_statistics(soildata[!is_na_dsi, dsi], dsi_model$predictions)
@@ -360,7 +370,7 @@ data.table::fwrite(
 )
 print(round(dsi_model_stats, 2))
 #           me  mae  mse rmse  mec slope
-# predicted  0 0.07 0.01 0.11 0.83  1.06
+# predicted  0 0.07 0.01 0.11 0.84  1.07
 
 # Write model parameters to disk
 file_path <- paste0("res/tab/", collection, "_bulk_density_model_parameters.txt")
@@ -383,13 +393,9 @@ if (any(soildata[!is_na_dsi, abs_error] >= abs_error_tolerance)) {
 } else {
   print(paste0("All absolute errors are below ", abs_error_tolerance, " g/dm^3."))
 }
-# 01 layers with absolute error >= 100 g/kg
-#                   id camada_id camada_nome   dsi dsi_upper dsi_lower abs_error
-#               <char>     <int>      <char> <num>     <num>     <num>     <num>
-# 1: ctb0793-PERFIL-01         3         Bt1  2.44      0.98      1.14   1.40367
 
 # Figure: Variable importance
-# Plot only those with relative importance >= 0.03
+# Plot only those with relative importance >= 0.02
 variable_importance_threshold <- 0.02
 dsi_model_variable <- sort(dsi_model$variable.importance)
 dsi_model_variable <- round(dsi_model_variable / max(dsi_model_variable), 4)
@@ -406,3 +412,27 @@ grid(nx = NULL, ny = FALSE, col = "gray")
 dev.off()
 # Which variables have importance below the threshold?
 names(dsi_model_variable[dsi_model_variable < variable_importance_threshold])
+
+# Figure: Plot fitted versus observed values
+# Set color of points as a function of the absolute error, that is, abs(y - x)
+color_breaks <- c(seq(0, abs_error_tolerance, length.out = 6), Inf)
+color_class <- cut(soildata[!is_na_dsi, abs_error], breaks = color_breaks, include.lowest = TRUE)
+color_palette <- c(RColorBrewer::brewer.pal(length(color_breaks) - 2, "Purples"), "red4")
+dev.off()
+file_path <- paste0("res/fig/", collection, "_bulk_density_observed_versus_oob.png")
+png(file_path, width = 480 * 3, height = 480 * 3, res = 72 * 3)
+par(mar = c(4, 4.5, 2, 2) + 0.1)
+plot(
+  y = soildata[!is_na_dsi, dsi], x = dsi_model$predictions,
+  xlim = c(0, 2.5), ylim = c(0, 2.5),
+  panel.first = grid(),
+  pch = 21, bg = color_palette[as.numeric(color_class)],
+  ylab = expression("Observed soil bulk density, g cm"^-3),
+  xlab = expression("Fitted bulk soil density (OOB), g cm"^-3)
+)
+abline(0, 1)
+legend("topleft", title = expression("Absolute error, g cm"^-3),
+  legend = levels(color_class),
+  pt.bg = color_palette, border = "white", box.lwd = 0, pch = 21
+)
+dev.off()
