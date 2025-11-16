@@ -183,3 +183,18 @@ data.table::fwrite(psd_stats_state,
   file = paste0("res/tab/", collection, "_psd_stats_by_state.csv"),
   sep = ";", dec = ".", row.names = FALSE
 )
+
+# hist((soildata_psd_sf[soildata_psd_sf$name_biome == "Pantanal" & soildata_psd_sf$profundidade < 30, ]$areia))
+# rug(soildata_psd_sf[soildata_psd_sf$name_biome == "Pantanal" & soildata_psd_sf$profundidade < 30, ]$areia)
+
+# x11()
+# install.packages("soiltexture")
+# tmp <- soildata_psd_sf[soildata_psd_sf$name_biome == "Pantanal" & soildata_psd_sf$profundidade <= 30, c("argila", "silte", "areia")]
+# tmp <- as.data.frame(tmp)
+# tmp <- tmp[!is.na(tmp$argila) & tmp$argila > 0, ] / 10
+# soiltexture::TT.plot(
+#   tri.data = tmp,
+#   css.names = c("argila", "silte", "areia"),
+#   main = "Particle Size Distribution - SoilTexture R package",
+#   class.sys = "USDA.TT"
+# )
