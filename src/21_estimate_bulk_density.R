@@ -26,9 +26,17 @@ soildata[dsi > 2.4, .(id, camada_nome, profund_sup, profund_inf, dsi)]
 soildata[id == "ctb0793-PERFIL-01", dsi := ifelse(dsi == 2.44, 1.07, dsi)]
 soildata[id == "ctb0811-50" & profund_sup == 40, dsi := ifelse(dsi == 2.5, 1.69, dsi)]
 soildata[id == "ctb0811-50" & profund_sup == 80, dsi := ifelse(dsi == 2.5, 1.63, dsi)]
-soildata[id == "ctb0811-2", dsi := ifelse(dsi == 0.34, 1.64, dsi)]
 # Check again
 soildata[dsi > 2.4, .(id, camada_nome, profund_sup, profund_inf, dsi)]
+
+# Correct other outliers (after modelling) (THIS HAS ALSO BEEN DONE IN THE SOURCE SPREADSHEET)
+soildata[id == "ctb0811-2", dsi := ifelse(dsi == 0.34, 1.64, dsi)]
+soildata[id == "ctb0572-Perfil-063", dsi := ifelse(dsi == 0.34, 0.84, dsi)]
+soildata[id == "ctb0572-Perfil-063", dsi := ifelse(dsi == 1.84, 0.84, dsi)]
+
+# Correct other outliers (after modelling) (NOT CORRECTED IN THE SOURCE SPREADSHEET AS WE DO NOT HAVE
+# ACCESS TO THE SOURCE TEXT DOCUMENT)
+soildata[id == "ctb0829-P46", dsi := ifelse(dsi == 1.09, 2.09, dsi)]
 
 # DESIGN MATRIX FOR BULK DENSITY ESTIMATION ########################################################
 # Check data type
@@ -359,8 +367,8 @@ dsi_model <- ranger::ranger(
 )
 Sys.time() - t0
 print(dsi_model)
-# OOB prediction error (MSE): 0.01192191 
-# R squared (OOB): 0.8367749
+# OOB prediction error (MSE): 0.01168542 
+# R squared (OOB): 0.8401295
 
 # Compute regression model statistics and write to disk
 dsi_model_stats <- error_statistics(soildata[!is_na_dsi, dsi], dsi_model$predictions)
@@ -383,7 +391,8 @@ if (FALSE) {
 }
 
 # Check absolute error
-abs_error_tolerance <- 1
+# abs_error_tolerance <- 1.0 # Collection 2
+abs_error_tolerance <- 0.9 # Collection 3
 soildata[!is_na_dsi, abs_error := abs(soildata[!is_na_dsi, dsi] - dsi_model$predictions)]
 if (any(soildata[!is_na_dsi, abs_error] >= abs_error_tolerance)) {
   print(soildata[
