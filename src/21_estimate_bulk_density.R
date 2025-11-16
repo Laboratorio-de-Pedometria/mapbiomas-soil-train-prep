@@ -38,6 +38,17 @@ soildata[id == "ctb0572-Perfil-063", dsi := ifelse(dsi == 1.84, 0.84, dsi)]
 # ACCESS TO THE SOURCE TEXT DOCUMENT)
 soildata[id == "ctb0829-P46", dsi := ifelse(dsi == 1.09, 2.09, dsi)]
 
+# Update soil covariates: bulk density of upper and lower layer
+# First, sort the data by soil event (id) and soil layer (camada_id).
+# For each soil layer (camada_id) in a soil event (id), identify the bulk density (dsi) of the
+# immediately upper and lower layers. If the layer is the first or last in a given soil event (id),
+# the bulk density of the upper or lower layer is set to NA, respectively.
+soildata <- soildata[order(id, camada_id)]
+soildata[, dsi_upper := shift(dsi, type = "lag"), by = id]
+soildata[, dsi_lower := shift(dsi, type = "lead"), by = id]
+summary(soildata[, dsi_upper])
+summary(soildata[, dsi_lower])
+
 # DESIGN MATRIX FOR BULK DENSITY ESTIMATION ########################################################
 # Check data type
 print(soildata)
@@ -367,8 +378,8 @@ dsi_model <- ranger::ranger(
 )
 Sys.time() - t0
 print(dsi_model)
-# OOB prediction error (MSE): 0.01168542 
-# R squared (OOB): 0.8401295
+# OOB prediction error (MSE): 0.01189643 
+# R squared (OOB): 0.8372426
 
 # Compute regression model statistics and write to disk
 dsi_model_stats <- error_statistics(soildata[!is_na_dsi, dsi], dsi_model$predictions)
