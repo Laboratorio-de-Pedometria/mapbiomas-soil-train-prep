@@ -70,7 +70,7 @@ hist(soildata[, dsi],
   xlab = "Soil Bulk Density (g/cm³)",
   ylab = paste0("Absolute frequency (n = ", length(na.exclude(soildata[, dsi])), ")"),
   main = "", col = "gray", border = "gray",
-  breaks = seq(0, 3, by = 0.1)
+  breaks = seq(0, 2.5, by = 0.1)
 )
 grid(nx = FALSE, ny = NULL, col = "gray")
 rug(soildata[!is_na_dsi, dsi])
@@ -378,7 +378,7 @@ dsi_model <- ranger::ranger(
 )
 Sys.time() - t0
 print(dsi_model)
-# OOB prediction error (MSE): 0.01189643 
+# OOB prediction error (MSE): 0.01189643
 # R squared (OOB): 0.8372426
 
 # Compute regression model statistics and write to disk
@@ -456,3 +456,29 @@ legend("topleft", title = expression("Absolute error, g cm"^-3),
   pt.bg = color_palette, border = "white", box.lwd = 0, pch = 21
 )
 dev.off()
+
+# Impute missing values of soil bulk density in soildata
+dsi_digits <- 2
+soildata[is_na_dsi, dsi := predict(dsi_model, data = covariates[is_na_dsi, ])$predictions]
+soildata[, dsi := round(dsi, dsi_digits)]
+soildata[is_rock == TRUE, dsi := NA] # Set bulk density to NA in rock layers
+nrow(unique(soildata[, "id"])) # Result: 18882
+nrow(soildata) # Result: 62468
+
+# Figure. Histogram of soil bulk density data after imputation
+file_path <- paste0("res/fig/", collection, "_bulk_density_histogram_after_imputation.png")
+png(file_path, width = 480 * 3, height = 480 * 3, res = 72 * 3)
+par(mar = c(5, 4, 2, 2) + 0.1)
+hist(soildata[, dsi],
+  xlab = "Soil Bulk Density (g/cm³)",
+  ylab = paste0("Absolute frequency (n = ", length(na.exclude(soildata[, dsi])), ")"),
+  main = "", col = "gray", border = "gray",
+  breaks = seq(0, 2.5, by = 0.1)
+)
+grid(nx = FALSE, ny = NULL, col = "gray")
+rug(soildata[, dsi])
+dev.off()
+
+# Write data to disk ################################################################################
+soildata[, abs_error := NULL]
+soildata[, is_rock := NULL]
